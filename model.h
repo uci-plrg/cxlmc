@@ -2,13 +2,14 @@
 #define _MODEL_H
 
 #include <string>
+#include "scheduler.h"
 #include "shared_data.h"
 
 void action(std::string s);
 
 extern "C" {
-    void fork_init(int id, shared_data_t* d, mspace ms);
-    void done();
+    void model_init(int process_id, Scheduler *s, mspace ms, shared::vector<shared::string> *us);
+    void model_done();
 }
 
 #endif

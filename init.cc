@@ -6,7 +6,9 @@
 #include <errno.h>
 #include <dlfcn.h>
 
+#include "scheduler.h"
 #include "shared_data.h"
+#include "allocators.h"
 
 #define MAP_SIZE 8192
 
@@ -34,16 +36,17 @@ int main(int argc, char* argv[]) {
         perror("mmap");
         return 1;
     }
-     
-    shared_data *sd = (shared_data_t*) mapping;
-    sd->process_count = processes;
-    shared::shared_space = create_mspace_with_base((char *)mapping + sizeof(shared_data_t), MAP_SIZE - sizeof(shared_data_t), 1);
+    
+    int reserved = sizeof(Scheduler) + sizeof(shared::vector<shared::string>);
+    //shared space needs to be initialized first
+    shared::shared_space = create_mspace_with_base((char *)mapping + reserved, MAP_SIZE - reserved, 1);
     if (!shared::shared_space) { 
         perror("create_mspace_with_base");
         return 1;
     }
-    sd->process_status = (std::atomic_int*)mspace_calloc(shared::shared_space, processes, sizeof(std::atomic_int));
-   
+    Scheduler *scheduler = new (mapping) Scheduler(processes);
+    shared::vector<shared::string> *user_data = new((char*)mapping + sizeof(Scheduler)) shared::vector<shared::string>();
+
     pid_t pid;
     int id;
     for (id = 0; id < processes; id++) {
@@ -61,36 +64,35 @@ int main(int argc, char* argv[]) {
             exit(1);
         }
 
-        void(*fork_init)(int, shared_data_t*, mspace) = (void(*)(int, shared_data_t*, mspace)) dlsym(handle, "fork_init");
-        if (!fork_init) {
+        void(*model_init)(int, Scheduler*, mspace, shared::vector<shared::string>*) = (void(*)(int, Scheduler*, mspace, shared::vector<shared::string>*)) dlsym(handle, "model_init");
+        if (!model_init) {
             std::cerr << dlerror() << std::endl;
             exit(1);
         }
 
-        int(*fork_main)() = (int(*)()) dlsym(handle, "main");
-        if (!fork_main) {
+        int(*user_main)() = (int(*)()) dlsym(handle, "main");
+        if (!user_main) {
             std::cerr << dlerror() << std::endl;
             exit(1);
         }
 
-        void(*done)() = (void(*)()) dlsym(handle, "done");
-        if (!done) {
+        void(*model_done)() = (void(*)()) dlsym(handle, "model_done");
+        if (!model_done) {
             std::cerr << dlerror() << std::endl;
             exit(1);
         }
 
-        fork_init(id, sd, shared::shared_space);
-        fork_main();
-        done();
+        model_init(id, scheduler, shared::shared_space, user_data);
+        user_main();
+        model_done();
     } else {
         int status;
         while (waitpid(-1, &status, 0) != -1) {
             if(WIFSIGNALED(status))
                 std::cerr << "child terminated by sig " << WTERMSIG(status) << std::endl;
         }
-
-        std::cout << "user strings: ";
-        for (auto s: sd->user_strings)
+        std::cout << "user data: ";
+        for (auto s: *user_data)
             std::cout << s << " ";
         std::cout << std::endl;
         munmap(mapping, MAP_SIZE);
