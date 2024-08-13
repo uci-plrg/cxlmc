@@ -6,18 +6,20 @@
 #include <errno.h>
 #include <dlfcn.h>
 
-#include "shared_mem.h"
+#include "shared_data.h"
 
 #define MAP_SIZE 8192
 
+mspace shared::shared_space;
+
 int main(int argc, char* argv[]) {
-    int threads = 16;
+    int processes = 16;
     if (argc > 1) {
-        threads = atoi(argv[1]);
+        processes = atoi(argv[1]);
     }
 
-    if (threads < 1) {
-        std::cerr << "Less than 1 threads" << std::endl;
+    if (processes < 1) {
+        std::cerr << "Less than 1 processs" << std::endl;
     }
     
     int user_progs = argc - 2;
@@ -33,18 +35,18 @@ int main(int argc, char* argv[]) {
         return 1;
     }
      
-    sd = (shared_data_t*) mapping;
-    sd->thread_count = threads;
-    shared_space = create_mspace_with_base((char *)mapping + sizeof(shared_data_t), MAP_SIZE - sizeof(shared_data_t), 1);
-    if (!shared_space) { 
+    shared_data *sd = (shared_data_t*) mapping;
+    sd->process_count = processes;
+    shared::shared_space = create_mspace_with_base((char *)mapping + sizeof(shared_data_t), MAP_SIZE - sizeof(shared_data_t), 1);
+    if (!shared::shared_space) { 
         perror("create_mspace_with_base");
         return 1;
     }
-    sd->thread_status = (std::atomic_int*)mspace_calloc(shared_space, threads, sizeof(std::atomic_int));
+    sd->process_status = (std::atomic_int*)mspace_calloc(shared::shared_space, processes, sizeof(std::atomic_int));
    
     pid_t pid;
     int id;
-    for (id = 0; id < threads; id++) {
+    for (id = 0; id < processes; id++) {
         pid = fork();
         if (pid == 0) {
             break;
@@ -77,7 +79,7 @@ int main(int argc, char* argv[]) {
             exit(1);
         }
 
-        fork_init(id, sd, shared_space);
+        fork_init(id, sd, shared::shared_space);
         fork_main();
         done();
     } else {
