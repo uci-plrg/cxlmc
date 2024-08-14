@@ -9,8 +9,7 @@
 #include "scheduler.h"
 #include "shared_data.h"
 #include "allocators.h"
-
-#define MAP_SIZE 8192
+#include "config.h"
 
 mspace shared::shared_space;
 

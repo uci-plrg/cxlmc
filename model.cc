@@ -12,7 +12,6 @@
 #include "scheduler.h"
 
 mspace shared::shared_space;
-Scheduler *scheduler;
 
 shared::vector<shared::string> *user_data;
 
@@ -24,12 +23,12 @@ void model_init(int process_id, Scheduler *s, mspace ms, shared::vector<shared::
 }
     
 void action(std::string s) {
-    scheduler->wait_till_turn();
-    std::cout << "process " << scheduler->get_process_id() << ", " << s << std::endl;
+    scheduler->wait();
+    std::cout << "process " << scheduler->get_process_id() << ", " << "thread " << scheduler->get_thread_id() << ", " << s << std::endl;
     user_data->push_back(shared::string(s.c_str()));
-    scheduler->give_next_turn();
+    scheduler->yield();
 }
 
 void model_done() {
-    scheduler->done(); 
+    scheduler->finalize(); 
 }

@@ -4,28 +4,36 @@
 #include <atomic>
 
 #include "allocators.h"
+#include "thread_data.h"
+#include "config.h"
 
 //process local data
 extern int process_id;
+extern int thread_id;
 
 class Scheduler {
-    int process_count;
-    std::atomic_int active;
-    std::atomic_int *process_status;
+    const int process_count;
+    std::atomic_int thread_count;
+    std::atomic_int active_thread;
+    thread_data thread_status[MAX_THREADS];
 public:
-    Scheduler(int pc): 
-        process_count(pc),
-        process_status((std::atomic_int*)mspace_calloc(shared::shared_space, pc, sizeof(std::atomic_int))) {}
+    Scheduler(int pc);
 
-    void set_process_id(int pid) { process_id = pid; }
+    void set_process_id(int pid) { process_id = pid; thread_id = pid; }
     
     int get_process_id() { return process_id; }
 
-    void wait_till_turn();
-    
-    void give_next_turn();
+    int get_thread_id() { return thread_id; }
 
-    void done();
+    void new_thread(void* (*func)(void*), void* arg);
+
+    void wait();
+    
+    void yield();
+
+    void finalize();
     
 };
+
+extern Scheduler *scheduler;
 #endif
