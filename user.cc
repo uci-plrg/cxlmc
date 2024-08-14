@@ -11,8 +11,7 @@ void user_action(std::string s) {
 void user_init(int pid, Model *m, mspace ms) {
     model = m;
     shared::shared_space = ms;
-    process_id = pid;
-    thread_id = pid;
+    model->get_scheduler()->process_init(pid);
 }
 
 void user_done() {

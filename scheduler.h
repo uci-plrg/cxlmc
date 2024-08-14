@@ -19,7 +19,7 @@ class Scheduler {
 public:
     Scheduler(int pc);
 
-    void set_process_id(int pid) { process_id = pid; thread_id = pid; }
+    void process_init(int pid) { process_id = pid; thread_id = pid; }
     
     int get_process_id() { return process_id; }
 
