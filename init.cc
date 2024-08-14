@@ -7,12 +7,10 @@
 #include <dlfcn.h>
 
 #include "scheduler.h"
-#include "shared_data.h"
+#include "model.h"
 #include "allocators.h"
 
 #define MAP_SIZE 8192
-
-mspace shared::shared_space;
 
 int main(int argc, char* argv[]) {
     int processes = 16;
@@ -37,15 +35,16 @@ int main(int argc, char* argv[]) {
         return 1;
     }
     
-    int reserved = sizeof(Scheduler) + sizeof(shared::vector<shared::string>);
-    //shared space needs to be initialized first
+    int reserved = sizeof(Scheduler) + sizeof(Model);
+    //shared space needs to be initialized before scheduler and model
     shared::shared_space = create_mspace_with_base((char *)mapping + reserved, MAP_SIZE - reserved, 1);
     if (!shared::shared_space) { 
         perror("create_mspace_with_base");
         return 1;
     }
+
     Scheduler *scheduler = new (mapping) Scheduler(processes);
-    shared::vector<shared::string> *user_data = new((char*)mapping + sizeof(Scheduler)) shared::vector<shared::string>();
+    Model *model = new((char*)mapping + sizeof(Scheduler)) Model(scheduler);
 
     pid_t pid;
     int id;
@@ -64,8 +63,8 @@ int main(int argc, char* argv[]) {
             exit(1);
         }
 
-        void(*model_init)(int, Scheduler*, mspace, shared::vector<shared::string>*) = (void(*)(int, Scheduler*, mspace, shared::vector<shared::string>*)) dlsym(handle, "model_init");
-        if (!model_init) {
+        void(*user_init)(int pid, Model *m, mspace ms) = (void(*)(int pid, Model *m, mspace ms)) dlsym(handle, "user_init");
+        if (!user_init) {
             std::cerr << dlerror() << std::endl;
             exit(1);
         }
@@ -76,25 +75,23 @@ int main(int argc, char* argv[]) {
             exit(1);
         }
 
-        void(*model_done)() = (void(*)()) dlsym(handle, "model_done");
-        if (!model_done) {
+        void(*user_done)() = (void(*)()) dlsym(handle, "user_done");
+        if (!user_done) {
             std::cerr << dlerror() << std::endl;
             exit(1);
         }
 
-        model_init(id, scheduler, shared::shared_space, user_data);
+        user_init(id, model, shared::shared_space);
         user_main();
-        model_done();
+        user_done();
     } else {
         int status;
         while (waitpid(-1, &status, 0) != -1) {
             if(WIFSIGNALED(status))
                 std::cerr << "child terminated by sig " << WTERMSIG(status) << std::endl;
         }
-        std::cout << "user data: ";
-        for (auto s: *user_data)
-            std::cout << s << " ";
-        std::cout << std::endl;
+        
+        model->print_user_data();
         munmap(mapping, MAP_SIZE);
     }
 

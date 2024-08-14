@@ -16,14 +16,12 @@ public:
     Scheduler(int pc): 
         process_count(pc),
         process_status((std::atomic_int*)mspace_calloc(shared::shared_space, pc, sizeof(std::atomic_int))) {}
-
-    void set_process_id(int pid) { process_id = pid; }
-    
+ 
     int get_process_id() { return process_id; }
 
-    void wait_till_turn();
+    void wait();
     
-    void give_next_turn();
+    void yield();
 
     void done();
     

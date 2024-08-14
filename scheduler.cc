@@ -2,15 +2,13 @@
 
 #include "scheduler.h"
 
-int process_id;
-
-void Scheduler::wait_till_turn() {
+void Scheduler::wait() {
     while (active.load() != process_id) {
         sleep(0);
     }
 }
 
-void Scheduler::give_next_turn() {
+void Scheduler::yield() {
     for (int i = process_id + 1; i < process_count; i++) {
         if (!process_status[i].load()) {
             active.store(i);
@@ -26,8 +24,8 @@ void Scheduler::give_next_turn() {
 }
 
 void Scheduler::done() {
-    wait_till_turn();
+    wait();
     printf("%d done\n", process_id);
     process_status[process_id].store(1);
-    give_next_turn();
+    yield();
 }

@@ -11,25 +11,28 @@
 #include "model.h"
 #include "scheduler.h"
 
+//process local data
 mspace shared::shared_space;
-Scheduler *scheduler;
-
-shared::vector<shared::string> *user_data;
-
-void model_init(int process_id, Scheduler *s, mspace ms, shared::vector<shared::string> *us) {
-    shared::shared_space = ms;
-    scheduler = s;
-    scheduler->set_process_id(process_id);
-    user_data = us;
-}
+Model *model;
+int process_id;
     
-void action(std::string s) {
-    scheduler->wait_till_turn();
+void Model::action(std::string s) {
+    scheduler->wait();
     std::cout << "process " << scheduler->get_process_id() << ", " << s << std::endl;
-    user_data->push_back(shared::string(s.c_str()));
-    scheduler->give_next_turn();
+    user_data.push_back(shared::string(s.c_str()));
+    scheduler->yield();
 }
 
-void model_done() {
-    scheduler->done(); 
+void user_action(std::string s) {
+    model->action(s);
+}
+
+void user_init(int pid, Model *m, mspace ms) {
+    model = m;    
+    shared::shared_space = ms;
+    process_id = pid;
+}
+
+void user_done() {
+    model->get_scheduler()->done(); 
 }
