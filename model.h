@@ -26,11 +26,4 @@ public:
     }
 };
 
-void user_action(std::string s);
-
-extern "C" {
-    void user_init(int pid, Model *m, mspace ms);    
-    
-    void user_done();
-}
 #endif
