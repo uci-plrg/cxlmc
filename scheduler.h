@@ -34,6 +34,4 @@ public:
     void finalize();
     
 };
-
-extern Scheduler *scheduler;
 #endif

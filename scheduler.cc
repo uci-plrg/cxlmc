@@ -5,8 +5,6 @@
 int process_id;
 int thread_id;
 
-Scheduler *scheduler;
-
 Scheduler::Scheduler(int pc):
     process_count(pc),
     thread_count(pc),
@@ -17,7 +15,7 @@ Scheduler::Scheduler(int pc):
         }
     }
 
-void run_thread(void* (*func)(void*), void* arg) {
+void run_thread(Scheduler* scheduler, void* (*func)(void*), void* arg) {
     func(arg);
     scheduler->finalize();
     scheduler->wait(); // never return here
@@ -44,10 +42,10 @@ void Scheduler::new_thread(void* (*func)(void*), void* arg) {
     }
 
     thread_status[tid].context.uc_link = nullptr;
-    thread_status[tid].context.uc_stack.ss_sp = malloc(STACK_SIZE);
+    thread_status[tid].context.uc_stack.ss_sp = malloc(STACK_SIZE); // temp allocator
     thread_status[tid].context.uc_stack.ss_size = STACK_SIZE;
     thread_status[tid].context.uc_stack.ss_flags = 0;
-    makecontext(&thread_status[tid].context, (void(*)()) run_thread, 2, func, arg);
+    makecontext(&thread_status[tid].context, (void(*)()) run_thread, 3, this, func, arg);
     if (tid == tc) {
         thread_count.fetch_add(1);
     }

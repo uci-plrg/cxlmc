@@ -23,6 +23,7 @@ extern "C" {
 };
 
 namespace shared {
+    //shared_space needs to be defined before model allocator can be used
     extern mspace shared_space;
 
     template <typename T> 
