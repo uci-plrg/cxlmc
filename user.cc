@@ -1,4 +1,5 @@
 #include "user.h"
+#include "snapshot.h"
 
 //process local data
 mspace shared::shared_space;
@@ -13,8 +14,9 @@ void user_init(int pid, Model *m, mspace ms) {
     shared::shared_space = ms;
     process_id = pid;
     thread_id = pid;
+    take_snapshot();
 }
 
 void user_done() {
-    model->get_scheduler()->finalize();
+    model->finishExecution();
 }

@@ -18,9 +18,7 @@ class Scheduler {
     thread_data thread_status[MAX_THREADS];
 public:
     Scheduler(int pc);
-
-    void set_process_id(int pid) { process_id = pid; thread_id = pid; }
-    
+ 
     int get_process_id() { return process_id; }
 
     int get_thread_id() { return thread_id; }
@@ -29,9 +27,13 @@ public:
 
     void wait();
     
-    void yield();
+    //returns true if there are other running threads, else false
+    bool yield();
 
-    void finalize();
+    //returns true if there are other running threads, else false
+    bool finalize();
+
+    void reset();
     
 };
 #endif
