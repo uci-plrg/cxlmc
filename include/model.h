@@ -10,7 +10,7 @@
 class Model {
     Scheduler *scheduler;
     std::atomic_int execution_num;
-    std::atomic_bool rollback_again;
+    bool rollback_again;
     shared::vector<shared::string> user_data;
 
 public:
@@ -22,7 +22,7 @@ public:
 
     Scheduler *get_scheduler() { return scheduler; }
 
-    bool should_rollback_again() { return rollback_again.load(); }
+    bool should_rollback_again() { return rollback_again; }
 
     void print_user_data() {
         std::cout << "user data: ";

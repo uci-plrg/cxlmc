@@ -29,9 +29,9 @@ void Model::finishExecution() {
                     
     if (isLast) {
         if (num+1> MAX_EXECUTION)
-            rollback_again.store(false);
+            rollback_again = false;
         else {
-            std::cout << "start execution " << num+1 << std::endl;
+            std::cout << "-------------------------- execution " << num+1 << "--------------------------" << std::endl;
             user_data.clear();
         }
 
