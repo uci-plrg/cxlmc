@@ -26,4 +26,6 @@ public:
     }
 };
 
+extern Model *model;
+
 #endif

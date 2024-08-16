@@ -3,6 +3,7 @@
 
 #define MAX_THREADS 64
 #define MAP_SIZE 0x100000
+#define SYS_LOCAL_SIZE 0x10000
 #define STACK_SIZE 2048
 
 #endif

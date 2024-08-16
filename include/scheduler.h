@@ -4,7 +4,7 @@
 #include <atomic>
 
 #include "allocators.h"
-#include "thread_data.h"
+#include "threads.h"
 #include "config.h"
 
 //process local data
@@ -15,7 +15,7 @@ class Scheduler {
     const int process_count;
     std::atomic_int thread_count;
     std::atomic_int active_thread;
-    thread_data thread_status[MAX_THREADS];
+    thread_data_t thread_data[MAX_THREADS];
 public:
     Scheduler(int pc);
 
@@ -25,7 +25,9 @@ public:
 
     int get_thread_id() { return thread_id; }
 
-    void new_thread(void* (*func)(void*), void* arg);
+    int new_thread(void* (*func)(void*), void* arg);
+
+    thread_data_t* get_thread(int tid) { return &thread_data[tid]; }
 
     void wait();
     
