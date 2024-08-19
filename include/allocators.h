@@ -20,7 +20,7 @@ extern "C" {
     extern mspace create_mspace_with_base(void* base, size_t capacity, int locked);
     extern mspace create_mspace(size_t capacity, int locked);
     extern void mspace_malloc_stats(mspace msp);
-};
+}
 
 namespace shared {
     //shared_space needs to be defined before model allocator can be used
@@ -49,6 +49,6 @@ namespace shared {
             mspace_free(shared_space, p); 
         }   
     };
-};
+}
 
 #endif

@@ -62,21 +62,36 @@ void Scheduler::wait() {
     }
 }
 
-void Scheduler::yield() {
+bool Scheduler::yield() {
     int active = active_thread.load();
     int tc = thread_count.load();
     for (int i = 1; i < tc; i++) {
         int tid = (active + i) % tc;
         if (thread_data[tid].state.load() == THREAD_RUNNING) {
             active_thread.store(tid);
-            return;
+            return true;
         }
     }
+    
+    return false;
 }
 
-void Scheduler::finalize() {
+bool Scheduler::finalize() {
     wait();
-    printf("%d done\n", thread_id);
+    printf("thread %d done\n", thread_id);
     thread_data[thread_id].state.store(THREAD_COMPLETED);
-    yield();
+
+    //if(thread_status[thread_id].context.uc_stack.ss_sp) {
+    //    free(thread_status[thread_id].context.uc_stack.ss_sp);
+    //} 
+    return yield();
+}
+
+void Scheduler::reset() {
+    thread_count = process_count;
+    active_thread = 0;
+    for (int i = 0; i < process_count; i++) {
+        thread_data[i].process_id = thread_data[i].thread_id = i;
+        thread_data[i].state.store(THREAD_RUNNING);
+    }
 }
