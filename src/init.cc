@@ -36,8 +36,9 @@ int main(int argc, char* argv[]) {
     
     int reserved = sizeof(Scheduler) + sizeof(Model);
     //shared space needs to be initialized before scheduler and model
-    shared::shared_space = create_mspace_with_base((char *)mapping + reserved, MAP_SIZE - reserved, 1);
-    if (!shared::shared_space) { 
+    shared_space = create_mspace_with_base((char *)mapping + reserved, MAP_SIZE - reserved, 1);
+
+    if (!shared_space) { 
         perror("create_mspace_with_base");
         return 1;
     }
@@ -80,7 +81,7 @@ int main(int argc, char* argv[]) {
             exit(1);
         }
 
-        user_init(id, model, shared::shared_space);
+        user_init(id, model, shared_space);
         user_main();
         user_done();
     } else {
@@ -88,6 +89,8 @@ int main(int argc, char* argv[]) {
         while (waitpid(-1, &status, 0) != -1) {
             if(WIFSIGNALED(status))
                 std::cerr << "child terminated by sig " << WTERMSIG(status) << std::endl;
+            else if (WIFSTOPPED(status))
+                std::cerr << "child stopped by sig " << WSTOPSIG(status) << std::endl;
         }
         
         model->print_user_data();

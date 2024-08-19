@@ -20,6 +20,11 @@ void take_snapshot() {
 			}
         }
 
+        if(WIFSIGNALED(status)) {
+            std::cerr << "child terminated by sig " << WTERMSIG(status) << std::endl;
+            exit(EXIT_FAILURE);
+        }
+
         std::cout << "restart process " << process_id << std::endl;
         
         if (!model->should_rollback_again())

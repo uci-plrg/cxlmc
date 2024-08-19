@@ -42,7 +42,8 @@ void Scheduler::new_thread(void* (*func)(void*), void* arg) {
     }
 
     thread_status[tid].context.uc_link = nullptr;
-    thread_status[tid].context.uc_stack.ss_sp = malloc(STACK_SIZE); // temp allocator
+    thread_status[tid].context.uc_stack.ss_sp = mspace_malloc(snapshot_space, STACK_SIZE);
+    thread_status[tid].initial_ss_sp = thread_status[tid].context.uc_stack.ss_sp;
     thread_status[tid].context.uc_stack.ss_size = STACK_SIZE;
     thread_status[tid].context.uc_stack.ss_flags = 0;
     makecontext(&thread_status[tid].context, (void(*)()) run_thread, 3, this, func, arg);
@@ -76,9 +77,13 @@ bool Scheduler::yield() {
     int tc = thread_count.load();
     for (int i = 1; i < tc; i++) {
         int tid = (active + i) % tc;
-        if (thread_status[tid].state.load() == THREAD_RUNNING) {
+        thread_state state = thread_status[tid].state.load();
+        if (state == THREAD_RUNNING) {
             active_thread.store(tid);
             return true;
+        } else if (state == THREAD_COMPLETED && 
+                    thread_status[i].initial_ss_sp) {
+            mspace_free(snapshot_space, thread_status[tid].initial_ss_sp);
         }
     }
     
@@ -89,10 +94,6 @@ bool Scheduler::finalize() {
     wait();
     printf("thread %d done\n", thread_id);
     thread_status[thread_id].state.store(THREAD_COMPLETED);
-
-    //if(thread_status[thread_id].context.uc_stack.ss_sp) {
-    //    free(thread_status[thread_id].context.uc_stack.ss_sp);
-    //} 
     return yield();
 }
 
