@@ -98,8 +98,8 @@ bool Scheduler::finalize() {
 }
 
 void Scheduler::reset() {
-    thread_count = process_count;
-    active_thread = 0;
+    thread_count.store(process_count);
+    active_thread.store(0);
     for (int i = 0; i < process_count; i++) {
         thread_status[i].process_id = thread_status[i].thread_id = i;
         thread_status[i].state.store(THREAD_RUNNING);

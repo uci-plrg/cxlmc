@@ -14,7 +14,8 @@ extern int thread_id;
 class Scheduler {
     const int process_count;
     std::atomic_int thread_count;
-    std::atomic_int active_thread;
+    //avoid false sharing with thread_count
+    alignas(CACHE_SIZE) std::atomic_int active_thread;
     thread_data thread_status[MAX_THREADS];
 public:
     Scheduler(int pc);
