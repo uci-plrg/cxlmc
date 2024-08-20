@@ -30,8 +30,10 @@ public:
 
     void wait();
     
+    void yield();
+    
     //returns true if there are other running threads, else false
-    bool yield();
+    bool yield_no_wait();
 
     //returns true if there are other running threads, else false
     bool finalize();

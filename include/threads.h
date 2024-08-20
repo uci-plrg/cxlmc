@@ -5,6 +5,8 @@
 #include <atomic>
 #include <pthread.h>
 
+#include "action.h"
+
 typedef enum thread_state {
 	THREAD_RUNNING,
 	THREAD_COMPLETED
@@ -14,8 +16,18 @@ typedef struct thread_data {
     std::atomic_int thread_id;
     std::atomic_int process_id;
     std::atomic<thread_state> state;
+
+    // process local
+    void* stack = nullptr;
     ucontext_t context;
 } thread_data_t;
+
+typedef void *(*pthread_start_t)(void *);
+
+struct pthread_params {
+	pthread_start_t func;
+	void *arg;
+};
 
 // int real_epoll_wait(int epfd, struct epoll_event *events, int maxevents, int timeout);
 int real_pthread_mutex_init(pthread_mutex_t *__mutex, const pthread_mutexattr_t *__mutexattr);

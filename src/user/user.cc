@@ -8,9 +8,9 @@ void user_action(std::string s) {
 void user_init(int pid, Model *m, mspace ms) {
     model = m;
     shared::shared_space = ms;
-    take_snapshot();
     model->get_scheduler()->process_init(pid);
     real_init_all();
+    take_snapshot();
 }
 
 void user_done() {

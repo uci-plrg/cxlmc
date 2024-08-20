@@ -18,11 +18,11 @@ Scheduler::Scheduler(int pc):
 void run_thread(Scheduler* scheduler, void* (*func)(void*), void* arg) {
     func(arg);
     scheduler->finalize();
-    scheduler->wait(); // never return here
+    scheduler->wait();
+    printf("this should not be reached\n");
 }
 
 int Scheduler::new_thread(void* (*func)(void*), void* arg) {
-    wait();
     int tid = thread_count.load();
     printf("init thread %d\n", tid);
     thread_data[tid].process_id.store(process_id);
@@ -35,12 +35,11 @@ int Scheduler::new_thread(void* (*func)(void*), void* arg) {
     }
 
     thread_data[tid].context.uc_link = nullptr;
-    thread_data[tid].context.uc_stack.ss_sp = malloc(STACK_SIZE); // temp allocator
+    thread_data[tid].context.uc_stack.ss_sp = thread_data[tid].stack = malloc(STACK_SIZE); // temp allocator
     thread_data[tid].context.uc_stack.ss_size = STACK_SIZE;
     thread_data[tid].context.uc_stack.ss_flags = 0;
     makecontext(&thread_data[tid].context, (void(*)()) run_thread, 3, this, func, arg);
     thread_count.fetch_add(1);
-    yield();
     return tid;
 }
 
@@ -62,7 +61,20 @@ void Scheduler::wait() {
     }
 }
 
-bool Scheduler::yield() {
+void Scheduler::yield() {
+    int active = active_thread.load();
+    int tc = thread_count.load();
+    for (int i = 1; i < tc; i++) {
+        int tid = (active + i) % tc;
+        if (thread_data[tid].state.load() == THREAD_RUNNING) {
+            active_thread.store(tid);
+            wait();
+            return;
+        }
+    }
+}
+
+bool Scheduler::yield_no_wait() {
     int active = active_thread.load();
     int tc = thread_count.load();
     for (int i = 1; i < tc; i++) {
@@ -72,23 +84,18 @@ bool Scheduler::yield() {
             return true;
         }
     }
-    
+
     return false;
 }
 
 bool Scheduler::finalize() {
-    wait();
     printf("thread %d done\n", thread_id);
     thread_data[thread_id].state.store(THREAD_COMPLETED);
-
-    //if(thread_status[thread_id].context.uc_stack.ss_sp) {
-    //    free(thread_status[thread_id].context.uc_stack.ss_sp);
-    //} 
-    return yield();
+    return yield_no_wait();
 }
 
 void Scheduler::reset() {
-    thread_count = process_count;
+    thread_count.store(process_count);
     active_thread = 0;
     for (int i = 0; i < process_count; i++) {
         thread_data[i].process_id = thread_data[i].thread_id = i;
