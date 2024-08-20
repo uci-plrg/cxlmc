@@ -2,10 +2,11 @@
 #define _CONFIG_H
 
 #define MAX_THREADS 64
-#define MAP_SIZE 0x100000 //1MB
-#define STACK_SIZE 4096 //4KB
 #define PAGE_SIZE 4096 //4KB
 #define CACHE_SIZE 64
+#define MAP_SIZE 0x1000000 //16MB
+#define SYS_LOCAL_SIZE 0x10000 //64KB
+#define STACK_SIZE 0x100000 //1MB
 #define MAX_EXECUTION 4
 
 #endif

@@ -10,14 +10,20 @@
 
 #include "model.h"
 #include "scheduler.h"
-    
-extern int process_id;
+#include "executor.h"
+
+Model *model;
+mspace shared_space;
+mspace snapshot_space;
 
 void Model::action(std::string s) {
-    scheduler->wait();
-    std::cout << "process " << scheduler->get_process_id() << ", thread " << scheduler->get_thread_id() << ", " << s << std::endl;
-    user_data.push_back(shared::string(s.c_str()));
+    action(new ModelAction(PLACEHOLDER, &s));
+}
+
+void Model::action(ModelAction* action) {
     scheduler->yield();
+    execute(action);
+    delete action; // probably will not do this later once we need to store it in the thread data
 }
 
 void Model::finishExecution() {

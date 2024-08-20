@@ -6,6 +6,7 @@
 
 #include "scheduler.h"
 #include "shared_data.h"
+#include "action.h"
 
 class Model {
     Scheduler *scheduler;
@@ -17,6 +18,7 @@ public:
     Model(Scheduler *s): scheduler(s), execution_num(1), rollback_again(true) {}    
 
     void action(std::string s);
+    void action(ModelAction* action);
     
     void finishExecution();
 
@@ -30,6 +32,10 @@ public:
             std::cout << s << " ";
         std::cout << std::endl;
     }
+
+    shared::vector<shared::string> &get_user_data() { return user_data; };
 };
+
+extern Model *model;
 
 #endif

@@ -5,7 +5,6 @@
 
 #include "model.h"
 
-extern Model *model;
 void user_action(std::string s);
 
 extern "C" {
