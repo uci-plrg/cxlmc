@@ -1,6 +1,8 @@
 #ifndef _ACTION_H
 #define _ACTION_H
 
+#include "allocators.h"
+
 extern int thread_id;
 
 typedef enum action_type {
@@ -23,6 +25,19 @@ public:
 	action_type_t get_type() { return type; }
 	void* get_args() { return args; }
 	void* get_result() { return result; }
+
+    void * operator new(size_t size) {
+		return mspace_malloc(shared_space, size);
+	}
+	void operator delete(void *p, size_t size) {
+		mspace_free(shared_space, p);
+	}
+	void * operator new[](size_t size) {
+		return mspace_malloc(shared_space, size);
+	}
+	void operator delete[](void *p, size_t size) {
+		mspace_free(shared_space, p);
+	}
 };
 
 #endif

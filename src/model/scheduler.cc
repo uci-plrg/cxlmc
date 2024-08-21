@@ -7,22 +7,16 @@ int thread_id;
 
 Scheduler::Scheduler(int pc):
     process_count(pc),
-    thread_count(pc),
     active_thread(0) {
         for (int i = 0; i < pc; i++) {
-            Thread* thread = new Thread(i);
-            thread->setup_tls();
-            threads.push_back(thread);
+            threads.push_back(new Thread(i));
         }
     }
 
 int Scheduler::new_thread(void* (*func)(void*), void* arg) {
-    int tid = thread_count.load();
+    int tid = get_thread_count();
     printf("init thread %d\n", tid);
-    Thread* new_thread = new Thread(tid, process_id);
-    new_thread->setup_context(func, arg);
-    threads.push_back(new_thread);
-    thread_count.fetch_add(1);
+    threads.push_back(new Thread(tid, process_id, current_thread(), pthread_params{func, arg}));
     return tid;
 }
 
@@ -43,19 +37,20 @@ void Scheduler::wait() {
 
 void Scheduler::yield() {
     int active = active_thread.load();
-    int tc = thread_count.load();
+    int tc = get_thread_count();
     for (int i = 1; i < tc; i++) {
         int tid = (active + i) % tc;
         if (threads[tid]->get_state() == THREAD_RUNNING) {
             active_thread.store(tid);
             wait();
+            return;
         }
     }
 }
 
 bool Scheduler::last_yield() {
     int active = active_thread.load();
-    int tc = thread_count.load();
+    int tc = get_thread_count();
     for (int i = 1; i < tc; i++) {
         int tid = (active + i) % tc;
         if (threads[tid]->get_state() == THREAD_RUNNING) {
@@ -79,11 +74,8 @@ void Scheduler::reset() {
     }
     threads.clear();
     for (int i = 0; i < process_count; i++) {
-        Thread* thread = new Thread(i);
-        thread->setup_tls();
-        threads.push_back(thread);
+        threads.push_back(new Thread(i));
     }
 
-    thread_count.store(process_count);
     active_thread.store(0);
 }

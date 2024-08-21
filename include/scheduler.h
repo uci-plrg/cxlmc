@@ -14,7 +14,6 @@ extern int thread_id;
 
 class Scheduler {
     const int process_count;
-    std::atomic_int thread_count;
     //avoid false sharing with thread_count
     alignas(CACHE_SIZE) std::atomic_int active_thread;
     shared::vector<Thread*> threads;
@@ -33,6 +32,8 @@ public:
     int new_thread(void* (*func)(void*), void* arg);
 
     Thread* get_thread(int tid) { return threads[tid]; }
+
+    int get_thread_count() { return threads.size(); }
 
     Thread* current_thread() { return threads[thread_id]; }
 

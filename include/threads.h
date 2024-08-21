@@ -9,39 +9,48 @@
 #include "shared_data.h"
 #include "config.h"
 
+typedef void *(*pthread_start_t)(void *);
+
+struct pthread_params {
+	pthread_start_t func;
+	void *arg;
+};
+
 typedef enum thread_state {
 	THREAD_RUNNING,
 	THREAD_COMPLETED
 } thread_state;
 
 class Thread {
-    std::atomic_int thread_id;
-    std::atomic_int process_id;
-    std::atomic<thread_state> state;
+    int thread_id;
+    int process_id;
+    thread_state state;
+	Thread* parent;
+	bool is_main;
 
     // process local
     void* stack;
     ucontext_t context;
 public:
+	pthread_params params;
 	void* ret_val;
 	void* tls;
 	pthread_mutex_t mutex_tls;
 	pthread_mutex_t mutex_finalize;
 	pthread_t pthread_id;
 
-    Thread(int tid, int pid) : thread_id(tid), process_id(pid), state(THREAD_RUNNING), stack(nullptr), tls(nullptr) {}
-    Thread(int pid) : Thread(pid, pid) {}
+    Thread(int tid, int pid, Thread* par, pthread_params p);
+    Thread(int pid); // create main thread
 
-    int get_thread_id() { return thread_id.load(); }
-    int get_process_id() { return process_id.load(); }
-    thread_state get_state() { return state.load(); }
-	void set_state(thread_state ts) { state.store(ts); }
+    int get_thread_id() { return thread_id; }
+    int get_process_id() { return process_id; }
+    thread_state get_state() { return state; }
+	void set_state(thread_state ts) { state = ts; }
 
 	ucontext_t* get_context() { return &context; }
 	void free_stack() { mspace_free(snapshot_space, stack); }
-	void setup_tls();
 
-    int setup_context(void* (*func)(void*), void* arg);
+    int setup_context();
 	void swap(Thread* thread);
 
     void * operator new(size_t size) {
@@ -56,13 +65,6 @@ public:
 	void operator delete[](void *p, size_t size) {
 		mspace_free(shared_space, p);
 	}
-};
-
-typedef void *(*pthread_start_t)(void *);
-
-struct pthread_params {
-	pthread_start_t func;
-	void *arg;
 };
 
 // int real_epoll_wait(int epfd, struct epoll_event *events, int maxevents, int timeout);

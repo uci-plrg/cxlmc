@@ -1,6 +1,7 @@
 #include <sstream>
 #include <pthread.h>
 #include "user.h"
+#include <stdio.h>
 
 thread_local int tls_i = 0;
 
@@ -14,6 +15,8 @@ void* thread(void* arg) {
 }
 
 int main() {
+    printf("main %d tls %d\n", process_id, tls_i++);
+
     pthread_t pid[2];
     for (int i = 0; i < 2; i++) {
         pthread_create(&pid[i], nullptr, &thread, nullptr);
@@ -28,5 +31,7 @@ int main() {
     for (int i = 0; i < 2; i++) {
         pthread_join(pid[i], nullptr);
     }
+
+    printf("main %d tls %d\n", process_id, tls_i++);
     return 0;
 }
