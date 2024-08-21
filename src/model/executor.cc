@@ -7,6 +7,8 @@
 
 void execute(ModelAction* action) {
     switch(action->get_type()) {
+    case THREAD_START: 
+        break;
     case PLACEHOLDER: {
         std::string* s = (std::string*)action->get_args();
         std::cout << "process " << model->get_scheduler()->get_process_id() << ", " << "thread "
@@ -22,17 +24,17 @@ void execute(ModelAction* action) {
     case PTHREAD_JOIN: {
         int tid = *(pthread_t*)action->get_args();
         Scheduler* scheduler = model->get_scheduler();
-        thread_data_t* thread = scheduler->get_thread(tid);
+        Thread* thread = scheduler->get_thread(tid);
 
-        if (thread->process_id.load() != process_id) {
+        if (thread->get_process_id() != process_id) {
             break;
         }
 
         printf("thread %d joining %d\n", thread_id, tid);
-        while (thread->state.load() == THREAD_RUNNING) {
+        while (thread->get_state() == THREAD_RUNNING) {
             scheduler->yield();
         }
-        mspace_free(snapshot_space, thread->stack);
+        thread->free_stack();
         printf("%d joined %d completed\n", thread_id, tid);
         break;
     }

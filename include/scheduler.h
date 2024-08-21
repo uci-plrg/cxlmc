@@ -6,6 +6,7 @@
 #include "allocators.h"
 #include "threads.h"
 #include "config.h"
+#include "shared_data.h"
 
 //process local data
 extern int process_id;
@@ -16,7 +17,7 @@ class Scheduler {
     std::atomic_int thread_count;
     //avoid false sharing with thread_count
     alignas(CACHE_SIZE) std::atomic_int active_thread;
-    thread_data_t thread_data[MAX_THREADS];
+    shared::vector<Thread*> threads;
 
     //returns true if there are other running threads, else false
     bool last_yield();
@@ -31,7 +32,9 @@ public:
 
     int new_thread(void* (*func)(void*), void* arg);
 
-    thread_data_t* get_thread(int tid) { return &thread_data[tid]; }
+    Thread* get_thread(int tid) { return threads[tid]; }
+
+    Thread* current_thread() { return threads[thread_id]; }
 
     void wait();
      

@@ -10,35 +10,18 @@ Scheduler::Scheduler(int pc):
     thread_count(pc),
     active_thread(0) {
         for (int i = 0; i < pc; i++) {
-            thread_data[i].process_id = thread_data[i].thread_id = i;
-            thread_data[i].state.store(THREAD_RUNNING);
+            Thread* thread = new Thread(i);
+            thread->setup_tls();
+            threads.push_back(thread);
         }
     }
-
-void run_thread(Scheduler* scheduler, void* (*func)(void*), void* arg) {
-    func(arg);
-    scheduler->finalize();
-    scheduler->wait();
-    printf("this should not be reached\n");
-}
 
 int Scheduler::new_thread(void* (*func)(void*), void* arg) {
     int tid = thread_count.load();
     printf("init thread %d\n", tid);
-    thread_data[tid].process_id.store(process_id);
-    thread_data[tid].thread_id.store(tid);
-    thread_data[tid].state.store(THREAD_RUNNING);
-
-    if (getcontext(&thread_data[tid].context) != 0) {
-        perror("getcontext");
-        return -1;
-    }
-
-    thread_data[tid].context.uc_link = nullptr;
-    thread_data[tid].context.uc_stack.ss_sp = thread_data[tid].stack = mspace_malloc(snapshot_space, STACK_SIZE);
-    thread_data[tid].context.uc_stack.ss_size = STACK_SIZE;
-    thread_data[tid].context.uc_stack.ss_flags = 0;
-    makecontext(&thread_data[tid].context, (void(*)()) run_thread, 3, this, func, arg);
+    Thread* new_thread = new Thread(tid, process_id);
+    new_thread->setup_context(func, arg);
+    threads.push_back(new_thread);
     thread_count.fetch_add(1);
     return tid;
 }
@@ -46,16 +29,13 @@ int Scheduler::new_thread(void* (*func)(void*), void* arg) {
 void Scheduler::wait() {
     while (1) {
         int active = active_thread.load();
-        if (thread_data[active].process_id == process_id) {
+        if (threads[active]->get_process_id() == process_id) {
             if (active == thread_id) {
                 break;
             }
-
-            int prev_id = thread_id;
+            Thread* prev = current_thread();
             thread_id = active;
-            if (swapcontext(&thread_data[prev_id].context, &thread_data[thread_id].context) != 0) {
-                perror("swapcontext");
-            }
+            prev->swap(get_thread(active));
         }
         sleep(0);
     }
@@ -66,7 +46,7 @@ void Scheduler::yield() {
     int tc = thread_count.load();
     for (int i = 1; i < tc; i++) {
         int tid = (active + i) % tc;
-        if (thread_data[tid].state.load() == THREAD_RUNNING) {
+        if (threads[tid]->get_state() == THREAD_RUNNING) {
             active_thread.store(tid);
             wait();
         }
@@ -78,7 +58,7 @@ bool Scheduler::last_yield() {
     int tc = thread_count.load();
     for (int i = 1; i < tc; i++) {
         int tid = (active + i) % tc;
-        if (thread_data[tid].state.load() == THREAD_RUNNING) {
+        if (threads[tid]->get_state() == THREAD_RUNNING) {
             active_thread.store(tid);
             return true;
         }
@@ -89,15 +69,21 @@ bool Scheduler::last_yield() {
 
 bool Scheduler::finalize() {
     printf("thread %d done\n", thread_id);
-    thread_data[thread_id].state.store(THREAD_COMPLETED);
+    threads[thread_id]->set_state(THREAD_COMPLETED);
     return last_yield();
 }
 
 void Scheduler::reset() {
+    for (Thread* thread: threads) {
+        delete thread;
+    }
+    threads.clear();
+    for (int i = 0; i < process_count; i++) {
+        Thread* thread = new Thread(i);
+        thread->setup_tls();
+        threads.push_back(thread);
+    }
+
     thread_count.store(process_count);
     active_thread.store(0);
-    for (int i = 0; i < process_count; i++) {
-        thread_data[i].process_id = thread_data[i].thread_id = i;
-        thread_data[i].state.store(THREAD_RUNNING);
-    }
 }

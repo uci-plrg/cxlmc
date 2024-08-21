@@ -1,2 +1,3 @@
-add_library(model SHARED model.cc scheduler.cc snapshot.cc executor.cc)
+add_library(model SHARED model.cc scheduler.cc snapshot.cc executor.cc threads.cc pthread.cc)
 include_directories(model PUBLIC "${PROJECT_SOURCE_DIR}/include")
+target_link_libraries(model PUBLIC ${CMAKE_DL_LIBS} threads)

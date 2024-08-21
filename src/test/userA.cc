@@ -2,18 +2,22 @@
 #include <pthread.h>
 #include "user.h"
 
+thread_local int tls_i = 0;
+
 void* thread(void* arg) {
     for (int i = 0; i < 4; i++) {
         std::ostringstream oss;
-        oss << "user A iter (in thread) " << i;
+        oss << "thread iter " << i << " tls " << tls_i++;
         user_action(oss.str());
     }
     return nullptr;
 }
 
 int main() {
-    pthread_t pid;
-    pthread_create(&pid, nullptr, &thread, nullptr);
+    pthread_t pid[2];
+    for (int i = 0; i < 2; i++) {
+        pthread_create(&pid[i], nullptr, &thread, nullptr);
+    }
 
     for (int i = 0; i < 2; i++) {
         std::ostringstream oss;
@@ -21,6 +25,8 @@ int main() {
         user_action(oss.str());
     }
 
-    pthread_join(pid, nullptr);
+    for (int i = 0; i < 2; i++) {
+        pthread_join(pid[i], nullptr);
+    }
     return 0;
 }

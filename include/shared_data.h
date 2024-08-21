@@ -2,7 +2,6 @@
 #define _SHARED_DATA_H
 
 #include "allocators.h"
-#include "scheduler.h"
 
 namespace shared {
     using string = std::basic_string<char, std::char_traits<char>, model_allocator<char>>;   

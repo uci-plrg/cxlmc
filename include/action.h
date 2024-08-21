@@ -4,6 +4,7 @@
 extern int thread_id;
 
 typedef enum action_type {
+	THREAD_START,	// < First action in each thread
 	PTHREAD_CREATE,	// < A pthread creation action
 	PTHREAD_JOIN,	// < A pthread join action
 	PLACEHOLDER	// < Placeholder
