@@ -2,8 +2,9 @@
 #define _ACTION_H
 
 #include "allocators.h"
+#include "types.h"
 
-extern int thread_id;
+extern thread_id_t thread_id;
 
 typedef enum action_type {
 	THREAD_START,	// < First action in each thread
@@ -15,7 +16,7 @@ typedef enum action_type {
 } action_type_t;
 
 class ModelAction {
-	int tid;
+	thread_id_t tid;
 	action_type_t type;
 
 	void* location;
@@ -24,7 +25,7 @@ public:
 	ModelAction(action_type_t t) : tid(thread_id), type(t) {}
 	ModelAction(action_type_t t, void* loc, uint64_t val=0) : tid(thread_id), type(t), location(loc), value(val) {}
 
-	int get_thread_id() { return tid; }
+	thread_id_t get_thread_id() { return tid; }
 	action_type_t get_type() { return type; }
 	void* get_location() { return location; }
 	uint64_t get_value() { return value; }

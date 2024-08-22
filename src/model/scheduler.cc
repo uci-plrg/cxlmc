@@ -2,8 +2,8 @@
 
 #include "scheduler.h"
 
-int process_id;
-int thread_id;
+process_id_t process_id;
+thread_id_t thread_id;
 
 Scheduler::Scheduler(int pc):
     process_count(pc),
@@ -13,8 +13,8 @@ Scheduler::Scheduler(int pc):
         }
     }
 
-int Scheduler::new_thread(void* (*func)(void*), void* arg) {
-    int tid = get_thread_count();
+thread_id_t Scheduler::new_thread(pthread_start_t func, void* arg) {
+    thread_id_t tid = get_thread_count();
     printf("init thread %d\n", tid);
     threads.push_back(new Thread(tid, process_id, current_thread(), pthread_params{func, arg}));
     return tid;
@@ -22,7 +22,7 @@ int Scheduler::new_thread(void* (*func)(void*), void* arg) {
 
 void Scheduler::wait() {
     while (1) {
-        int active = active_thread.load();
+        thread_id_t active = active_thread.load();
         if (threads[active]->get_process_id() == process_id) {
             if (active == thread_id) {
                 break;
@@ -36,10 +36,10 @@ void Scheduler::wait() {
 }
 
 void Scheduler::yield() {
-    int active = active_thread.load();
+    thread_id_t active = active_thread.load();
     int tc = get_thread_count();
     for (int i = 1; i < tc; i++) {
-        int tid = (active + i) % tc;
+        thread_id_t tid = (active + i) % tc;
         if (threads[tid]->get_state() == THREAD_RUNNING) {
             active_thread.store(tid);
             wait();
@@ -49,10 +49,10 @@ void Scheduler::yield() {
 }
 
 bool Scheduler::last_yield() {
-    int active = active_thread.load();
+    thread_id_t active = active_thread.load();
     int tc = get_thread_count();
     for (int i = 1; i < tc; i++) {
-        int tid = (active + i) % tc;
+        thread_id_t tid = (active + i) % tc;
         if (threads[tid]->get_state() == THREAD_RUNNING) {
             active_thread.store(tid);
             return true;

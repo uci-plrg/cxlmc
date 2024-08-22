@@ -23,8 +23,8 @@ typedef enum thread_state {
 } thread_state;
 
 class Thread {
-    int thread_id;
-    int process_id;
+    thread_id_t thread_id;
+    process_id_t process_id;
     thread_state state;
 	Thread* parent;
 	bool is_main;
@@ -41,11 +41,11 @@ public:
 	pthread_mutex_t mutex_finalize;
 	pthread_t pthread_id;
 
-    Thread(int tid, int pid, Thread* par, pthread_params p);
-    Thread(int pid); // create main thread
+    Thread(thread_id_t tid, process_id_t pid, Thread* par, pthread_params p);
+    Thread(process_id_t pid); // create main thread
 
-    int get_thread_id() { return thread_id; }
-    int get_process_id() { return process_id; }
+    thread_id_t get_thread_id() { return thread_id; }
+    process_id_t get_process_id() { return process_id; }
     thread_state get_state() { return state; }
 	void set_state(thread_state ts) { state = ts; }
 

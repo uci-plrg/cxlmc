@@ -88,7 +88,7 @@ Thread* Thread::waiting_on() {
     return nullptr;
 }
 
-Thread::Thread(int tid, int pid, Thread* par, pthread_params p) :
+Thread::Thread(thread_id_t tid, process_id_t pid, Thread* par, pthread_params p) :
     thread_id(tid),
     process_id(pid),
     state(THREAD_RUNNING),
@@ -100,7 +100,7 @@ Thread::Thread(int tid, int pid, Thread* par, pthread_params p) :
         setup_context();
     }
 
-Thread::Thread(int pid) :
+Thread::Thread(process_id_t pid) :
     thread_id(pid),
     process_id(pid),
     state(THREAD_RUNNING),

@@ -9,13 +9,13 @@
 #include "shared_data.h"
 
 //process local data
-extern int process_id;
-extern int thread_id;
+extern process_id_t process_id;
+extern thread_id_t thread_id;
 
 class Scheduler {
     const int process_count;
     //avoid false sharing with thread_count
-    alignas(CACHE_SIZE) std::atomic_int active_thread;
+    alignas(CACHE_SIZE) std::atomic<thread_id_t> active_thread;
     shared::vector<Thread*> threads;
 
     //returns true if there are other running threads, else false
@@ -23,15 +23,15 @@ class Scheduler {
 
 public:
     Scheduler(int pc);
-    void process_init(int pid) { process_id = pid; thread_id = pid; }
+    void process_init(process_id_t pid) { process_id = pid; thread_id = pid; }
     
-    int get_process_id() { return process_id; }
+    process_id_t get_process_id() { return process_id; }
 
-    int get_thread_id() { return thread_id; }
+    thread_id_t get_thread_id() { return thread_id; }
 
-    int new_thread(void* (*func)(void*), void* arg);
+    thread_id_t new_thread(pthread_start_t func, void* arg);
 
-    Thread* get_thread(int tid) { return threads[tid]; }
+    Thread* get_thread(thread_id_t tid) { return threads[tid]; }
 
     int get_thread_count() { return threads.size(); }
 

@@ -9,7 +9,7 @@ void user_action(std::string s) {
     model->action(s);
 }
 
-void user_init(int pid, Model *m, mspace ms) {
+void user_init(process_id_t pid, Model *m, mspace ms) {
     model = m;
     shared_space = ms;
     model->get_scheduler()->process_init(pid);
