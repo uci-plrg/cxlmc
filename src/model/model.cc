@@ -21,8 +21,11 @@ void Model::action(std::string s) {
 }
 
 void Model::action(ModelAction* action) {
+    Thread* curr_thread = scheduler->current_thread();
+    curr_thread->set_pending(action);
     scheduler->yield();
     execute(action);
+    curr_thread->set_pending(nullptr);
     delete action; // probably will not do this later once we need to store it in the thread data
 }
 

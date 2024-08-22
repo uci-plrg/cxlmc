@@ -18,6 +18,7 @@ struct pthread_params {
 
 typedef enum thread_state {
 	THREAD_RUNNING,
+	THREAD_BLOCKED,
 	THREAD_COMPLETED
 } thread_state;
 
@@ -27,6 +28,7 @@ class Thread {
     thread_state state;
 	Thread* parent;
 	bool is_main;
+	ModelAction* pending;
 
     // process local
     void* stack;
@@ -52,6 +54,11 @@ public:
 
     int setup_context();
 	void swap(Thread* thread);
+
+	ModelAction* get_pending() { return pending; }
+	void set_pending(ModelAction* action) { pending = action; }
+
+	Thread* waiting_on();
 
     void * operator new(size_t size) {
 		return mspace_malloc(shared_space, size);

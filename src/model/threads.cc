@@ -33,6 +33,7 @@ void thread_start() {
     Thread* curr_thread = model->get_scheduler()->current_thread();
     pthread_params params = curr_thread->params;
     curr_thread->ret_val = params.func(params.arg);
+    model->action(new ModelAction(THREAD_FINISH));
 
     real_pthread_mutex_unlock(&curr_thread->mutex_finalize);
     real_pthread_join(curr_thread->pthread_id, nullptr);
@@ -78,6 +79,13 @@ void Thread::swap(Thread* next) {
     if (swapcontext(this->get_context(), next->get_context()) != 0) {
         perror("swapcontext");
     }
+}
+
+Thread* Thread::waiting_on() {
+    if (pending && pending->get_type() == PTHREAD_JOIN) {
+        return (Thread*)pending->get_location();
+    }
+    return nullptr;
 }
 
 Thread::Thread(int tid, int pid, Thread* par, pthread_params p) :

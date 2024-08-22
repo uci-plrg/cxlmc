@@ -37,6 +37,8 @@ public:
 
     Thread* current_thread() { return threads[thread_id]; }
 
+    void wake_threads_waiting_on(Thread* thread);
+
     void wait();
      
     void yield();

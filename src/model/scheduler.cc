@@ -79,3 +79,11 @@ void Scheduler::reset() {
 
     active_thread.store(0);
 }
+
+void Scheduler::wake_threads_waiting_on(Thread* thread) {
+    for (Thread* waiter: threads) {
+        if (waiter->waiting_on() == thread) {
+            waiter->set_state(THREAD_RUNNING);
+        }
+    }
+}
