@@ -8,7 +8,9 @@ extern thread_id_t thread_id;
 
 typedef enum action_type {
 	THREAD_START,	// < First action in each thread
+	THREAD_YIELD,	// < A thread yield action
 	THREAD_FINISH,	// < A thread completion action
+	THREADONLY_FINISH,	// < A thread completion action (pthread_exit)
 
 	PTHREAD_CREATE,	// < A pthread creation action
 	PTHREAD_JOIN,	// < A pthread join action

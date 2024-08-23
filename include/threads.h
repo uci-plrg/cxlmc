@@ -51,6 +51,7 @@ public:
 
 	ucontext_t* get_context() { return &context; }
 	void free_stack() { mspace_free(snapshot_space, stack); }
+	void finalize();
 
     int setup_context();
 	void swap(Thread* thread);

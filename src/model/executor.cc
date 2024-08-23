@@ -11,10 +11,20 @@ Thread* get_thread(ModelAction* action) {
 
 void execute(ModelAction* action) {
     switch(action->get_type()) {
-    case THREAD_START: 
+    case THREAD_START:
+    case THREAD_YIELD:
         break;
     case THREAD_FINISH: {
+        Thread* curr_thread = get_thread(action); 
         model->get_scheduler()->wake_threads_waiting_on(get_thread(action));
+        curr_thread->finalize();
+        break;
+    }
+    case THREADONLY_FINISH: { 
+        Thread* curr_thread = get_thread(action);  
+        curr_thread->ret_val = action->get_location();
+        model->get_scheduler()->wake_threads_waiting_on(get_thread(action));
+        curr_thread->finalize();
         break;
     }
     case PLACEHOLDER: {

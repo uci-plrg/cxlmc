@@ -33,13 +33,7 @@ void thread_start() {
     Thread* curr_thread = model->get_scheduler()->current_thread();
     pthread_params params = curr_thread->params;
     curr_thread->ret_val = params.func(params.arg);
-    model->action(new ModelAction(THREAD_FINISH));
-
-    real_pthread_mutex_unlock(&curr_thread->mutex_finalize);
-    real_pthread_join(curr_thread->pthread_id, nullptr);
-    model->get_scheduler()->finalize();
-    model->get_scheduler()->wait();
-    printf("this should not be reached\n");
+    model->action(new ModelAction(THREAD_FINISH)); // does not return
 }
 
 int Thread::setup_context() {
@@ -79,6 +73,14 @@ void Thread::swap(Thread* next) {
     if (swapcontext(this->get_context(), next->get_context()) != 0) {
         perror("swapcontext");
     }
+}
+
+void Thread::finalize() {
+    real_pthread_mutex_unlock(&mutex_finalize);
+    real_pthread_join(pthread_id, nullptr);
+    model->get_scheduler()->finalize();
+    model->get_scheduler()->wait();
+    printf("this should not be reached\n");
 }
 
 Thread* Thread::waiting_on() {

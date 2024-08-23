@@ -19,3 +19,23 @@ int pthread_join(pthread_t tid, void** ret_val) {
     }
 	return 0;
 }
+
+int pthread_detach(pthread_t t) {
+	//Doesn't do anything
+	//Return success
+	return 0;
+}
+
+/* Take care of both pthread_yield and c++ thread yield */
+int sched_yield() {
+	model->action(new ModelAction(THREAD_YIELD));
+	return 0;
+}
+
+void pthread_exit(void *value_ptr) {
+	model->action(new ModelAction(THREADONLY_FINISH, value_ptr)); // does not return
+}
+
+pthread_t pthread_self() {
+    return thread_id;
+}
