@@ -13,7 +13,7 @@ void execute(ModelAction* action) {
         std::string* s = (std::string*)action->get_args();
         std::cout << "process " << model->get_scheduler()->get_process_id() << ", " << "thread "
             << model->get_scheduler()->get_thread_id() << ", " << *s << std::endl;
-        model->get_user_data().push_back(shared::string(s->c_str()));
+        model->get_placeholder_data().push_back(shared::string(s->c_str()));
         break;
     }
     case PTHREAD_CREATE: {
@@ -34,8 +34,14 @@ void execute(ModelAction* action) {
         while (thread->get_state() == THREAD_RUNNING) {
             scheduler->yield();
         }
-        thread->free_stack();
+        
+        thread->free_stack(); 
         printf("%d joined %d completed\n", thread_id, tid);
+
+        break;
+    }
+    case STORE: {
+        model->get_scheduler()->get_thread(thread_id)->get_thread_memory()->addToStoreBuffer(action);
         break;
     }
     }

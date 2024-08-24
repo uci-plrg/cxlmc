@@ -1,8 +1,7 @@
 #ifndef _SHARED_MEM_H
 #define _SHARED_MEM_H
 
-#include <string>
-#include <vector>
+#include <memory>
 #include "mspace_malloc.h"
 
     //shared_space needs to be defined before model allocator can be used
@@ -17,7 +16,7 @@ public:
     model_allocator() noexcept {}
  
     // Allocate memory for n objects of type T 
-    T* allocate(std::size_t n) {
+    T* allocate(size_t n) {
         //mspace_malloc_stats(shared_space);
         void *addr = mspace_malloc(shared_space, n * sizeof(T));
         if (!addr) {
@@ -27,7 +26,7 @@ public:
     }
 
     // Deallocate memory 
-    void deallocate(T* p, std::size_t n) noexcept
+    void deallocate(T* p, size_t n) noexcept
     {
         mspace_free(shared_space, p);
     }
@@ -41,7 +40,7 @@ public:
     snapshot_allocator() noexcept {}
  
     // Allocate memory for n objects of type T 
-    T* allocate(std::size_t n) {
+    T* allocate(size_t n) {
         //mspace_malloc_stats(shared_space);
         void *addr = mspace_malloc(snapshot_space, n * sizeof(T));
         if (!addr) {
@@ -51,7 +50,7 @@ public:
     }
 
     // Deallocate memory 
-    void deallocate(T* p, std::size_t n) noexcept
+    void deallocate(T* p, size_t n) noexcept
     {
         mspace_free(snapshot_space, p);
     }

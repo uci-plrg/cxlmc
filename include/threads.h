@@ -7,6 +7,7 @@
 
 #include "action.h"
 #include "shared_data.h"
+#include "thread_memory.h"
 #include "config.h"
 
 typedef enum thread_state {
@@ -18,6 +19,7 @@ class Thread {
     std::atomic_int thread_id;
     std::atomic_int process_id;
     std::atomic<thread_state> state;
+    ThreadMemory thread_memory;
 
     // process local
     void* stack;
@@ -38,6 +40,7 @@ public:
 	void set_state(thread_state ts) { state.store(ts); }
 
 	ucontext_t* get_context() { return &context; }
+	ThreadMemory* get_thread_memory() { return &thread_memory; }
 	void free_stack() { mspace_free(snapshot_space, stack); }
 	void setup_tls();
 

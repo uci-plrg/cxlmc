@@ -93,7 +93,7 @@ int main(int argc, char* argv[]) {
                 std::cerr << "child stopped by sig " << WSTOPSIG(status) << std::endl;
         }
         
-        model->print_user_data();
+        model->print_placeholder_data();
         munmap(mapping, MAP_SIZE);
     }
 

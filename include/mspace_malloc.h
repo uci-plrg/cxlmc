@@ -1,5 +1,6 @@
 #ifndef _MSPACE_MALLOC_H
 #define _MSPACE_MALLOC_H
+#include <stddef.h>
 
 extern "C" {
     /* MSPACE */

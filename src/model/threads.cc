@@ -53,7 +53,11 @@ void setup(void* (*func)(void*), void* arg) {
     set_tls_addr((uintptr_t)curr_thread->tls);
     curr_thread->ret_val = func(arg);
 
-    real_pthread_join(curr_thread->pthread_id, nullptr);
+
+    real_pthread_mutex_unlock(&curr_thread->mutex_finalize);
+    int ret;
+    if ((ret = real_pthread_join(curr_thread->pthread_id, nullptr)))
+        printf("real_pthread_join error %d\n", ret);
     model->get_scheduler()->finalize();
     model->get_scheduler()->wait();
     printf("this should not be reached\n");

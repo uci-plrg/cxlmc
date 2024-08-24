@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -16,14 +17,14 @@ Model *model;
 mspace shared_space;
 mspace snapshot_space;
 
-void Model::action(std::string s) {
-    action(new ModelAction(PLACEHOLDER, &s));
-}
-
 void Model::action(ModelAction* action) {
     scheduler->yield();
     execute(action);
-    delete action; // probably will not do this later once we need to store it in the thread data
+}
+
+void Model::add_to_store_list(ModelAction* action) {
+    assert(action->get_type() == STORE);
+    store_list.push_back(action);
 }
 
 void Model::finishExecution() {
@@ -38,7 +39,7 @@ void Model::finishExecution() {
             rollback_again = false;
         else {
             std::cout << "-------------------------- execution " << num+1 << "--------------------------" << std::endl;
-            user_data.clear();
+            placeholder_data.clear();
         }
 
         scheduler->reset();

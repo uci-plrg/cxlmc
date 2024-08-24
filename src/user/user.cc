@@ -1,12 +1,17 @@
 #include <sys/mman.h>
 
+#include "action.h"
 #include "user.h"
 #include "snapshot.h"
 #include "mspace_malloc.h"
 
 
 void user_action(std::string s) {
-    model->action(s);
+    model->action(new ModelAction(PLACEHOLDER, &s));
+}
+
+void store( {
+    action(new ModelAction(PLACEHOLDER, &s));
 }
 
 void user_init(int pid, Model *m, mspace ms) {
