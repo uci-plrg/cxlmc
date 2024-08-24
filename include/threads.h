@@ -6,7 +6,7 @@
 #include <pthread.h>
 
 #include "action.h"
-#include "shared_data.h"
+#include "shared_ADT.h"
 #include "thread_memory.h"
 #include "config.h"
 

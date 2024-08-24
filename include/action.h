@@ -15,7 +15,6 @@ typedef enum action_type {
 	PTHREAD_CREATE,	// < A pthread creation action
 	PTHREAD_JOIN,	// < A pthread join action
 	STORE,			// < A store to memory action
-	LOAD,			// < A load from memory action
 	PLACEHOLDER	    // < Placeholder
 } action_type_t;
 

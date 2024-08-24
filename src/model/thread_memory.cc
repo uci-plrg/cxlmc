@@ -4,10 +4,12 @@
 #include "thread_memory.h"
 
 void ThreadMemory::addToStoreBuffer(ModelAction *action) {
+    printf("add to store buffer\n");
     storeBuffer.push_back(action);
 }
 
 bool ThreadMemory::popFromStoreBuffer() {
+    printf("pop from store buffer\n");
     if (storeBuffer.size() == 0)
         return false;
     ModelAction *action = storeBuffer.front();

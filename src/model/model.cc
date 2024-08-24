@@ -6,7 +6,6 @@
 
 #include <atomic>
 #include <cstring>
-#include <iostream>
 #include <string>
 
 #include "model.h"
@@ -24,6 +23,8 @@ void Model::action(ModelAction* action) {
     execute(action);
     curr_thread->set_pending(nullptr);
     delete action; 
+
+    curr_thread->get_thread_memory()->popFromStoreBuffer();
 }
 
 void Model::add_to_store_list(ModelAction* action) {
@@ -31,18 +32,31 @@ void Model::add_to_store_list(ModelAction* action) {
     store_list.push_back(action);
 }
 
+void Model::print_execution_summary() {
+        printf("store list: \n");
+        for (auto s: store_list)
+            printf("loc: %p, val: %ld, ", s->get_location(), s->get_value());
+        printf("\n");
+        printf("placeholder data: \n");
+        for (auto s: placeholder_data)
+            printf("%s, ", s.c_str());
+        printf("\n");
+}
+
 void Model::finishExecution() {
     bool isLast = !scheduler->finalize();
 
     int num = execution_num.load();
     
-    std::cout << "process " << process_id << " done" << std::endl;
+    printf("process %d done\n", process_id);
                     
     if (isLast) {
+		print_execution_summary();
         if (num+1> MAX_EXECUTION)
             rollback_again = false;
         else {
-            std::cout << "-------------------------- execution " << num+1 << "--------------------------" << std::endl;
+            printf("-------------------------- execution %d--------------------------\n", num+1);
+            store_list.clear();
             placeholder_data.clear();
         }
 

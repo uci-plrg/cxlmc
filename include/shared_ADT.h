@@ -1,5 +1,5 @@
-#ifndef _SHARED_DATA_H
-#define _SHARED_DATA_H
+#ifndef _SHARED_ADT_H
+#define _SHARED_ADT_H
 
 #include <list>
 #include <string>

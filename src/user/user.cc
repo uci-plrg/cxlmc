@@ -21,14 +21,14 @@ void user_init(process_id_t pid, Model *m, mspace ms) {
     real_init_all();
     take_snapshot();
     
-    void* mapping = mmap(NULL, 10000 * PAGE_SIZE, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    void* mapping = mmap(NULL, SNAPSHOT_PAGES * PAGE_SIZE, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     
     if (mapping == MAP_FAILED) {
         perror("mmap");
         exit(1);
     }
 
-    snapshot_space = create_mspace_with_base(mapping, 10000 * PAGE_SIZE, 1);
+    snapshot_space = create_mspace_with_base(mapping, SNAPSHOT_PAGES * PAGE_SIZE, 1);
 
     if (!snapshot_space) { 
         perror("create_mspace_with_base");

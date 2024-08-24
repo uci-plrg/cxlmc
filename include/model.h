@@ -5,7 +5,7 @@
 #include <string>
 
 #include "scheduler.h"
-#include "shared_data.h"
+#include "shared_ADT.h"
 #include "action.h"
 
 class Model {
@@ -18,7 +18,6 @@ class Model {
 public:
     Model(Scheduler *s): scheduler(s), execution_num(1), rollback_again(true) {}    
 
-    void action(std::string s);
     void action(ModelAction* action);
     
     void add_to_store_list(ModelAction* action);
@@ -29,12 +28,7 @@ public:
 
     bool should_rollback_again() { return rollback_again; }
 
-    void print_placeholder_data() {
-        std::cout << "placeholder data: ";
-        for (auto s: placeholder_data)
-            std::cout << s << " ";
-        std::cout << std::endl;
-    }
+    void print_execution_summary();
 
     shared::vector<shared::string> &get_placeholder_data() { return placeholder_data; };
 };

@@ -6,7 +6,7 @@
 #include "allocators.h"
 #include "threads.h"
 #include "config.h"
-#include "shared_data.h"
+#include "shared_ADT.h"
 
 //process local data
 extern process_id_t process_id;
