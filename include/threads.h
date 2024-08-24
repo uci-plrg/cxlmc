@@ -10,42 +10,59 @@
 #include "thread_memory.h"
 #include "config.h"
 
+typedef void *(*pthread_start_t)(void *);
+
+struct pthread_params {
+	pthread_start_t func;
+	void *arg;
+};
+
 typedef enum thread_state {
 	THREAD_RUNNING,
+	THREAD_BLOCKED,
 	THREAD_COMPLETED
 } thread_state;
 
 class Thread {
-    std::atomic_int thread_id;
-    std::atomic_int process_id;
-    std::atomic<thread_state> state;
+    thread_id_t thread_id;
+    process_id_t process_id;
+    thread_state state;
+	Thread* parent;
+	bool is_main;
+	ModelAction* pending;
     ThreadMemory thread_memory;
 
     // process local
     void* stack;
     ucontext_t context;
 public:
+	pthread_params params;
 	void* ret_val;
 	void* tls;
 	pthread_mutex_t mutex_tls;
 	pthread_mutex_t mutex_finalize;
 	pthread_t pthread_id;
 
-    Thread(int tid, int pid) : thread_id(tid), process_id(pid), state(THREAD_RUNNING), stack(nullptr), tls(nullptr) {}
-    Thread(int pid) : Thread(pid, pid) {}
+    Thread(thread_id_t tid, process_id_t pid, Thread* par, pthread_params p);
+    Thread(process_id_t pid); // create main thread
 
-    int get_thread_id() { return thread_id.load(); }
-    int get_process_id() { return process_id.load(); }
-    thread_state get_state() { return state.load(); }
-	void set_state(thread_state ts) { state.store(ts); }
+    thread_id_t get_thread_id() { return thread_id; }
+    process_id_t get_process_id() { return process_id; }
+    thread_state get_state() { return state; }
+	void set_state(thread_state ts) { state = ts; }
 
 	ucontext_t* get_context() { return &context; }
 	ThreadMemory* get_thread_memory() { return &thread_memory; }
 	void free_stack() { mspace_free(snapshot_space, stack); }
-	void setup_tls();
+	void finalize();
 
-    int setup_context(void* (*func)(void*), void* arg);
+    int setup_context();
 	void swap(Thread* thread);
+
+	ModelAction* get_pending() { return pending; }
+	void set_pending(ModelAction* action) { pending = action; }
+
+	Thread* waiting_on();
 
     void * operator new(size_t size) {
 		return mspace_malloc(shared_space, size);
@@ -59,13 +76,6 @@ public:
 	void operator delete[](void *p, size_t size) {
 		mspace_free(shared_space, p);
 	}
-};
-
-typedef void *(*pthread_start_t)(void *);
-
-struct pthread_params {
-	pthread_start_t func;
-	void *arg;
 };
 
 // int real_epoll_wait(int epfd, struct epoll_event *events, int maxevents, int timeout);

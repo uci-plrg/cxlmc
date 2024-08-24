@@ -10,11 +10,11 @@ void user_action(std::string s) {
     model->action(new ModelAction(PLACEHOLDER, &s));
 }
 
-void store( {
-    action(new ModelAction(PLACEHOLDER, &s));
+void cxlmc_store(void* loc, uint64_t val) {
+    model->action(new ModelAction(STORE, loc, val));
 }
 
-void user_init(int pid, Model *m, mspace ms) {
+void user_init(process_id_t pid, Model *m, mspace ms) {
     model = m;
     shared_space = ms;
     model->get_scheduler()->process_init(pid);
