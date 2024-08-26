@@ -80,7 +80,7 @@ void Thread::finalize() {
     real_pthread_join(pthread_id, nullptr);
     model->get_scheduler()->finalize();
     model->get_scheduler()->wait();
-    printf("this should not be reached\n");
+    assert(0);
 }
 
 Thread* Thread::waiting_on() {

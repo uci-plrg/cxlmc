@@ -29,6 +29,8 @@ void user_init(process_id_t pid, Model *m, mspace ms) {
         perror("create_mspace_with_base");
         exit(1);
     }
+
+    model->get_scheduler()->wait();
 }
 
 void user_done() {

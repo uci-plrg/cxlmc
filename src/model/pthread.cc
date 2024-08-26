@@ -34,6 +34,7 @@ int sched_yield() {
 
 void pthread_exit(void *value_ptr) {
 	model->action(new ModelAction(THREADONLY_FINISH, value_ptr)); // does not return
+    assert(0);
 }
 
 pthread_t pthread_self() {
