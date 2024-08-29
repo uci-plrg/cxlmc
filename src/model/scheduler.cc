@@ -36,6 +36,8 @@ void Scheduler::wait() {
 }
 
 void Scheduler::yield() {
+    assert_active();
+
     thread_id_t active = active_thread.load();
     int tc = get_thread_count();
     for (int i = 1; i < tc; i++) {
@@ -49,6 +51,8 @@ void Scheduler::yield() {
 }
 
 bool Scheduler::last_yield() {
+    assert_active();
+    
     thread_id_t active = active_thread.load();
     int tc = get_thread_count();
     for (int i = 1; i < tc; i++) {

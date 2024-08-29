@@ -17,6 +17,8 @@ mspace shared_space;
 mspace snapshot_space;
 
 void Model::action(ModelAction* action) {
+    scheduler->assert_active();
+
     Thread* curr_thread = scheduler->current_thread();
     curr_thread->set_pending(action);
     scheduler->yield();

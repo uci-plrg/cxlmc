@@ -2,6 +2,7 @@
 #define _SCHEDULER_H
 
 #include <atomic>
+#include <assert.h>
 
 #include "allocators.h"
 #include "threads.h"
@@ -47,6 +48,8 @@ public:
     bool finalize();
 
     void reset();
+
+    void assert_active() { assert(active_thread.load() == thread_id); }
     
 };
 #endif

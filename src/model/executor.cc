@@ -43,10 +43,7 @@ void execute(ModelAction* action) {
         Thread* curr_thread = get_thread(action);
         Thread* thread = (Thread*)action->get_location();
 
-        if (thread->get_process_id() != process_id) {
-            // error? waiting on a thread of another process
-            break;
-        }
+        assert(thread->get_process_id() == process_id);
 
         printf("thread %d joining %d\n", thread_id, thread->get_thread_id());
         if (thread->get_state() != THREAD_COMPLETED) {
