@@ -27,7 +27,7 @@ void take_snapshot() {
 
         std::cout << "restart process " << process_id << std::endl;
         
-        if (!model->should_rollback_again())
+        if (!model->should_rollback())
             exit(EXIT_SUCCESS);
     }
 }

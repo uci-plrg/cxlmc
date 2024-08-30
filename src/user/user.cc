@@ -12,7 +12,12 @@ void user_action(std::string s) {
 
 void cxlmc_store(void* loc, uint64_t val) {
     model->action(new ModelAction(STORE, loc, val));
+	*((uint64_t *)loc) = val;
 }
+
+void* get_cxl_mapping() {
+	return model->get_cxl_mapping();
+}	
 
 void user_init(process_id_t pid, Model *m, mspace ms) {
     model = m;
@@ -39,5 +44,5 @@ void user_init(process_id_t pid, Model *m, mspace ms) {
 }
 
 void user_done() {
-    model->finishExecution();
+    model->finish_execution();
 }

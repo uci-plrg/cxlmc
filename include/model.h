@@ -7,30 +7,43 @@
 #include "scheduler.h"
 #include "shared_ADT.h"
 #include "action.h"
+#include "types.h"
 
 class Model {
     Scheduler *scheduler;
     std::atomic_int execution_num;
-    bool rollback_again;
+    bool rollback;
+
+	//should be reset on rollback
+	void* cxl_mapping;
+	modelclock_t next_sequence_num;
     shared::vector<shared::string> placeholder_data;
     shared::list<ModelAction *> store_list;
 
+	void reset_execution_data();
+
+	modelclock_t get_next_sequence_num() {return next_sequence_num++; }
+
 public:
-    Model(Scheduler *s): scheduler(s), execution_num(1), rollback_again(true) {}    
+    Model(Scheduler *s, void* cxl): scheduler(s), execution_num(1), rollback(true), next_sequence_num(0), cxl_mapping(cxl) {}    
 
     void action(ModelAction* action);
     
     void add_to_store_list(ModelAction* action);
     
-    void finishExecution();
+    void finish_execution();
 
     Scheduler *get_scheduler() { return scheduler; }
 
-    bool should_rollback_again() { return rollback_again; }
+    bool should_rollback() { return rollback; }
 
     void print_execution_summary();
 
     shared::vector<shared::string> &get_placeholder_data() { return placeholder_data; };
+
+	void *get_cxl_mapping() {
+		return cxl_mapping;
+	}
 };
 
 extern Model *model;

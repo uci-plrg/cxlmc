@@ -31,13 +31,14 @@ void Model::action(ModelAction* action) {
 
 void Model::add_to_store_list(ModelAction* action) {
     assert(action->get_type() == STORE);
+	action->set_seq_num(get_next_sequence_num());
     store_list.push_back(action);
 }
 
 void Model::print_execution_summary() {
         printf("store list: \n");
         for (auto s: store_list)
-            printf("loc: %p, val: %ld, ", s->get_location(), s->get_value());
+            printf("loc: %p, val: %ld, seq:, %u,", s->get_location(), s->get_value(), s->get_seq_num());
         printf("\n");
         printf("placeholder data: \n");
         for (auto s: placeholder_data)
@@ -45,7 +46,7 @@ void Model::print_execution_summary() {
         printf("\n");
 }
 
-void Model::finishExecution() {
+void Model::finish_execution() {
     bool isLast = !scheduler->finalize();
 
     int num = execution_num.load();
@@ -55,11 +56,10 @@ void Model::finishExecution() {
     if (isLast) {
 		print_execution_summary();
         if (num+1> MAX_EXECUTION)
-            rollback_again = false;
+            rollback = false;
         else {
             printf("-------------------------- execution %d--------------------------\n", num+1);
-            store_list.clear();
-            placeholder_data.clear();
+			reset_execution_data();
         }
 
         scheduler->reset();
@@ -70,4 +70,11 @@ void Model::finishExecution() {
         }
     }
 
+}
+
+void Model::reset_execution_data() {
+		memset(cxl_mapping, 0, CXL_MEM_SIZE);
+		next_sequence_num = 0;
+        store_list.clear();
+        placeholder_data.clear();
 }

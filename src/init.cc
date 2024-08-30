@@ -27,7 +27,8 @@ int main(int argc, char* argv[]) {
         std::cerr << "Less than 1 user program" << std::endl;
     }
 
-    void* mapping = mmap(NULL, MAP_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+	size_t total_map_size = SHARED_MAP_SIZE + CXL_MEM_SIZE;
+    void* mapping = mmap(NULL, total_map_size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
 
     if (mapping == MAP_FAILED) {
         perror("mmap");
@@ -36,7 +37,7 @@ int main(int argc, char* argv[]) {
     
     int reserved = sizeof(Scheduler) + sizeof(Model);
     //shared space needs to be initialized before scheduler and model
-    shared_space = create_mspace_with_base((char *)mapping + reserved, MAP_SIZE - reserved, 1);
+    shared_space = create_mspace_with_base((char *)mapping + reserved, SHARED_MAP_SIZE - reserved, 1);
 
     if (!shared_space) { 
         perror("create_mspace_with_base");
@@ -44,7 +45,8 @@ int main(int argc, char* argv[]) {
     }
 
     Scheduler *scheduler = new (mapping) Scheduler(processes);
-    Model *model = new((char*)mapping + sizeof(Scheduler)) Model(scheduler);
+	void *cxl_mapping = mapping + SHARED_MAP_SIZE;	
+    Model *model = new((char*)mapping + sizeof(Scheduler)) Model(scheduler, cxl_mapping);
 
     pid_t pid;
     int id;
@@ -93,7 +95,7 @@ int main(int argc, char* argv[]) {
                 std::cerr << "child stopped by sig " << WSTOPSIG(status) << std::endl;
         }
         
-        munmap(mapping, MAP_SIZE);
+        munmap(mapping, total_map_size);
     }
 
     return 0;

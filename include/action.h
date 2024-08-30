@@ -15,6 +15,9 @@ typedef enum action_type {
 	PTHREAD_CREATE,	// < A pthread creation action
 	PTHREAD_JOIN,	// < A pthread join action
 	STORE,			// < A store to memory action
+	LOAD,			// < A load from memory location
+	MFENCE,         // < A memory fence
+	CLFLUSH,		// < A cacheline flush
 	PLACEHOLDER	    // < Placeholder
 } action_type_t;
 
@@ -24,11 +27,14 @@ class ModelAction {
 
 	void* location;
 	uint64_t value;
+	modelclock_t seq_num;
 public:
 	ModelAction(action_type_t t) : tid(thread_id), type(t) {}
 	ModelAction(action_type_t t, void* loc, uint64_t val=0) : tid(thread_id), type(t), location(loc), value(val) {}
 	ModelAction(ModelAction &action) : tid(action.tid), type(action.type), location(action.location), value(action.value) {}
 
+	void set_seq_num(modelclock_t seq_n) { seq_num = seq_n; }
+	modelclock_t get_seq_num () {return seq_num; }
 	thread_id_t get_thread_id() { return tid; }
 	action_type_t get_type() { return type; }
 	void* get_location() { return location; }
