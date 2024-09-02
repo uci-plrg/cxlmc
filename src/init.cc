@@ -45,8 +45,8 @@ int main(int argc, char* argv[]) {
     }
 
     Scheduler *scheduler = new (mapping) Scheduler(processes);
-	void *cxl_mapping = mapping + SHARED_MAP_SIZE;	
-    Model *model = new((char*)mapping + sizeof(Scheduler)) Model(scheduler, cxl_mapping);
+	void *cxl_mapping = (char *)mapping + SHARED_MAP_SIZE;	
+	model = new((char*)mapping + sizeof(Scheduler)) Model(scheduler, cxl_mapping);
 
     pid_t pid;
     int id;

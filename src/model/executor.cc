@@ -57,6 +57,13 @@ void execute(ModelAction* action) {
     case STORE: {
        ModelAction *storeAction = new ModelAction(*action); //old copy will be deleted
        model->get_scheduler()->get_thread(storeAction->get_thread_id())->get_thread_memory()->addToStoreBuffer(storeAction); 
+	   break;
     }
+	case MFENCE: {
+       model->get_scheduler()->get_thread(action->get_thread_id())->get_thread_memory()->emptyStoreBuffer(); 
+	   break;
+	}
+	default:
+		assert(false && "unreachable");
     }
 }

@@ -1,5 +1,6 @@
 #include <sstream>
 
+#include "api.h"
 #include "user.h"
 
 int main() {

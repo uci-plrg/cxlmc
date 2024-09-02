@@ -19,6 +19,7 @@ public:
     void addToStoreBuffer(ModelAction *action);
 
     bool popFromStoreBuffer();
+    void emptyStoreBuffer();
 };
 
 #endif

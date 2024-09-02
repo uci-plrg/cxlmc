@@ -26,7 +26,17 @@ void Model::action(ModelAction* action) {
     curr_thread->set_pending(nullptr);
     delete action; 
 
-    curr_thread->get_thread_memory()->popFromStoreBuffer();
+	//placeholder store buffer policy, to be changed later
+	srand(42 + thread_id);
+	bool to_flush = rand()%2;
+	if (to_flush) 
+		curr_thread->get_thread_memory()->popFromStoreBuffer();
+}
+
+CacheLine &Model::get_cacheline(void *addr)  { 
+	uintptr_t id = getCacheID(addr);
+	auto itr = obj_to_cacheline.try_emplace(id, id).first;
+	return itr->second; 
 }
 
 void Model::add_to_store_list(ModelAction* action) {
@@ -77,4 +87,5 @@ void Model::reset_execution_data() {
 		next_sequence_num = 0;
         store_list.clear();
         placeholder_data.clear();
+		obj_to_cacheline.clear();
 }

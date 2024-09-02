@@ -15,8 +15,7 @@ extern thread_id_t thread_id;
 
 class Scheduler {
     const int process_count;
-    //avoid false sharing with thread_count
-    alignas(CACHE_SIZE) std::atomic<thread_id_t> active_thread;
+    std::atomic<thread_id_t> active_thread;
     shared::vector<Thread*> threads;
 
     //returns true if there are other running threads, else false

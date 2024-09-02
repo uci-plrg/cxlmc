@@ -1,23 +1,8 @@
 #include <sys/mman.h>
 
-#include "action.h"
 #include "user.h"
 #include "snapshot.h"
 #include "mspace_malloc.h"
-
-
-void user_action(std::string s) {
-    model->action(new ModelAction(PLACEHOLDER, &s));
-}
-
-void cxlmc_store(void* loc, uint64_t val) {
-    model->action(new ModelAction(STORE, loc, val));
-	*((uint64_t *)loc) = val;
-}
-
-void* get_cxl_mapping() {
-	return model->get_cxl_mapping();
-}	
 
 void user_init(process_id_t pid, Model *m, mspace ms) {
     model = m;

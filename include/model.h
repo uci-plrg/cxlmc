@@ -4,6 +4,7 @@
 #include <iostream>
 #include <string>
 
+#include "cacheline.h"
 #include "scheduler.h"
 #include "shared_ADT.h"
 #include "action.h"
@@ -19,13 +20,16 @@ class Model {
 	modelclock_t next_sequence_num;
     shared::vector<shared::string> placeholder_data;
     shared::list<ModelAction *> store_list;
+	shared::hashmap<uintptr_t, CacheLine> obj_to_cacheline;
 
 	void reset_execution_data();
 
 	modelclock_t get_next_sequence_num() {return next_sequence_num++; }
 
+	CacheLine &get_cacheline(void *addr);
+
 public:
-    Model(Scheduler *s, void* cxl): scheduler(s), execution_num(1), rollback(true), next_sequence_num(0), cxl_mapping(cxl) {}    
+    Model(Scheduler *s, void* cxl): scheduler(s), execution_num(1), rollback(true), cxl_mapping(cxl), next_sequence_num(0){}    
 
     void action(ModelAction* action);
     

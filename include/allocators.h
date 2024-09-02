@@ -14,6 +14,9 @@ public:
     typedef T value_type;
     // Constructor 
     model_allocator() noexcept {}
+
+	template<typename T2>
+    model_allocator(model_allocator<T2> &alloc) noexcept {}
  
     // Allocate memory for n objects of type T 
     T* allocate(size_t n) {

@@ -22,3 +22,8 @@ bool ThreadMemory::popFromStoreBuffer() {
 
     return false;
 }
+
+void ThreadMemory::emptyStoreBuffer() {
+   while (!storeBuffer.empty())
+	   popFromStoreBuffer();
+}
