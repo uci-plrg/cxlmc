@@ -29,12 +29,13 @@ class Model {
 	modelclock_t get_next_sequence_num() {return next_sequence_num++; }
 
 	CacheLine &get_cacheline(void *addr);
+	
 	storelist &get_storelist(void *addr);
 
 public:
     Model(Scheduler *s, void* cxl): scheduler(s), execution_num(1), rollback(true), cxl_mapping(cxl), next_sequence_num(0){}    
 
-    void action(ModelAction* action);
+    uint64_t action(ModelAction* action);
     
     void evict_store(ModelAction* action);
     

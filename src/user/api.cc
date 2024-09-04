@@ -6,17 +6,21 @@ void user_action(std::string s) {
     model->action(new ModelAction(PLACEHOLDER, &s));
 }
 
-void cxlmc_store(void* loc, uint64_t val) {
-    model->action(new ModelAction(STORE, loc, val));
-	*((uint64_t *)loc) = val;
+uint8_t cxlmc_load8(void* addrs) {
+    return model->action(new ModelAction(NONATOMIC_LOAD, addrs));
+}
+
+void cxlmc_store8(void* loc, uint8_t val) {
+    model->action(new ModelAction(NONATOMIC_STORE, loc, val));
+	*((uint8_t *)loc) = val;
 }
 
 void cxlmc_mfence(void* loc) {
-    model->action(new ModelAction(MFENCE, loc));
+    model->action(new ModelAction(CACHE_MFENCE, loc));
 }
 
 void cxlmc_clflush(void* loc) {
-    model->action(new ModelAction(CLFLUSH, loc));
+    model->action(new ModelAction(CACHE_CLFLUSH, loc));
 }
 
 void* get_cxl_mapping() {

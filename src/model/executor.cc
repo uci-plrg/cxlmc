@@ -54,21 +54,26 @@ void execute(ModelAction* action) {
         printf("%d joined %d completed\n", thread_id, thread->get_thread_id());
         break;
     }
-    case STORE: {
-       ModelAction *storeAction = new ModelAction(*action); //old copy will be deleted
-       model->get_scheduler()->get_thread(storeAction->get_thread_id())->get_thread_memory()->addToStoreBuffer(storeAction); 
-	   break;
+    case NONATOMIC_STORE: {
+		ModelAction *storeAction = new ModelAction(*action); //old copy will be deleted
+		get_thread(storeAction)->get_thread_memory()->add_to_store_buffer(storeAction); 
+		break;
     }
-    case CLFLUSH: {
-       ModelAction *flushAction = new ModelAction(*action); //old copy will be deleted
-       model->get_scheduler()->get_thread(flushAction->get_thread_id())->get_thread_memory()->addToStoreBuffer(flushAction); 
-	   break;
+	case NONATOMIC_LOAD: {
+		uint8_t loaded = get_thread(action)->get_thread_memory()->get_last_write(action);
+		action->set_value(loaded);
+		break;
 	}
-	case MFENCE: {
-       model->get_scheduler()->get_thread(action->get_thread_id())->get_thread_memory()->emptyStoreBuffer(); 
-	   break;
+    case CACHE_CLFLUSH: {
+		ModelAction *flushAction = new ModelAction(*action); //old copy will be deleted
+		get_thread(flushAction)->get_thread_memory()->add_to_store_buffer(flushAction); 
+		break;
+	}
+	case CACHE_MFENCE: {
+		get_thread(action)->get_thread_memory()->empty_store_buffer(); 
+		break;
 	}
 	default:
-		assert(false && "unreachable");
+		assert(false && "not implemented");
     }
 }

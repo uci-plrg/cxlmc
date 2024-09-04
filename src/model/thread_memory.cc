@@ -3,25 +3,36 @@
 #include "model.h"
 #include "thread_memory.h"
 
-void ThreadMemory::addToStoreBuffer(ModelAction *action) {
-	assert(action->get_type() == STORE || action->get_type() == CLFLUSH);
-    printf("add to store buffer\n");
+void ThreadMemory::add_to_store_buffer(ModelAction *action) {
+	assert(action->get_type() == NONATOMIC_STORE || action->get_type() == CACHE_CLFLUSH);
+    //printf("add to store buffer\n");
     storeBuffer.push_back(action);
 }
 
-bool ThreadMemory::popFromStoreBuffer() {
-    printf("pop from store buffer\n");
+uint8_t ThreadMemory::get_last_write(ModelAction* act) {
+     for (auto iter = storeBuffer.rbegin(); iter != storeBuffer.rend(); iter++) {
+         ModelAction* write = *iter;
+         if (write->get_type() == NONATOMIC_STORE && write->get_location() == act->get_location()) {
+             return write->get_value();
+         }
+     }
+
+     return *(uint8_t*) act->get_location();
+ }
+
+bool ThreadMemory::pop_from_store_buffer() {
+    //printf("pop from store buffer\n");
     if (storeBuffer.size() == 0)
         return false;
     ModelAction *action = storeBuffer.front();
     storeBuffer.pop_front();
 
     switch (action->get_type()) {
-	case STORE: {
+	case NONATOMIC_STORE: {
 		model->evict_store(action);
 		break;
 	}
-	case CLFLUSH: {
+	case CACHE_CLFLUSH: {
 		model->evict_clflush(action);
 		break;
 	}
@@ -32,7 +43,7 @@ bool ThreadMemory::popFromStoreBuffer() {
     return false;
 }
 
-void ThreadMemory::emptyStoreBuffer() {
+void ThreadMemory::empty_store_buffer() {
    while (!storeBuffer.empty())
-	   popFromStoreBuffer();
+	   pop_from_store_buffer();
 }

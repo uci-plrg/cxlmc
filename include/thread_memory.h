@@ -16,10 +16,10 @@ public:
             delete f;
     }
 
-    void addToStoreBuffer(ModelAction *action);
-
-    bool popFromStoreBuffer();
-    void emptyStoreBuffer();
+    void add_to_store_buffer(ModelAction *action);
+	uint8_t get_last_write(ModelAction* act);
+    bool pop_from_store_buffer();
+    void empty_store_buffer();
 };
 
 #endif

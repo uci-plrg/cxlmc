@@ -7,18 +7,20 @@
 extern thread_id_t thread_id;
 
 typedef enum action_type {
-	THREAD_START,	// < First action in each thread
-	THREAD_YIELD,	// < A thread yield action
-	THREAD_FINISH,	// < A thread completion action
-	THREADONLY_FINISH,	// < A thread completion action (pthread_exit)
+	THREAD_START,	  // < First action in each thread
+	THREAD_YIELD,	  // < A thread yield action
+	THREAD_FINISH,	  // < A thread completion action
+	THREADONLY_FINISH,// < A thread completion action (pthread_exit)
 
-	PTHREAD_CREATE,	// < A pthread creation action
-	PTHREAD_JOIN,	// < A pthread join action
-	STORE,			// < A store to memory action
-	LOAD,			// < A load from memory location
-	MFENCE,         // < A memory fence
-	CLFLUSH,		// < A cacheline flush
-	PLACEHOLDER	    // < Placeholder
+	PTHREAD_CREATE,	  // < A pthread creation action
+	PTHREAD_JOIN,	  // < A pthread join action
+	NONATOMIC_STORE,  // < A nonatomic store
+	NONATOMIC_LOAD,	  // < A nonatomic load
+	CACHE_MFENCE,     // < A memory fence
+	CACHE_SFENCE,	  // < A store fence
+	CACHE_CLFLUSH,	  // < A cacheline flush
+	CACHE_CLFLUSHOPT, // < An optimized cacheline flush
+	PLACEHOLDER	      // < Placeholder
 } action_type_t;
 
 class ModelAction {
@@ -39,6 +41,7 @@ public:
 	action_type_t get_type() { return type; }
 	void* get_location() { return location; }
 	uint64_t get_value() { return value; }
+	void set_value(uint64_t val) { value = val; }
 
     void * operator new(size_t size) {
 		return mspace_malloc(shared_space, size);

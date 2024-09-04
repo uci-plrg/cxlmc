@@ -16,21 +16,24 @@ Model *model;
 mspace shared_space;
 mspace snapshot_space;
 
-void Model::action(ModelAction* action) {
+uint64_t Model::action(ModelAction* action) {
     scheduler->assert_active();
-
     Thread* curr_thread = scheduler->current_thread();
-    curr_thread->set_pending(action);
-    scheduler->yield();
-    execute(action);
-    curr_thread->set_pending(nullptr);
-    delete action; 
 
 	//placeholder store buffer policy, to be changed later
 	srand(42 + thread_id);
 	bool to_flush = rand()%2;
 	if (to_flush) 
-		curr_thread->get_thread_memory()->popFromStoreBuffer();
+		curr_thread->get_thread_memory()->pop_from_store_buffer();
+
+    curr_thread->set_pending(action);
+    scheduler->yield();
+    execute(action);
+    curr_thread->set_pending(nullptr);
+
+	uint64_t val = action->get_value();
+    delete action; 
+	return val;
 }
 
 CacheLine &Model::get_cacheline(void *addr)  { 
@@ -46,13 +49,13 @@ Model::storelist &Model::get_storelist(void *addr)  {
 }
 
 void Model::evict_store(ModelAction* action) {
-    assert(action->get_type() == STORE);
+    assert(action->get_type() == NONATOMIC_STORE);
 	action->set_seq_num(get_next_sequence_num());
     get_storelist(action->get_location()).push_back(action);
 }
 
 void Model::evict_clflush(ModelAction* action) {
-    assert(action->get_type() == CLFLUSH);
+    assert(action->get_type() == CACHE_CLFLUSH);
 	modelclock_t seq_num = get_next_sequence_num();
 	action->set_seq_num(seq_num);
 	get_cacheline(action->get_location()).setBegin(seq_num);
@@ -63,7 +66,7 @@ void Model::print_execution_summary() {
         for (auto &itr: obj_to_wr) {
 			printf("aligned loc %p [", itr.first);
 			for (auto s: itr.second)
-				printf("loc: %p, val= %ld, seq=, %u,", s->get_location(), s->get_value(), s->get_seq_num());
+				printf("loc: %p, val= %ld, seq=%u,", s->get_location(), s->get_value(), s->get_seq_num());
 			printf("]\n");
 		}
         printf("\n");
