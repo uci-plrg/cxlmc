@@ -11,6 +11,8 @@
 #include "types.h"
 
 class Model {
+	using storelist = shared::list<ModelAction *>;
+
     Scheduler *scheduler;
     std::atomic_int execution_num;
     bool rollback;
@@ -19,7 +21,7 @@ class Model {
 	void* cxl_mapping;
 	modelclock_t next_sequence_num;
     shared::vector<shared::string> placeholder_data;
-    shared::list<ModelAction *> store_list;
+	shared::hashmap<void *, storelist> obj_to_wr;
 	shared::hashmap<uintptr_t, CacheLine> obj_to_cacheline;
 
 	void reset_execution_data();
@@ -27,13 +29,16 @@ class Model {
 	modelclock_t get_next_sequence_num() {return next_sequence_num++; }
 
 	CacheLine &get_cacheline(void *addr);
+	storelist &get_storelist(void *addr);
 
 public:
     Model(Scheduler *s, void* cxl): scheduler(s), execution_num(1), rollback(true), cxl_mapping(cxl), next_sequence_num(0){}    
 
     void action(ModelAction* action);
     
-    void add_to_store_list(ModelAction* action);
+    void evict_store(ModelAction* action);
+    
+	void evict_clflush(ModelAction* action);
     
     void finish_execution();
 
@@ -51,5 +56,10 @@ public:
 };
 
 extern Model *model;
+
+inline void * alignAddress(void * addr) {
+		uintptr_t address = (uintptr_t) addr;
+			return (void *) (address & ~((uintptr_t)7));
+}
 
 #endif

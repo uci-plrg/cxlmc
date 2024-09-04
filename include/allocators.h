@@ -8,6 +8,23 @@
 extern mspace shared_space;
 extern mspace snapshot_space;
 
+#define MODELALLOC \
+	void * operator new(size_t size) { \
+				return mspace_malloc(shared_space, size); \
+			} \
+	void operator delete(void *p, size_t size) { \
+				mspace_free(shared_space, p); \
+			} \
+	void * operator new[](size_t size) { \
+				return mspace_malloc(shared_space, size); \
+			} \
+	void operator delete[](void *p, size_t size) { \
+				mspace_free(shared_space, p); \
+			} \
+	void * operator new(size_t size, void *p) {	/* placement new */ \
+				return p; \
+			}
+
 template <typename T> 
 class model_allocator { 
 public:

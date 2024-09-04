@@ -15,6 +15,10 @@ void cxlmc_mfence(void* loc) {
     model->action(new ModelAction(MFENCE, loc));
 }
 
+void cxlmc_clflush(void* loc) {
+    model->action(new ModelAction(CLFLUSH, loc));
+}
+
 void* get_cxl_mapping() {
 	return model->get_cxl_mapping();
 }

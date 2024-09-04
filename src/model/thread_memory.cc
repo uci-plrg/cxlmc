@@ -4,6 +4,7 @@
 #include "thread_memory.h"
 
 void ThreadMemory::addToStoreBuffer(ModelAction *action) {
+	assert(action->get_type() == STORE || action->get_type() == CLFLUSH);
     printf("add to store buffer\n");
     storeBuffer.push_back(action);
 }
@@ -15,10 +16,18 @@ bool ThreadMemory::popFromStoreBuffer() {
     ModelAction *action = storeBuffer.front();
     storeBuffer.pop_front();
 
-    if (action->get_type() == STORE)
-        model->add_to_store_list(action);
-    else
+    switch (action->get_type()) {
+	case STORE: {
+		model->evict_store(action);
+		break;
+	}
+	case CLFLUSH: {
+		model->evict_clflush(action);
+		break;
+	}
+	default:
         assert(false && "UNREACHABLE");
+	}
 
     return false;
 }

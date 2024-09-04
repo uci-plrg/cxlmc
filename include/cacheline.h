@@ -30,4 +30,7 @@ inline uintptr_t getCacheID(const void *address) {
 	return ((uintptr_t)address) & ~(CACHELINE_SIZE - 1);
 }
 
+inline shared::Pair<uintptr_t, uintptr_t> getCacheRange(const uintptr_t id) {
+	return shared::Pair(id, id | (CACHELINE_SIZE -1));
+}
 #endif

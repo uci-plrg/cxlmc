@@ -39,19 +39,42 @@ CacheLine &Model::get_cacheline(void *addr)  {
 	return itr->second; 
 }
 
-void Model::add_to_store_list(ModelAction* action) {
+Model::storelist &Model::get_storelist(void *addr)  { 
+	void *aligned = alignAddress(addr);
+	auto itr = obj_to_wr.try_emplace(aligned).first;
+	return itr->second; 
+}
+
+void Model::evict_store(ModelAction* action) {
     assert(action->get_type() == STORE);
 	action->set_seq_num(get_next_sequence_num());
-    store_list.push_back(action);
+    get_storelist(action->get_location()).push_back(action);
+}
+
+void Model::evict_clflush(ModelAction* action) {
+    assert(action->get_type() == CLFLUSH);
+	modelclock_t seq_num = get_next_sequence_num();
+	action->set_seq_num(seq_num);
+	get_cacheline(action->get_location()).setBegin(seq_num);
 }
 
 void Model::print_execution_summary() {
-        printf("store list: \n");
-        for (auto s: store_list)
-            printf("loc: %p, val: %ld, seq:, %u,", s->get_location(), s->get_value(), s->get_seq_num());
+        printf("stores: \n");
+        for (auto &itr: obj_to_wr) {
+			printf("aligned loc %p [", itr.first);
+			for (auto s: itr.second)
+				printf("loc: %p, val= %ld, seq=, %u,", s->get_location(), s->get_value(), s->get_seq_num());
+			printf("]\n");
+		}
         printf("\n");
+
+        printf("cachelines: \n");
+		for (auto &pair: obj_to_cacheline)
+			printf("%p: (%d, %d), ", pair.first, pair.second.getBegin(), pair.second.getEnd()); 
+        printf("\n");
+
         printf("placeholder data: \n");
-        for (auto s: placeholder_data)
+        for (auto &s: placeholder_data)
             printf("%s, ", s.c_str());
         printf("\n");
 }
@@ -85,7 +108,7 @@ void Model::finish_execution() {
 void Model::reset_execution_data() {
 		memset(cxl_mapping, 0, CXL_MEM_SIZE);
 		next_sequence_num = 0;
-        store_list.clear();
+        obj_to_wr.clear();
         placeholder_data.clear();
 		obj_to_cacheline.clear();
 }
