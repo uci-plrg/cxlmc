@@ -91,21 +91,27 @@ void Model::finish_execution() {
                     
     if (isLast) {
 		print_execution_summary();
-        if (num+1> MAX_EXECUTION)
-            rollback = false;
-        else {
+        if (num+1 <= MAX_EXECUTION) {
             printf("-------------------------- execution %d--------------------------\n", num+1);
 			reset_execution_data();
         }
 
         scheduler->reset();
         execution_num.store(num+1);
-    } else {
-        while (execution_num.load() != num+1) {
-            sleep(0);
-        }
+    }
+    exit(EXIT_SUCCESS);
+}
+
+bool Model::wait_for_next_execution(int num) {
+    if (num > MAX_EXECUTION) {
+        return false;
     }
 
+    while (execution_num.load() < num) {
+        sleep(0);
+    }
+
+    return true;
 }
 
 void Model::reset_execution_data() {
@@ -114,4 +120,16 @@ void Model::reset_execution_data() {
         obj_to_wr.clear();
         placeholder_data.clear();
 		obj_to_cacheline.clear();
+}
+
+void Model::process_crash() {
+    printf("process %d crashed\n", process_id);
+    for (int i = 0; i < scheduler->get_thread_count(); i++) {
+        Thread* thread = scheduler->get_thread(i);
+        if (thread->get_process_id() == process_id) {
+            printf("thread %d crashed\n", i);
+            thread->set_state(THREAD_CRASHED);
+        }
+    }
+    finish_execution();
 }

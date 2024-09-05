@@ -15,7 +15,6 @@ class Model {
 
     Scheduler *scheduler;
     std::atomic_int execution_num;
-    bool rollback;
 
 	//should be reset on rollback
 	void* cxl_mapping;
@@ -33,7 +32,7 @@ class Model {
 	storelist &get_storelist(void *addr);
 
 public:
-    Model(Scheduler *s, void* cxl): scheduler(s), execution_num(1), rollback(true), cxl_mapping(cxl), next_sequence_num(0){}    
+    Model(Scheduler *s, void* cxl): scheduler(s), execution_num(1), cxl_mapping(cxl), next_sequence_num(0){}    
 
     uint64_t action(ModelAction* action);
     
@@ -45,7 +44,8 @@ public:
 
     Scheduler *get_scheduler() { return scheduler; }
 
-    bool should_rollback() { return rollback; }
+    // returns whether to rollback again
+    bool wait_for_next_execution(int num);
 
     void print_execution_summary();
 
@@ -54,6 +54,8 @@ public:
 	void *get_cxl_mapping() {
 		return cxl_mapping;
 	}
+
+    void process_crash();
 };
 
 extern Model *model;

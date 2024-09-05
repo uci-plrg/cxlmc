@@ -3,6 +3,7 @@
 #include "snapshot.h"
 
 void take_snapshot() {
+    int execution_num = 1;
     while (true) {
 		pid_t forkedID;
 
@@ -24,10 +25,10 @@ void take_snapshot() {
             std::cerr << "child terminated by sig " << WTERMSIG(status) << std::endl;
             exit(EXIT_FAILURE);
         }
+        
+        if (!model->wait_for_next_execution(++execution_num))
+            exit(EXIT_SUCCESS);
 
         std::cout << "restart process " << process_id << std::endl;
-        
-        if (!model->should_rollback())
-            exit(EXIT_SUCCESS);
     }
 }
