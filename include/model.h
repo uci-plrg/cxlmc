@@ -9,6 +9,7 @@
 #include "shared_ADT.h"
 #include "action.h"
 #include "types.h"
+#include "nodestack.h"
 
 class Model {
 	using storelist = shared::list<ModelAction *>;
@@ -22,6 +23,7 @@ class Model {
     shared::vector<shared::string> placeholder_data;
 	shared::hashmap<void *, storelist> obj_to_wr;
 	shared::hashmap<uintptr_t, CacheLine> obj_to_cacheline;
+    NodeStack* nodestack;
 
 	void reset_execution_data();
 
@@ -32,7 +34,7 @@ class Model {
 	storelist &get_storelist(void *addr);
 
 public:
-    Model(Scheduler *s, void* cxl): scheduler(s), execution_num(1), cxl_mapping(cxl), next_sequence_num(0){}    
+    Model(Scheduler *s, void* cxl): scheduler(s), execution_num(1), cxl_mapping(cxl), next_sequence_num(0), nodestack(new NodeStack) {}    
 
     uint64_t action(ModelAction* action);
     
@@ -43,6 +45,8 @@ public:
     void finish_execution();
 
     Scheduler *get_scheduler() { return scheduler; }
+
+    NodeStack* get_node_stack() { return nodestack; }
 
     // returns whether to rollback again
     bool wait_for_next_execution(int num);
