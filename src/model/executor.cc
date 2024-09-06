@@ -60,8 +60,10 @@ void execute(ModelAction* action) {
 		break;
     }
 	case NONATOMIC_LOAD: {
-		uint8_t loaded = get_thread(action)->get_thread_memory()->get_last_write(action);
-		action->set_value(loaded);
+		//TODO: buildReadFrom
+		Thread *currThread = get_thread(action);
+		uint8_t loaded = currThread->get_thread_memory()->get_last_write(action);
+		model->do_read(action, currThread->get_process_id(), loaded);
 		break;
 	}
     case CACHE_CLFLUSH: {

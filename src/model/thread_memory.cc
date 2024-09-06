@@ -9,7 +9,7 @@ void ThreadMemory::add_to_store_buffer(ModelAction *action) {
     storeBuffer.push_back(action);
 }
 
-uint8_t ThreadMemory::get_last_write(ModelAction* act) {
+uint64_t ThreadMemory::get_last_write(ModelAction* act) {
      for (auto iter = storeBuffer.rbegin(); iter != storeBuffer.rend(); iter++) {
          ModelAction* write = *iter;
          if (write->get_type() == NONATOMIC_STORE && write->get_location() == act->get_location()) {
@@ -17,7 +17,7 @@ uint8_t ThreadMemory::get_last_write(ModelAction* act) {
          }
      }
 
-     return *(uint8_t*) act->get_location();
+     return *(uint64_t*) act->get_location();
  }
 
 bool ThreadMemory::pop_from_store_buffer() {

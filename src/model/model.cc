@@ -16,6 +16,10 @@ Model *model;
 mspace shared_space;
 mspace snapshot_space;
 
+process_id_t get_process_id(ModelAction* action) {
+    return model->get_scheduler()->get_thread(action->get_thread_id())->get_process_id();
+}
+
 uint64_t Model::action(ModelAction* action) {
     scheduler->assert_active();
     Thread* curr_thread = scheduler->current_thread();
@@ -59,6 +63,16 @@ void Model::evict_clflush(ModelAction* action) {
 	modelclock_t seq_num = get_next_sequence_num();
 	action->set_seq_num(seq_num);
 	get_cacheline(action->get_location()).setBegin(seq_num);
+}
+
+void Model::do_read(ModelAction * action, process_id_t write_pid, uint64_t value) {
+	assert(action->get_type() == NONATOMIC_LOAD);
+	if (write_pid != get_process_id(action)) { 
+		modelclock_t seq_num = get_next_sequence_num();
+		get_cacheline(action->get_location()).setBegin(seq_num);
+	}
+
+	action->set_value(value);
 }
 
 void Model::print_execution_summary() {

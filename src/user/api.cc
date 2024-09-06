@@ -7,7 +7,7 @@ void user_action(std::string s) {
 }
 
 uint8_t cxlmc_load8(void* addrs) {
-    return model->action(new ModelAction(NONATOMIC_LOAD, addrs));
+    return (uint8_t) model->action(new ModelAction(NONATOMIC_LOAD, addrs));
 }
 
 void cxlmc_store8(void* loc, uint8_t val) {

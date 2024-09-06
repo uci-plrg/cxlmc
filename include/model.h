@@ -41,6 +41,8 @@ public:
     
 	void evict_clflush(ModelAction* action);
     
+	void do_read(ModelAction* action, process_id_t write_pid, uint64_t value);
+
     void finish_execution();
 
     Scheduler *get_scheduler() { return scheduler; }
