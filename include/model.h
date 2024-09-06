@@ -25,6 +25,8 @@ class Model {
 	shared::hashmap<uintptr_t, CacheLine> obj_to_cacheline;
     NodeStack* nodestack;
 
+    bool rollback_again;
+
 	void reset_execution_data();
 
 	modelclock_t get_next_sequence_num() {return next_sequence_num++; }
@@ -33,8 +35,11 @@ class Model {
 	
 	storelist &get_storelist(void *addr);
 
+    void execute_crash();
 public:
-    Model(Scheduler *s, void* cxl): scheduler(s), execution_num(1), cxl_mapping(cxl), next_sequence_num(0), nodestack(new NodeStack) {}    
+    Model(Scheduler *s, void* cxl): scheduler(s), execution_num(1), cxl_mapping(cxl), next_sequence_num(0), nodestack(new NodeStack),
+        rollback_again(true) {}
+    ~Model() { delete nodestack; }
 
     uint64_t action(ModelAction* action);
     
@@ -59,7 +64,11 @@ public:
 		return cxl_mapping;
 	}
 
-    void process_crash();
+    int decision_point(int numchoices) { return nodestack->explore_next(numchoices)->get_choice(); }
+
+    bool should_crash() { return decision_point(2) == 0; }
+
+    void insert_crash();
 };
 
 extern Model *model;
