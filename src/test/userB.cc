@@ -8,6 +8,9 @@ int main() {
         std::ostringstream oss;
         oss << "user B iter " << i;
         user_action(oss.str());
+
+        model->insert_crash();
     }
+    
     return 0;
 }

@@ -18,9 +18,6 @@ class Scheduler {
     std::atomic<thread_id_t> active_thread;
     shared::vector<Thread*> threads;
 
-    //returns true if there are other running threads, else false
-    bool last_yield();
-
 public:
     Scheduler(int pc);
     void process_init(process_id_t pid) { process_id = pid; thread_id = pid; }
@@ -42,6 +39,9 @@ public:
     void wait();
      
     void yield();
+
+    //returns true if there are other running threads, else false
+    bool last_yield();
 
     //returns true if there are other running threads, else false
     bool finalize();

@@ -97,6 +97,8 @@ void Model::print_execution_summary() {
 }
 
 void Model::finish_execution() {
+    // TODO check if other threads of this process is still running
+
     bool isLast = !scheduler->finalize();
 
     int num = execution_num.load();
@@ -105,21 +107,29 @@ void Model::finish_execution() {
                     
     if (isLast) {
 		print_execution_summary();
-        if (num+1> MAX_EXECUTION)
-            rollback = false;
-        else {
+        rollback_again = num+1 <= MAX_EXECUTION && nodestack->has_another_execution();
+        if (rollback_again) {
             printf("-------------------------- execution %d--------------------------\n", num+1);
 			reset_execution_data();
+            nodestack->reset_execution();
         }
 
         scheduler->reset();
         execution_num.store(num+1);
-    } else {
-        while (execution_num.load() != num+1) {
-            sleep(0);
-        }
+    }
+    exit(EXIT_SUCCESS);
+}
+
+bool Model::wait_for_next_execution(int num) {
+    if (num > MAX_EXECUTION || !rollback_again) {
+        return false;
     }
 
+    while (execution_num.load() < num) {
+        sleep(0);
+    }
+
+    return rollback_again;
 }
 
 void Model::reset_execution_data() {
@@ -128,4 +138,22 @@ void Model::reset_execution_data() {
         obj_to_wr.clear();
         placeholder_data.clear();
 		obj_to_cacheline.clear();
+}
+
+void Model::execute_crash() {
+    for (int i = 0; i < scheduler->get_thread_count(); i++) {
+        Thread* thread = scheduler->get_thread(i);
+        if (thread->get_process_id() == process_id) {
+            printf("thread %d crashed\n", i);
+            thread->set_state(THREAD_CRASHED);
+        }
+    }
+    finish_execution();
+}
+
+void Model::insert_crash() {
+    if (!should_crash()) {
+        return;
+    }
+    execute_crash();
 }
