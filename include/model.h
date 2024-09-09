@@ -25,6 +25,7 @@ class Model {
 	shared::hashmap<uintptr_t, CacheLine> obj_to_cacheline;
     NodeStack* nodestack;
 
+    int crash_count;
     bool rollback_again;
 
 	void reset_execution_data();
@@ -38,7 +39,7 @@ class Model {
     void execute_crash();
 public:
     Model(Scheduler *s, void* cxl): scheduler(s), execution_num(1), cxl_mapping(cxl), next_sequence_num(0), nodestack(new NodeStack),
-        rollback_again(true) {}
+        crash_count(0), rollback_again(true) {}
     ~Model() { delete nodestack; }
 
     uint64_t action(ModelAction* action);
@@ -66,7 +67,7 @@ public:
 
     int decision_point(int numchoices) { return nodestack->explore_next(numchoices)->get_choice(); }
 
-    bool should_crash() { return decision_point(2) == 0; }
+    bool should_crash();
 
     void insert_crash();
 };

@@ -100,6 +100,7 @@ void Model::finish_execution() {
             nodestack->reset_execution();
         }
 
+        crash_count = 0;
         scheduler->reset();
         execution_num.store(num+1);
     }
@@ -135,6 +136,14 @@ void Model::execute_crash() {
         }
     }
     finish_execution();
+}
+
+bool Model::should_crash() {
+    if (crash_count < MAX_CRASHES_PER_EXECUTION && decision_point(2) == 0) {
+        crash_count++;
+        return true;
+    }
+    return false;
 }
 
 void Model::insert_crash() {
