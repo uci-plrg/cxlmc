@@ -50,7 +50,6 @@ void execute(ModelAction* action) {
             curr_thread->set_state(THREAD_BLOCKED);
             model->get_scheduler()->yield();
         }
-        thread->free_stack();
         printf("%d joined %d completed\n", thread_id, thread->get_thread_id());
         break;
     }

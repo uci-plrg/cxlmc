@@ -54,7 +54,7 @@ public:
 
 	ucontext_t* get_context() { return &context; }
 	ThreadMemory* get_thread_memory() { return &thread_memory; }
-	void free_stack() { mspace_free(snapshot_space, stack); }
+	void cleanup();
 	void finalize();
 
     int setup_context();
@@ -64,6 +64,8 @@ public:
 	void set_pending(ModelAction* action) { pending = action; }
 
 	Thread* waiting_on();
+
+	bool is_completed() { return state == THREAD_COMPLETED || state == THREAD_CRASHED; }
 
     void * operator new(size_t size) {
 		return mspace_malloc(shared_space, size);

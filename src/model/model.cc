@@ -83,12 +83,19 @@ void Model::print_execution_summary() {
 }
 
 void Model::finish_execution() {
-    // TODO check if other threads of this process is still running
-
     bool isLast = !scheduler->finalize();
 
     int num = execution_num.load();
     
+    for (int i = 0; i < scheduler->get_thread_count(); i++) {
+        Thread* thread = scheduler->get_thread(i);
+        if (thread->get_process_id() == process_id && !thread->is_completed()) {
+            printf("thread %d terminated\n", i);
+            thread->cleanup();
+            thread->set_state(THREAD_COMPLETED);
+        }
+    }
+
     printf("process %d done\n", process_id);
                     
     if (isLast) {
@@ -130,8 +137,9 @@ void Model::reset_execution_data() {
 void Model::execute_crash() {
     for (int i = 0; i < scheduler->get_thread_count(); i++) {
         Thread* thread = scheduler->get_thread(i);
-        if (thread->get_process_id() == process_id) {
+        if (thread->get_process_id() == process_id && !thread->is_completed()) {
             printf("thread %d crashed\n", i);
+            thread->cleanup();
             thread->set_state(THREAD_CRASHED);
         }
     }
