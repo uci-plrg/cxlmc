@@ -22,7 +22,8 @@ class Model {
 	modelclock_t next_sequence_num;
     shared::vector<shared::string> placeholder_data;
 	shared::hashmap<void *, storelist> obj_to_wr;
-	shared::hashmap<uintptr_t, CacheLine> obj_to_cacheline;
+	shared::hashmap<uintptr_t, CacheLine> obj_to_cl;
+	shared::hashmap<process_id_t, modelclock_t> crashed_processes;
     NodeStack* nodestack;
 
     int crash_count;
@@ -48,6 +49,10 @@ public:
     
 	void evict_clflush(ModelAction* action);
     
+	void build_may_read_from(ModelAction *read, shared::vector<ModelAction *> &rfset);
+
+	void do_read(ModelAction* action, process_id_t write_pid, uint64_t value);
+
     void finish_execution();
 
     Scheduler *get_scheduler() { return scheduler; }

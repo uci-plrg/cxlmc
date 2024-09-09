@@ -17,8 +17,8 @@ public:
     }
 
     void add_to_store_buffer(ModelAction *action);
-	uint8_t get_last_write(ModelAction* act);
-    bool pop_from_store_buffer();
+	ModelAction *get_last_write(ModelAction* act);
+	bool pop_from_store_buffer();
     void empty_store_buffer();
 };
 

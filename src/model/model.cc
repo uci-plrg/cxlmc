@@ -38,7 +38,7 @@ uint64_t Model::action(ModelAction* action) {
 
 CacheLine &Model::get_cacheline(void *addr)  { 
 	uintptr_t id = getCacheID(addr);
-	auto itr = obj_to_cacheline.try_emplace(id, id).first;
+	auto itr = obj_to_cl.try_emplace(id, id).first;
 	return itr->second; 
 }
 
@@ -61,20 +61,52 @@ void Model::evict_clflush(ModelAction* action) {
 	get_cacheline(action->get_location()).setBegin(seq_num);
 }
 
+void Model::build_may_read_from(ModelAction *read, shared::vector<ModelAction *> &rfset) {
+	//TODO: handle load/store of varying sizes by checking overlap
+	
+	ModelAction *lastWrite = scheduler->get_thread(read->get_thread_id())->get_thread_memory()->get_last_write(read);
+	if(lastWrite) {
+		rfset.push_back(lastWrite);
+		return;
+	}
+
+	storelist &stores = get_storelist(read->get_location());
+	if (!stores.empty()) {
+		rfset.push_back(stores.back());
+		return;
+	}
+
+	//TODO: handle read from crashed processes
+}
+
+void Model::do_read(ModelAction * action, process_id_t write_pid, uint64_t value) {
+	assert(action->get_type() == NONATOMIC_LOAD);
+	Thread *reader_thread = scheduler->get_thread(action->get_thread_id());
+	if (write_pid != reader_thread->get_process_id()) { 
+		modelclock_t seq_num = get_next_sequence_num();
+		get_cacheline(action->get_location()).setBegin(seq_num);
+		//TODO: constraint for crashed processes
+	}
+
+	action->set_value(value);
+}
+
 void Model::print_execution_summary() {
         printf("stores: \n");
         for (auto &itr: obj_to_wr) {
 			printf("aligned loc %p [", itr.first);
-			for (auto s: itr.second)
-				printf("loc: %p, val= %ld, seq=%u,", s->get_location(), s->get_value(), s->get_seq_num());
+			for (auto s: itr.second) {
+				int offset = (char *) s->get_location() - (char *) itr.first;
+				printf("+%d: val=%ld, seq=%u, ", offset, s->get_value(), s->get_seq_num());
+			}
 			printf("]\n");
 		}
         printf("\n");
 
         printf("cachelines: \n");
-		for (auto &pair: obj_to_cacheline)
+		for (auto &pair: obj_to_cl)
 			printf("%p: (%d, %d), ", pair.first, pair.second.getBegin(), pair.second.getEnd()); 
-        printf("\n");
+        printf("\n\n");
 
         printf("placeholder data: \n");
         for (auto &s: placeholder_data)
@@ -131,7 +163,8 @@ void Model::reset_execution_data() {
 		next_sequence_num = 0;
         obj_to_wr.clear();
         placeholder_data.clear();
-		obj_to_cacheline.clear();
+		obj_to_cl.clear();
+		crashed_processes.clear();
 }
 
 void Model::execute_crash() {
@@ -143,6 +176,7 @@ void Model::execute_crash() {
             thread->set_state(THREAD_CRASHED);
         }
     }
+	crashed_processes[process_id] = get_next_sequence_num();
     finish_execution();
 }
 
