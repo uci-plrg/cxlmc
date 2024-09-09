@@ -10,4 +10,6 @@
 #define STACK_SIZE 0x100000 //1MB
 #define MAX_EXECUTION 100
 #define SNAPSHOT_PAGES 10000
+
+#define VALUE_NONE 0xdeadbeef
 #endif

@@ -9,15 +9,15 @@ void ThreadMemory::add_to_store_buffer(ModelAction *action) {
     storeBuffer.push_back(action);
 }
 
-uint64_t ThreadMemory::get_last_write(ModelAction* act) {
+ModelAction *ThreadMemory::get_last_write(ModelAction* act) {
      for (auto iter = storeBuffer.rbegin(); iter != storeBuffer.rend(); iter++) {
          ModelAction* write = *iter;
          if (write->get_type() == NONATOMIC_STORE && write->get_location() == act->get_location()) {
-             return write->get_value();
+			 return write;
          }
      }
 
-     return *(uint64_t*) act->get_location();
+     return NULL;
  }
 
 bool ThreadMemory::pop_from_store_buffer() {

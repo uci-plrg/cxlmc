@@ -60,10 +60,15 @@ void execute(ModelAction* action) {
 		break;
     }
 	case NONATOMIC_LOAD: {
-		//TODO: buildReadFrom
-		Thread *currThread = get_thread(action);
-		uint8_t loaded = currThread->get_thread_memory()->get_last_write(action);
-		model->do_read(action, currThread->get_process_id(), loaded);
+		shared::vector<ModelAction *> rfset;
+		model->build_may_read_from(action, rfset);
+		uint64_t loaded = VALUE_NONE;
+		if (rfset.size() != 0) {
+			int index = model->get_node_stack()->explore_next(rfset.size())->get_choice();
+			loaded = rfset[index]->get_value();
+		}
+
+		model->do_read(action, get_thread(action)->get_process_id(), loaded);
 		break;
 	}
     case CACHE_CLFLUSH: {
