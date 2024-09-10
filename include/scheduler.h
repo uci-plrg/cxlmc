@@ -29,7 +29,7 @@ public:
     thread_id_t new_thread(pthread_start_t func, void* arg);
 
     Thread* get_thread(thread_id_t tid) { return threads[tid]; }
-
+    
     int get_thread_count() { return threads.size(); }
 
     Thread* current_thread() { return threads[thread_id]; }

@@ -62,13 +62,14 @@ void execute(ModelAction* action) {
 	case NONATOMIC_LOAD: {
 		shared::vector<ModelAction *> rfset;
 		model->build_may_read_from(action, rfset);
-		uint64_t loaded = VALUE_NONE;
+		printf("rfset size=%lu\n", rfset.size());
+		ModelAction * write = NULL;
 		if (rfset.size() != 0) {
-			int index = model->get_node_stack()->explore_next(rfset.size())->get_choice();
-			loaded = rfset[index]->get_value();
+			int index = model->decision_point(rfset.size());
+			write = rfset[index];
 		}
 
-		model->do_read(action, get_thread(action)->get_process_id(), loaded);
+		model->do_read(action, write);
 		break;
 	}
     case CACHE_CLFLUSH: {

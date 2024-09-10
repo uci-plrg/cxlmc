@@ -1,18 +1,19 @@
 #ifndef _THREAD_MEMORY_H
 #define _THREAD_MEMORY_H
 
-#include "snapshot_ADT.h"
+#include "shared_ADT.h"
 #include "action.h"
 
 class ThreadMemory {
-    snapshot::list<ModelAction *> storeBuffer;
-    snapshot::list<ModelAction *> flushBuffer;
+    shared::list<ModelAction *> storeBuffer;
+    shared::list<ModelAction *> flushBuffer;
 
 public:
     ~ThreadMemory() {
-        for (auto s: storeBuffer)
+        for (ModelAction *s: storeBuffer) {
             delete s;
-        for (auto f: flushBuffer)
+		}
+        for (ModelAction *f: flushBuffer)
             delete f;
     }
 
