@@ -25,6 +25,7 @@ void user_init(process_id_t pid, Model *m, mspace ms) {
         exit(1);
     }
 
+    atexit(user_done);
     model->get_scheduler()->wait();
 }
 

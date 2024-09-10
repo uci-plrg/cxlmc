@@ -114,6 +114,12 @@ void Model::print_execution_summary() {
         printf("\n");
 }
 
+void Model::terminate_early() {
+    rollback_again = false;
+    finish_execution();
+    _Exit(EXIT_FAILURE);
+}
+
 void Model::finish_execution() {
     bool isLast = !scheduler->finalize();
 
@@ -132,7 +138,7 @@ void Model::finish_execution() {
                     
     if (isLast) {
 		print_execution_summary();
-        rollback_again = num+1 <= MAX_EXECUTION && nodestack->has_another_execution();
+        rollback_again = rollback_again && num+1 <= MAX_EXECUTION && nodestack->has_another_execution();
         if (rollback_again) {
             printf("-------------------------- execution %d--------------------------\n", num+1);
 			reset_execution_data();
@@ -143,7 +149,6 @@ void Model::finish_execution() {
         scheduler->reset();
         execution_num.store(num+1);
     }
-    exit(EXIT_SUCCESS);
 }
 
 bool Model::wait_for_next_execution(int num) {
@@ -178,6 +183,7 @@ void Model::execute_crash() {
     }
 	crashed_processes[process_id] = get_next_sequence_num();
     finish_execution();
+    _Exit(EXIT_SUCCESS);
 }
 
 bool Model::should_crash() {
