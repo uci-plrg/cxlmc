@@ -8,7 +8,7 @@ int main() {
 	do {
 		read = cxlmc_load8(cxl);
 		printf("read %d\n", read);
-	} while (read != 3  && read != 2 && i++ < 3);
+	} while (read != 3 && i++ < 5);
     cxlmc_store8(cxl, 4);
     printf("store %d\n", 4);
 	read = cxlmc_load8(cxl);

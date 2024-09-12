@@ -50,7 +50,6 @@ void execute(ModelAction* action) {
             curr_thread->set_state(THREAD_BLOCKED);
             model->get_scheduler()->yield();
         }
-        thread->free_stack();
         printf("%d joined %d completed\n", thread_id, thread->get_thread_id());
         break;
     }
@@ -75,13 +74,17 @@ void execute(ModelAction* action) {
 		model->do_read(action, write);
 		break;
 	}
-    case CACHE_CLFLUSH: {
+    case CACHE_SFENCE:
+    case CACHE_CLFLUSH:
+    case CACHE_CLFLUSHOPT: {
 		ModelAction *flushAction = new ModelAction(*action); //old copy will be deleted
 		get_thread(flushAction)->get_thread_memory()->add_to_store_buffer(flushAction); 
 		break;
 	}
 	case CACHE_MFENCE: {
-		get_thread(action)->get_thread_memory()->empty_store_buffer(); 
+		ThreadMemory* memory = get_thread(action)->get_thread_memory();
+        memory->empty_store_buffer();
+        memory->empty_flush_buffer(); 
 		break;
 	}
 	default:

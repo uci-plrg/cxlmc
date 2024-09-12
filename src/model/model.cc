@@ -28,9 +28,14 @@ uint64_t Model::action(ModelAction* action) {
     delete action; 
 
 	//placeholder store buffer policy, to be changed later
-	bool to_flush = rand()%2;
-	if (to_flush) 
-		curr_thread->get_thread_memory()->pop_from_store_buffer();
+	uint num_to_pop = rand()%EVICT_MAX;
+	uint thread_to_pop = rand()%scheduler->get_thread_count();
+	ThreadMemory *mem = scheduler->get_thread(thread_to_pop)->get_thread_memory();
+	for (uint i = 0; i < num_to_pop; i++) {
+		//printf("pop store buffer\n");
+		if (!mem->pop_from_store_buffer())
+			break;
+	}
 
 	return val;
 }
@@ -72,7 +77,8 @@ bool Model::has_postcrash_unflushed_write(void *addr) {
 }
 
 void Model::evict_clflush(ModelAction* action) {
-    assert(action->get_type() == CACHE_CLFLUSH);
+    assert(action->get_type() == CACHE_CLFLUSH || action->get_type() == CACHE_CLFLUSHOPT);
+    insert_crash();
 	modelclock_t seq_num = get_next_sequence_num();
 	action->set_seq_num(seq_num);
 	void *addr = action->get_location();
@@ -169,28 +175,40 @@ void Model::print_execution_summary() {
         printf("\n");
 }
 
-void Model::finish_execution() {
-    // TODO check if other threads of this process is still running
+void Model::terminate_early() {
+    rollback_again = false;
+    finish_execution();
+    _Exit(EXIT_FAILURE);
+}
 
-    bool isLast = !scheduler->finalize();
+void Model::finish_execution() {
+    for (int i = 0; i < scheduler->get_thread_count(); i++) {
+        Thread* thread = scheduler->get_thread(i);
+        if (thread->get_process_id() == process_id && !thread->is_completed()) {
+            printf("thread %d terminated\n", i);
+            thread->cleanup();
+            thread->set_state(THREAD_COMPLETED);
+        }
+    }
 
     int num = execution_num.load();
-    
+
+    bool isLast = !scheduler->finalize();
     printf("process %d done\n", process_id);
                     
     if (isLast) {
 		print_execution_summary();
-        rollback_again = num+1 <= MAX_EXECUTION && nodestack->has_another_execution();
+        rollback_again = rollback_again && num+1 <= MAX_EXECUTION && nodestack->has_another_execution();
         if (rollback_again) {
             printf("-------------------------- execution %d--------------------------\n", num+1);
 			reset_execution_data();
             nodestack->reset_execution();
         }
 
+        crash_count = 0;
         scheduler->reset();
         execution_num.store(num+1);
     }
-    exit(EXIT_SUCCESS);
 }
 
 bool Model::wait_for_next_execution(int num) {
@@ -220,13 +238,22 @@ void Model::reset_execution_data() {
 void Model::execute_crash() {
     for (int i = 0; i < scheduler->get_thread_count(); i++) {
         Thread* thread = scheduler->get_thread(i);
-        if (thread->get_process_id() == process_id) {
+        if (thread->get_process_id() == process_id && !thread->is_completed()) {
             printf("thread %d crashed\n", i);
+            thread->cleanup();
             thread->set_state(THREAD_CRASHED);
         }
     }
 	crashed_processes[process_id] = get_next_sequence_num();
-    finish_execution();
+    exit(EXIT_SUCCESS);
+}
+
+bool Model::should_crash() {
+    if (crash_count < MAX_CRASHES_PER_EXECUTION && decision_point(2) == 0) {
+        crash_count++;
+        return true;
+    }
+    return false;
 }
 
 void Model::insert_crash() {

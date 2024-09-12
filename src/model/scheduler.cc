@@ -67,8 +67,10 @@ bool Scheduler::last_yield() {
 }
 
 bool Scheduler::finalize() {
-    printf("thread %d done\n", thread_id);
-    threads[thread_id]->set_state(THREAD_COMPLETED);
+    if (!threads[thread_id]->is_completed()) {
+        printf("thread %d done\n", thread_id);
+        threads[thread_id]->set_state(THREAD_COMPLETED);
+    }
     return last_yield();
 }
 
@@ -86,7 +88,7 @@ void Scheduler::reset() {
 
 void Scheduler::wake_threads_waiting_on(Thread* thread) {
     for (Thread* waiter: threads) {
-        if (waiter->waiting_on() == thread) {
+        if (!waiter->is_completed() && waiter->waiting_on() == thread) {
             waiter->set_state(THREAD_RUNNING);
         }
     }

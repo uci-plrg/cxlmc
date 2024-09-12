@@ -19,12 +19,14 @@ int main(int argc, char* argv[]) {
 
     if (processes < 1) {
         std::cerr << "Less than 1 processs" << std::endl;
+        exit(EXIT_FAILURE);
     }
     
     int user_progs = argc - 2;
 
     if (user_progs < 1) {
         std::cerr << "Less than 1 user program" << std::endl;
+        exit(EXIT_FAILURE);
     }
 
 	size_t total_map_size = SHARED_MAP_SIZE + CXL_MEM_SIZE;
@@ -77,15 +79,16 @@ int main(int argc, char* argv[]) {
             exit(1);
         }
 
-        void(*user_done)() = (void(*)()) dlsym(handle, "user_done");
-        if (!user_done) {
-            std::cerr << dlerror() << std::endl;
-            exit(1);
-        }
+        // void(*user_done)() = (void(*)()) dlsym(handle, "user_done");
+        // if (!user_done) {
+        //     std::cerr << dlerror() << std::endl;
+        //     exit(1);
+        // }
 
         user_init(id, model, shared_space);
         user_main();
-        user_done();
+        // user_done();
+        // user_done is now called through atexit() instead
     } else {
         int status;
         while (waitpid(-1, &status, 0) != -1) {

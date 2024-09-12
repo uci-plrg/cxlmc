@@ -22,8 +22,8 @@ void take_snapshot() {
         }
 
         if(WIFSIGNALED(status)) {
-            std::cerr << "child terminated by sig " << WTERMSIG(status) << std::endl;
-            exit(EXIT_FAILURE);
+            std::cerr << "process " << process_id << " terminated by sig " << WTERMSIG(status) << std::endl;
+            model->terminate_early();
         }
         
         if (!model->wait_for_next_execution(++execution_num))

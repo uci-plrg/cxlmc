@@ -26,6 +26,7 @@ class Model {
 	shared::hashmap<process_id_t, modelclock_t> crashed_processes;
     NodeStack* nodestack;
 
+    int crash_count;
     bool rollback_again;
 
 	void reset_execution_data();
@@ -44,7 +45,7 @@ class Model {
 
 public:
     Model(Scheduler *s, void* cxl): scheduler(s), execution_num(1), cxl_mapping(cxl), next_sequence_num(0), nodestack(new NodeStack),
-        rollback_again(true) {}
+        crash_count(0), rollback_again(true) {}
     ~Model() { delete nodestack; }
 
     uint64_t action(ModelAction* action);
@@ -56,6 +57,8 @@ public:
 	void build_may_read_from(ModelAction *read, shared::vector<ModelAction *> &rfset);
 
 	void do_read(ModelAction* read, ModelAction* write);
+
+    void terminate_early();
 
     void finish_execution();
 
@@ -76,7 +79,7 @@ public:
 
     int decision_point(int numchoices) { return nodestack->explore_next(numchoices)->get_choice(); }
 
-    bool should_crash() { return decision_point(2) == 0; }
+    bool should_crash();
 
     void insert_crash();
 };

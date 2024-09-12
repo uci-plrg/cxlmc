@@ -11,6 +11,8 @@ int main() {
     printf("clflush\n");
     cxlmc_store8(cxl, 3);
     printf("store %d\n", 3);
-    model->insert_crash();
+    cxlmc_clflush(cxl);
+    printf("clflush\n");
+    cxlmc_mfence(cxl);
     return 0;
 }

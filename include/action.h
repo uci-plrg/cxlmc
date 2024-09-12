@@ -30,6 +30,7 @@ class ModelAction {
 	void* location;
 	uint64_t value;
 	modelclock_t seq_num;
+	modelclock_t last_clflush;
 public:
 	ModelAction(action_type_t t) : tid(thread_id), type(t) {}
 	ModelAction(action_type_t t, void* loc, uint64_t val=0) : tid(thread_id), type(t), location(loc), value(val) {}
@@ -42,19 +43,10 @@ public:
 	void* get_location() { return location; }
 	uint64_t get_value() { return value; }
 	void set_value(uint64_t val) { value = val; }
+	modelclock_t get_last_clflush() { return last_clflush; }
+	void set_last_clflush(modelclock_t lc) { last_clflush = lc; }
 
-    void * operator new(size_t size) {
-		return mspace_malloc(shared_space, size);
-	}
-	void operator delete(void *p, size_t size) {
-		mspace_free(shared_space, p);
-	}
-	void * operator new[](size_t size) {
-		return mspace_malloc(shared_space, size);
-	}
-	void operator delete[](void *p, size_t size) {
-		mspace_free(shared_space, p);
-	}
+    MODELALLOC
 };
 
 #endif

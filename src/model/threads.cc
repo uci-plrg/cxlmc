@@ -75,9 +75,16 @@ void Thread::swap(Thread* next) {
     }
 }
 
+void Thread::cleanup() {
+    if (!is_main) {
+        real_pthread_mutex_unlock(&mutex_finalize);
+        real_pthread_join(pthread_id, nullptr);
+        mspace_free(snapshot_space, stack);
+    }
+}
+
 void Thread::finalize() {
-    real_pthread_mutex_unlock(&mutex_finalize);
-    real_pthread_join(pthread_id, nullptr);
+    cleanup();
     model->get_scheduler()->finalize();
     model->get_scheduler()->wait();
     assert(0);

@@ -7,8 +7,10 @@
 class ThreadMemory {
     shared::list<ModelAction *> storeBuffer;
     shared::list<ModelAction *> flushBuffer;
+    ModelAction* last_sfence;
 
 public:
+    ThreadMemory() : last_sfence(nullptr) {}
     ~ThreadMemory() {
         for (ModelAction *s: storeBuffer) {
             delete s;
@@ -21,6 +23,7 @@ public:
 	ModelAction *get_last_write(ModelAction* act);
 	bool pop_from_store_buffer();
     void empty_store_buffer();
+    void empty_flush_buffer();
 };
 
 #endif
