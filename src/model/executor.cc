@@ -62,7 +62,10 @@ void execute(ModelAction* action) {
 	case NONATOMIC_LOAD: {
 		shared::vector<ModelAction *> rfset;
 		model->build_may_read_from(action, rfset);
-		printf("rfset size=%lu\n", rfset.size());
+		printf("rfset: [");
+		for (auto s: rfset)
+			printf("val=%ld, seq=%u, ", s->get_value(), s->get_seq_num());
+		printf("]\n");
 		ModelAction * write = NULL;
 		if (rfset.size() != 0) {
 			int index = model->decision_point(rfset.size());

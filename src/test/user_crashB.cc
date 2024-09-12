@@ -3,12 +3,15 @@
 
 int main() {
 	void* cxl = get_cxl_mapping();
-	uint8_t read = cxlmc_load8(cxl);
-	printf("read: %d\n", read);
+	uint8_t read;
+	int i = 0;
+	do {
+		read = cxlmc_load8(cxl);
+		printf("read %d\n", read);
+	} while (read != 3  && read != 2 && i++ < 3);
     cxlmc_store8(cxl, 4);
-    cxlmc_clflush(cxl);
-    cxlmc_store8(cxl, 5);
+    printf("store %d\n", 4);
 	read = cxlmc_load8(cxl);
-    printf("read: %d\n", read);
+    printf("read %d\n", read);
     return 0;
 }

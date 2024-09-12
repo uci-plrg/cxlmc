@@ -19,13 +19,6 @@ mspace snapshot_space;
 uint64_t Model::action(ModelAction* action) {
     scheduler->assert_active();
     Thread* curr_thread = scheduler->current_thread();
-
-	//placeholder store buffer policy, to be changed later
-	srand(42 + thread_id);
-	bool to_flush = rand()%2;
-	if (to_flush) 
-		curr_thread->get_thread_memory()->pop_from_store_buffer();
-
     curr_thread->set_pending(action);
     scheduler->yield();
     execute(action);
@@ -33,6 +26,12 @@ uint64_t Model::action(ModelAction* action) {
 
 	uint64_t val = action->get_value();
     delete action; 
+
+	//placeholder store buffer policy, to be changed later
+	bool to_flush = rand()%2;
+	if (to_flush) 
+		curr_thread->get_thread_memory()->pop_from_store_buffer();
+
 	return val;
 }
 
@@ -148,7 +147,7 @@ void Model::do_read(ModelAction * read, ModelAction *write) {
 }
 
 void Model::print_execution_summary() {
-        printf("stores: \n");
+        printf("\nstores: \n");
         for (auto &itr: obj_to_wr) {
 			printf("aligned loc %p [", itr.first);
 			for (auto s: itr.second) {
@@ -209,6 +208,9 @@ bool Model::wait_for_next_execution(int num) {
 void Model::reset_execution_data() {
 		memset(cxl_mapping, 0, CXL_MEM_SIZE);
 		next_sequence_num = 0;
+		for (auto itr: obj_to_wr)
+			for (auto s: itr.second)
+				delete s;
         obj_to_wr.clear();
         placeholder_data.clear();
 		obj_to_cl.clear();
