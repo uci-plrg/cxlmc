@@ -70,13 +70,17 @@ void execute(ModelAction* action) {
 		model->do_read(action, get_thread(action)->get_process_id(), loaded);
 		break;
 	}
-    case CACHE_CLFLUSH: {
+    case CACHE_SFENCE:
+    case CACHE_CLFLUSH:
+    case CACHE_CLFLUSHOPT: {
 		ModelAction *flushAction = new ModelAction(*action); //old copy will be deleted
 		get_thread(flushAction)->get_thread_memory()->add_to_store_buffer(flushAction); 
 		break;
 	}
 	case CACHE_MFENCE: {
-		get_thread(action)->get_thread_memory()->empty_store_buffer(); 
+		ThreadMemory* memory = get_thread(action)->get_thread_memory();
+        memory->empty_store_buffer();
+        memory->empty_flush_buffer(); 
 		break;
 	}
 	default:

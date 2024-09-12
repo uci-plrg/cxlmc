@@ -67,18 +67,7 @@ public:
 
 	bool is_completed() { return state == THREAD_COMPLETED || state == THREAD_CRASHED; }
 
-    void * operator new(size_t size) {
-		return mspace_malloc(shared_space, size);
-	}
-	void operator delete(void *p, size_t size) {
-		mspace_free(shared_space, p);
-	}
-	void * operator new[](size_t size) {
-		return mspace_malloc(shared_space, size);
-	}
-	void operator delete[](void *p, size_t size) {
-		mspace_free(shared_space, p);
-	}
+    MODELALLOC
 };
 
 // int real_epoll_wait(int epfd, struct epoll_event *events, int maxevents, int timeout);

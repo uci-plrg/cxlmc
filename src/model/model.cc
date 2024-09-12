@@ -56,6 +56,7 @@ void Model::evict_store(ModelAction* action) {
 
 void Model::evict_clflush(ModelAction* action) {
     assert(action->get_type() == CACHE_CLFLUSH);
+    insert_crash();
 	modelclock_t seq_num = get_next_sequence_num();
 	action->set_seq_num(seq_num);
 	get_cacheline(action->get_location()).setBegin(seq_num);
@@ -121,10 +122,6 @@ void Model::terminate_early() {
 }
 
 void Model::finish_execution() {
-    bool isLast = !scheduler->finalize();
-
-    int num = execution_num.load();
-    
     for (int i = 0; i < scheduler->get_thread_count(); i++) {
         Thread* thread = scheduler->get_thread(i);
         if (thread->get_process_id() == process_id && !thread->is_completed()) {
@@ -134,6 +131,9 @@ void Model::finish_execution() {
         }
     }
 
+    int num = execution_num.load();
+
+    bool isLast = !scheduler->finalize();
     printf("process %d done\n", process_id);
                     
     if (isLast) {
@@ -182,8 +182,7 @@ void Model::execute_crash() {
         }
     }
 	crashed_processes[process_id] = get_next_sequence_num();
-    finish_execution();
-    _Exit(EXIT_SUCCESS);
+    exit(EXIT_SUCCESS);
 }
 
 bool Model::should_crash() {

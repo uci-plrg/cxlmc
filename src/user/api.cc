@@ -15,12 +15,20 @@ void cxlmc_store8(void* loc, uint8_t val) {
 	*((uint8_t *)loc) = val;
 }
 
+void cxlmc_sfence(void* loc) {
+    model->action(new ModelAction(CACHE_SFENCE, loc));
+}
+
 void cxlmc_mfence(void* loc) {
     model->action(new ModelAction(CACHE_MFENCE, loc));
 }
 
 void cxlmc_clflush(void* loc) {
     model->action(new ModelAction(CACHE_CLFLUSH, loc));
+}
+
+void cxlmc_clflushopt(void* loc) {
+    model->action(new ModelAction(CACHE_CLFLUSHOPT, loc));
 }
 
 void* get_cxl_mapping() {

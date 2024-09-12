@@ -88,7 +88,7 @@ void Scheduler::reset() {
 
 void Scheduler::wake_threads_waiting_on(Thread* thread) {
     for (Thread* waiter: threads) {
-        if (waiter->waiting_on() == thread) {
+        if (!waiter->is_completed() && waiter->waiting_on() == thread) {
             waiter->set_state(THREAD_RUNNING);
         }
     }

@@ -4,7 +4,10 @@
 #include "thread_memory.h"
 
 void ThreadMemory::add_to_store_buffer(ModelAction *action) {
-	assert(action->get_type() == NONATOMIC_STORE || action->get_type() == CACHE_CLFLUSH);
+	assert(action->get_type() == NONATOMIC_STORE
+        || action->get_type() == CACHE_SFENCE
+        || action->get_type() == CACHE_CLFLUSH
+        || action->get_type() == CACHE_CLFLUSHOPT);
     //printf("add to store buffer\n");
     storeBuffer.push_back(action);
 }
@@ -36,6 +39,18 @@ bool ThreadMemory::pop_from_store_buffer() {
 		model->evict_clflush(action);
 		break;
 	}
+	case CACHE_CLFLUSHOPT: {
+        if (last_sfence != nullptr) {
+            action->set_last_clflush(last_sfence->get_seq_num());
+        }
+		flushBuffer.push_back(action);
+		break;
+	}
+    case CACHE_SFENCE: {
+        empty_flush_buffer();
+        last_sfence = action;
+        break;
+    }
 	default:
         assert(false && "UNREACHABLE");
 	}
@@ -46,4 +61,13 @@ bool ThreadMemory::pop_from_store_buffer() {
 void ThreadMemory::empty_store_buffer() {
    while (!storeBuffer.empty())
 	   pop_from_store_buffer();
+}
+
+void ThreadMemory::empty_flush_buffer() {
+    while (!flushBuffer.empty()) {
+        ModelAction* action = flushBuffer.front();
+        flushBuffer.pop_front();
+        assert(action->get_type() == CACHE_CLFLUSHOPT);
+        model->evict_clflush(action);
+    }
 }

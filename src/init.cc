@@ -19,12 +19,14 @@ int main(int argc, char* argv[]) {
 
     if (processes < 1) {
         std::cerr << "Less than 1 processs" << std::endl;
+        exit(EXIT_FAILURE);
     }
     
     int user_progs = argc - 2;
 
     if (user_progs < 1) {
         std::cerr << "Less than 1 user program" << std::endl;
+        exit(EXIT_FAILURE);
     }
 
 	size_t total_map_size = SHARED_MAP_SIZE + CXL_MEM_SIZE;
