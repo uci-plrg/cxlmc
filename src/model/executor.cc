@@ -53,6 +53,62 @@ void execute(ModelAction* action) {
         printf("%d joined %d completed\n", thread_id, thread->get_thread_id());
         break;
     }
+    case ATOMIC_TRYLOCK: {
+        Thread* curr_thread = get_thread(action);
+        Mutex* mutex = (Mutex*)action->get_location();
+        Thread* owner = mutex->get_owner();
+
+        if (!owner) {
+            mutex->set_owner(curr_thread);
+            action->set_value(true);
+            break;
+        }
+
+        action->set_value(false);
+        break;
+    }
+    case ATOMIC_LOCK: {
+        Thread* curr_thread = get_thread(action);
+        Mutex* mutex = (Mutex*)action->get_location();
+        Thread* owner = mutex->get_owner();
+
+        if (!owner) {
+            mutex->set_owner(curr_thread);
+            mutex->increment_lock_count();
+            break;
+        }
+
+        if (curr_thread == owner && mutex->get_mutex_type() == PTHREAD_MUTEX_RECURSIVE) {
+            mutex->increment_lock_count();
+            break;
+        }
+
+        curr_thread->set_state(THREAD_BLOCKED);
+        model->get_scheduler()->yield();
+
+        assert(!mutex->get_owner());
+        mutex->set_owner(curr_thread);
+        mutex->increment_lock_count();
+        break;
+    }
+    case ATOMIC_UNLOCK: {
+        Thread* curr_thread = get_thread(action);
+        Mutex* mutex = (Mutex*)action->get_location();
+        Thread* owner = mutex->get_owner();
+
+        if (curr_thread != owner) {
+            errno = EPERM;
+            break;
+        }
+
+        if (!mutex->decrement_lock_count()) {
+            break;
+        }
+
+        mutex->set_owner(nullptr);
+        model->get_scheduler()->wake_thread_waiting_on(mutex);
+        break;
+    }
     case NONATOMIC_STORE: {
 		ModelAction *storeAction = new ModelAction(*action); //old copy will be deleted
 		get_thread(storeAction)->get_thread_memory()->add_to_store_buffer(storeAction); 

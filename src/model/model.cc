@@ -126,7 +126,8 @@ void Model::finish_execution() {
         Thread* thread = scheduler->get_thread(i);
         if (thread->get_process_id() == process_id && !thread->is_completed()) {
             printf("thread %d terminated\n", i);
-            thread->cleanup();
+            if (is_fork)
+                thread->cleanup();
             thread->set_state(THREAD_COMPLETED);
         }
     }

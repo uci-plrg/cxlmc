@@ -16,6 +16,11 @@ typedef enum action_type {
 	PTHREAD_JOIN,	  // < A pthread join action
 	NONATOMIC_STORE,  // < A nonatomic store
 	NONATOMIC_LOAD,	  // < A nonatomic load
+
+	ATOMIC_LOCK,	// < A lock action
+	ATOMIC_TRYLOCK,	// < A trylock action
+	ATOMIC_UNLOCK,	// < An unlock action
+
 	CACHE_MFENCE,     // < A memory fence
 	CACHE_SFENCE,	  // < A store fence
 	CACHE_CLFLUSH,	  // < A cacheline flush

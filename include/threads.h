@@ -63,7 +63,7 @@ public:
 	ModelAction* get_pending() { return pending; }
 	void set_pending(ModelAction* action) { pending = action; }
 
-	Thread* waiting_on();
+	void* waiting_on();
 
 	bool is_completed() { return state == THREAD_COMPLETED || state == THREAD_CRASHED; }
 

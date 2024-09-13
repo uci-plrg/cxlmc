@@ -48,10 +48,16 @@ void Scheduler::yield() {
             return;
         }
     }
+
+    if (threads[active]->get_state() != THREAD_RUNNING) {
+        printf("DEADLOCK\n");
+        abort();
+    }
 }
 
 bool Scheduler::last_yield() {
     assert_active();
+    bool threads_blocked = false;
     
     thread_id_t active = active_thread.load();
     int tc = get_thread_count();
@@ -61,6 +67,13 @@ bool Scheduler::last_yield() {
             active_thread.store(tid);
             return true;
         }
+
+        threads_blocked = threads_blocked || threads[tid]->get_state() == THREAD_BLOCKED;
+    }
+
+    if (threads_blocked) {
+        printf("DEADLOCK\n");
+        abort();
     }
 
     return false;
@@ -90,6 +103,18 @@ void Scheduler::wake_threads_waiting_on(Thread* thread) {
     for (Thread* waiter: threads) {
         if (!waiter->is_completed() && waiter->waiting_on() == thread) {
             waiter->set_state(THREAD_RUNNING);
+        }
+    }
+}
+
+void Scheduler::wake_thread_waiting_on(Mutex* mutex) {
+    thread_id_t active = active_thread.load();
+    int tc = get_thread_count();
+    for (int i = 1; i < tc; i++) {
+        thread_id_t tid = (active + i) % tc;
+        if (!threads[tid]->is_completed() && threads[tid]->waiting_on() == mutex) {
+            threads[tid]->set_state(THREAD_RUNNING);
+            return;
         }
     }
 }

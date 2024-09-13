@@ -2,6 +2,8 @@
 
 #include "snapshot.h"
 
+bool is_fork = false;
+
 void take_snapshot() {
     int execution_num = 1;
     while (true) {
@@ -9,8 +11,10 @@ void take_snapshot() {
 
 		forkedID = fork();
 
-		if (0 == forkedID)
+		if (0 == forkedID) {
+            is_fork = true;
             return;
+        }
             
         int status;
         while(waitpid(-1, &status, 0) < 0) {

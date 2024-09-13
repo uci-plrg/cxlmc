@@ -5,4 +5,6 @@ typedef int thread_id_t;
 typedef int process_id_t;
 typedef unsigned int modelclock_t;
 
+class Mutex;
+
 #endif

@@ -90,9 +90,12 @@ void Thread::finalize() {
     assert(0);
 }
 
-Thread* Thread::waiting_on() {
+void* Thread::waiting_on() {
     if (pending && pending->get_type() == PTHREAD_JOIN) {
         return (Thread*)pending->get_location();
+    }
+    if (pending && pending->get_type() == ATOMIC_LOCK) {
+        return (Mutex*)pending->get_location();
     }
     return nullptr;
 }

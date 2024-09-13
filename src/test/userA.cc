@@ -5,35 +5,36 @@
 #include <stdio.h>
 
 thread_local int tls_i = 0;
+pthread_mutex_t mutex;
 
 void* thread(void* arg) {
+    pthread_mutex_lock(&mutex);
     for (int i = 0; i < 10; i++) {
         std::ostringstream oss;
         oss << "thread iter " << i << " tls " << tls_i++;
         user_action(oss.str());
-
-        if (thread_id == 1 && i == 4) {
-            int* a = new int(24);
-            pthread_exit(a);
-        }
     }
     int* a = new int(97);
+    pthread_mutex_unlock(&mutex);
     return a;
 }
 
 int main() {
     printf("main %d tls %d\n", process_id, tls_i++);
 
+    pthread_mutex_init(&mutex, nullptr);
+
+    pthread_mutex_lock(&mutex);
     pthread_t pid[2];
     for (int i = 0; i < 2; i++) {
         pthread_create(&pid[i], nullptr, &thread, nullptr);
     }
-
     for (int i = 0; i < 2; i++) {
         std::ostringstream oss;
         oss << "user A iter " << i;
         user_action(oss.str());
     }
+    pthread_mutex_unlock(&mutex);
 
     for (int i = 0; i < 2; i++) {
         int* ptr;
