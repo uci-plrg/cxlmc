@@ -98,3 +98,8 @@ int pthread_mutex_unlock(pthread_mutex_t *p_mutex) {
 
 	return 0;
 }
+
+int pthread_mutex_timedlock (pthread_mutex_t *__restrict p_mutex,
+														 const struct timespec *__restrict abstime) {
+    return pthread_mutex_lock(p_mutex);
+}

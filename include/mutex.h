@@ -21,8 +21,8 @@ public:
 
     int get_mutex_type() { return mutex_type; }
     
-    void increment_lock_count() { recursive_lock_count++; printf("inc %d\n", recursive_lock_count); }
-    bool decrement_lock_count() { printf("dec %d\n", recursive_lock_count - 1); return --recursive_lock_count <= 0; }
+    void increment_lock_count() { recursive_lock_count++; }
+    bool decrement_lock_count() { return --recursive_lock_count <= 0; }
 
     MODELALLOC
 };

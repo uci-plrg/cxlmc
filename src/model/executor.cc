@@ -78,8 +78,12 @@ void execute(ModelAction* action) {
             break;
         }
 
-        if (curr_thread == owner && mutex->get_mutex_type() == PTHREAD_MUTEX_RECURSIVE) {
-            mutex->increment_lock_count();
+        if (curr_thread == owner) {
+            if (mutex->get_mutex_type() == PTHREAD_MUTEX_RECURSIVE) {
+                mutex->increment_lock_count();
+            } else {
+                errno = EDEADLK;
+            }
             break;
         }
 
