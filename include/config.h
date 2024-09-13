@@ -11,6 +11,7 @@
 #define MAX_EXECUTION 100
 #define MAX_CRASHES_PER_EXECUTION 1
 #define SNAPSHOT_PAGES 10000
-
+#define DEBUG_LEVEL 1
 #define VALUE_NONE 0xdeadbeef
+#define EVICT_MAX 5;
 #endif

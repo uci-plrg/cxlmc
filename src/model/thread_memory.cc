@@ -8,7 +8,6 @@ void ThreadMemory::add_to_store_buffer(ModelAction *action) {
         || action->get_type() == CACHE_SFENCE
         || action->get_type() == CACHE_CLFLUSH
         || action->get_type() == CACHE_CLFLUSHOPT);
-    //printf("add to store buffer\n");
     storeBuffer.push_back(action);
 }
 
@@ -24,7 +23,6 @@ ModelAction *ThreadMemory::get_last_write(ModelAction* act) {
  }
 
 bool ThreadMemory::pop_from_store_buffer() {
-    //printf("pop from store buffer\n");
     if (storeBuffer.size() == 0)
         return false;
     ModelAction *action = storeBuffer.front();

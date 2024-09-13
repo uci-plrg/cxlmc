@@ -5,6 +5,7 @@
 #include "mspace_malloc.h"
 
 void user_init(process_id_t pid, Model *m, mspace ms) {
+	srand(42 + pid);
     model = m;
     shared_space = ms;
     model->get_scheduler()->process_init(pid);

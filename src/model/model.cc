@@ -19,13 +19,6 @@ mspace snapshot_space;
 uint64_t Model::action(ModelAction* action) {
     scheduler->assert_active();
     Thread* curr_thread = scheduler->current_thread();
-
-	//placeholder store buffer policy, to be changed later
-	srand(42 + thread_id);
-	bool to_flush = rand()%2;
-	if (to_flush) 
-		curr_thread->get_thread_memory()->pop_from_store_buffer();
-
     curr_thread->set_pending(action);
     scheduler->yield();
     execute(action);
@@ -33,7 +26,22 @@ uint64_t Model::action(ModelAction* action) {
 
 	uint64_t val = action->get_value();
     delete action; 
+
+	//placeholder store buffer policy, to be changed later
+	uint num_to_pop = rand()%EVICT_MAX;
+	uint thread_to_pop = rand()%scheduler->get_thread_count();
+	ThreadMemory *mem = scheduler->get_thread(thread_to_pop)->get_thread_memory();
+	for (uint i = 0; i < num_to_pop; i++) {
+		//printf("pop store buffer\n");
+		if (!mem->pop_from_store_buffer())
+			break;
+	}
+
 	return val;
+}
+
+process_id_t Model::get_process_id(ModelAction *action) { 
+	return scheduler->get_thread(action->get_thread_id())->get_process_id(); 
 }
 
 CacheLine &Model::get_cacheline(void *addr)  { 
@@ -54,12 +62,29 @@ void Model::evict_store(ModelAction* action) {
     get_storelist(action->get_location()).push_back(action);
 }
 
+bool Model::has_postcrash_unflushed_write(void *addr) {
+	storelist &stores = get_storelist(addr);
+	modelclock_t cl_begin = get_cacheline(addr).getBegin();
+	for (auto itr = stores.rbegin(); itr != stores.rend(); itr++) {
+		ModelAction *store = *itr;
+		if (store->get_seq_num() <= cl_begin)
+			break;
+		if (crashed_processes.find(get_process_id(store)) == crashed_processes.end())
+			return true;
+	}
+
+	return false;
+}
+
 void Model::evict_clflush(ModelAction* action) {
-    assert(action->get_type() == CACHE_CLFLUSH);
+    assert(action->get_type() == CACHE_CLFLUSH || action->get_type() == CACHE_CLFLUSHOPT);
     insert_crash();
 	modelclock_t seq_num = get_next_sequence_num();
 	action->set_seq_num(seq_num);
-	get_cacheline(action->get_location()).setBegin(seq_num);
+	void *addr = action->get_location();
+	//only update the flush range when there are writes that can be flushed
+	if (has_postcrash_unflushed_write(addr))
+		get_cacheline(addr).setBegin(seq_num);
 }
 
 void Model::build_may_read_from(ModelAction *read, shared::vector<ModelAction *> &rfset) {
@@ -72,28 +97,63 @@ void Model::build_may_read_from(ModelAction *read, shared::vector<ModelAction *>
 	}
 
 	storelist &stores = get_storelist(read->get_location());
-	if (!stores.empty()) {
-		rfset.push_back(stores.back());
+	CacheLine &cl = get_cacheline(read->get_location());
+
+	for (auto itr = stores.rbegin(); itr != stores.rend(); itr++) {
+		//running processes
+		ModelAction *store = *itr;
+		if (crashed_processes.find(get_process_id(store)) == crashed_processes.end()) {
+			rfset.push_back(store);
+			return;
+		} else { //crashed processes
+			if (store->get_seq_num() <= cl.getBegin()) {
+				rfset.push_back(store);
+				return;
+			} else if (cl.getEnd() == 0 || store->get_seq_num() <= cl.getEnd())
+				rfset.push_back(store);
+		}
+	}
+}
+
+void Model::do_read(ModelAction * read, ModelAction *write) {
+	assert(read->get_type() == NONATOMIC_LOAD);
+	if (!write) {
+		read->set_value(VALUE_NONE);
 		return;
 	}
 
-	//TODO: handle read from crashed processes
-}
+	modelclock_t write_pid = get_process_id(write);
+	modelclock_t read_pid = get_process_id(read);
+	CacheLine &cl = get_cacheline(read->get_location());
 
-void Model::do_read(ModelAction * action, process_id_t write_pid, uint64_t value) {
-	assert(action->get_type() == NONATOMIC_LOAD);
-	Thread *reader_thread = scheduler->get_thread(action->get_thread_id());
-	if (write_pid != reader_thread->get_process_id()) { 
+	if (crashed_processes.find(write_pid) != crashed_processes.end()) {
+		modelclock_t write_seq = write->get_seq_num();
+		if (cl.getBegin() < write_seq)
+			cl.setBegin(write_seq);
+		storelist &stores = get_storelist(read->get_location());
+		
+		storelist::const_iterator itr; 
+		for (itr = stores.begin(); itr != stores.end(); itr++) 
+			if (*itr == write)
+				break;
+		assert(itr != stores.end());
+		itr++;
+		if (itr != stores.end()) {
+			modelclock_t next_write_seq = (*itr)->get_seq_num();
+			if (cl.getEnd() == 0 || cl.getEnd() >= next_write_seq)
+				cl.setEnd(next_write_seq);
+		}
+	}
+	else if (write_pid != read_pid) { 
 		modelclock_t seq_num = get_next_sequence_num();
-		get_cacheline(action->get_location()).setBegin(seq_num);
-		//TODO: constraint for crashed processes
+		cl.setBegin(seq_num);
 	}
 
-	action->set_value(value);
+	read->set_value(write->get_value());
 }
 
 void Model::print_execution_summary() {
-        printf("stores: \n");
+        printf("\nstores: \n");
         for (auto &itr: obj_to_wr) {
 			printf("aligned loc %p [", itr.first);
 			for (auto s: itr.second) {
@@ -167,6 +227,9 @@ bool Model::wait_for_next_execution(int num) {
 void Model::reset_execution_data() {
 		memset(cxl_mapping, 0, CXL_MEM_SIZE);
 		next_sequence_num = 0;
+		for (auto itr: obj_to_wr)
+			for (auto s: itr.second)
+				delete s;
         obj_to_wr.clear();
         placeholder_data.clear();
 		obj_to_cl.clear();

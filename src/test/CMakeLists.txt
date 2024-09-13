@@ -1,12 +1,10 @@
-include_directories(userA PUBLIC "${PROJECT_SOURCE_DIR}/include")
-include_directories(userB PUBLIC "${PROJECT_SOURCE_DIR}/include")
-include_directories(user_store PUBLIC "${PROJECT_SOURCE_DIR}/include")
-
 add_library(userA MODULE userA.cc) 
-target_link_libraries(userA PUBLIC user allocators)
-
 add_library(userB MODULE userB.cc)
-target_link_libraries(userB PUBLIC user allocators)
-
 add_library(user_store MODULE user_store.cc)
-target_link_libraries(user_store PUBLIC user allocators)
+add_library(user_crashA MODULE user_crashA.cc)
+add_library(user_crashB MODULE user_crashB.cc)
+
+foreach (target IN ITEMS userA userB user_store user_crashA user_crashB)
+	target_link_libraries(${target} PUBLIC user allocators)
+	include_directories(${target} PUBLIC "${PROJECT_SOURCE_DIR}/include")
+endforeach()

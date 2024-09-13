@@ -35,11 +35,16 @@ class Model {
 
 	modelclock_t get_next_sequence_num() {return next_sequence_num++; }
 
+	process_id_t get_process_id(ModelAction *action);
+	
 	CacheLine &get_cacheline(void *addr);
 	
 	storelist &get_storelist(void *addr);
 
+	bool has_postcrash_unflushed_write(void *addr);
+
     void execute_crash();
+
 public:
     Model(Scheduler *s, void* cxl): scheduler(s), execution_num(1), cxl_mapping(cxl), next_sequence_num(0), nodestack(new NodeStack),
         crash_count(0), rollback_again(true) {}
@@ -53,7 +58,7 @@ public:
     
 	void build_may_read_from(ModelAction *read, shared::vector<ModelAction *> &rfset);
 
-	void do_read(ModelAction* action, process_id_t write_pid, uint64_t value);
+	void do_read(ModelAction* read, ModelAction* write);
 
     void terminate_early();
 
