@@ -1,6 +1,4 @@
 #include <pthread.h>
-#include "api.h"
-#include "user.h"
 #include <stdio.h>
 
 #define T1_COUNT 5
@@ -40,7 +38,5 @@ int main() {
     for (int i = 0; i < T1_COUNT; i++)
         pthread_join(t1[i], nullptr);
     pthread_join(t2, nullptr);
-
-    user_action(""); // bug
     return 0;
 }
