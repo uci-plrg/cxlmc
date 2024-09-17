@@ -10,7 +10,7 @@
 #include "action.h"
 #include "types.h"
 #include "nodestack.h"
-#include "mutex.h"
+#include "condition_variable.h"
 
 class Model {
 	using storelist = shared::list<ModelAction *>;
@@ -26,6 +26,7 @@ class Model {
 	shared::hashmap<uintptr_t, CacheLine> obj_to_cl;
 	shared::hashmap<process_id_t, modelclock_t> crashed_processes;
     shared::hashmap<pthread_mutex_t*, Mutex*> mutex_map;
+    shared::hashmap<pthread_cond_t*, ConditionVariable*> cond_map;
     NodeStack* nodestack;
 
     int crash_count;
@@ -76,6 +77,8 @@ public:
     shared::vector<shared::string> &get_placeholder_data() { return placeholder_data; };
 
     shared::hashmap<pthread_mutex_t*, Mutex*>* get_mutex_map() { return &mutex_map; }
+
+    shared::hashmap<pthread_cond_t*, ConditionVariable*>* get_cond_map() { return &cond_map; }
 
 	void *get_cxl_mapping() {
 		return cxl_mapping;

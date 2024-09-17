@@ -20,6 +20,10 @@ typedef enum action_type {
 	ATOMIC_LOCK,	// < A lock action
 	ATOMIC_TRYLOCK,	// < A trylock action
 	ATOMIC_UNLOCK,	// < An unlock action
+	ATOMIC_NOTIFY_ONE,	// < A notify_one action
+	ATOMIC_NOTIFY_ALL,	// < A notify all action
+	ATOMIC_WAIT,	// < A wait action
+	ATOMIC_TIMEDWAIT,	// < A timed wait action
 
 	CACHE_MFENCE,     // < A memory fence
 	CACHE_SFENCE,	  // < A store fence
@@ -50,6 +54,10 @@ public:
 	void set_value(uint64_t val) { value = val; }
 	modelclock_t get_last_clflush() { return last_clflush; }
 	void set_last_clflush(modelclock_t lc) { last_clflush = lc; }
+
+	Thread* get_thread();
+	Mutex* get_mutex();
+	ConditionVariable* get_cond();
 
     MODELALLOC
 };

@@ -36,8 +36,8 @@ public:
 
     Thread* current_thread() { return threads[thread_id]; }
 
-    void wake_threads_waiting_on(Thread* thread);
-    void wake_thread_waiting_on(Mutex* mutex);
+    void wake_all_threads_waiting_on(void* v);
+    void wake_thread_waiting_on(void* v);
 
     void wait();
      

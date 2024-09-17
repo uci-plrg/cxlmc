@@ -99,20 +99,21 @@ void Scheduler::reset() {
     active_thread.store(0);
 }
 
-void Scheduler::wake_threads_waiting_on(Thread* thread) {
+void Scheduler::wake_all_threads_waiting_on(void* v) {
     for (Thread* waiter: threads) {
-        if (!waiter->is_completed() && waiter->waiting_on() == thread) {
+        if (waiter->waiting_on() == v) {
+            printf("waking thread %d\n", waiter->get_thread_id());
             waiter->set_state(THREAD_RUNNING);
         }
     }
 }
 
-void Scheduler::wake_thread_waiting_on(Mutex* mutex) {
-    thread_id_t active = active_thread.load();
+void Scheduler::wake_thread_waiting_on(void* v) { // should be random?
     int tc = get_thread_count();
     for (int i = 1; i < tc; i++) {
-        thread_id_t tid = (active + i) % tc;
-        if (!threads[tid]->is_completed() && threads[tid]->waiting_on() == mutex) {
+        thread_id_t tid = (thread_id + i) % tc;
+        if (threads[tid]->waiting_on() == v) {
+            printf("waking thread %d\n", tid);
             threads[tid]->set_state(THREAD_RUNNING);
             return;
         }

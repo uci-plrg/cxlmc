@@ -91,13 +91,19 @@ void Thread::finalize() {
 }
 
 void* Thread::waiting_on() {
-    if (pending && pending->get_type() == PTHREAD_JOIN) {
-        return (Thread*)pending->get_location();
+    if (!pending || state != THREAD_BLOCKED)
+        return nullptr;
+
+    switch (pending->get_type()) {
+    case PTHREAD_JOIN:
+        return pending->get_thread();
+    case ATOMIC_LOCK:
+        return pending->get_mutex();
+    case ATOMIC_WAIT:
+        return pending->get_cond();
+    default:
+        return nullptr;
     }
-    if (pending && pending->get_type() == ATOMIC_LOCK) {
-        return (Mutex*)pending->get_location();
-    }
-    return nullptr;
 }
 
 Thread::Thread(thread_id_t tid, process_id_t pid, Thread* par, pthread_params p) :

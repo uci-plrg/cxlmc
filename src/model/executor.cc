@@ -9,6 +9,17 @@ Thread* get_thread(ModelAction* action) {
     return model->get_scheduler()->get_thread(action->get_thread_id());
 }
 
+void thread_wait(Thread* thread) {
+    assert(thread->get_pending());
+    assert(thread->get_pending()->get_type() == PTHREAD_JOIN ||
+        thread->get_pending()->get_type() == ATOMIC_LOCK ||
+        thread->get_pending()->get_type() == ATOMIC_WAIT);
+
+    printf("thread %d waiting\n", thread->get_thread_id());
+    thread->set_state(THREAD_BLOCKED);
+    model->get_scheduler()->yield();
+}
+
 void execute(ModelAction* action) {
     switch(action->get_type()) {
     case THREAD_START:
@@ -16,14 +27,14 @@ void execute(ModelAction* action) {
         break;
     case THREAD_FINISH: {
         Thread* curr_thread = get_thread(action); 
-        model->get_scheduler()->wake_threads_waiting_on(get_thread(action));
+        model->get_scheduler()->wake_all_threads_waiting_on(get_thread(action));
         curr_thread->finalize();
         break;
     }
     case THREADONLY_FINISH: { 
         Thread* curr_thread = get_thread(action);  
         curr_thread->ret_val = action->get_location();
-        model->get_scheduler()->wake_threads_waiting_on(get_thread(action));
+        model->get_scheduler()->wake_all_threads_waiting_on(get_thread(action));
         curr_thread->finalize();
         break;
     }
@@ -41,21 +52,20 @@ void execute(ModelAction* action) {
     }
     case PTHREAD_JOIN: {
         Thread* curr_thread = get_thread(action);
-        Thread* thread = (Thread*)action->get_location();
+        Thread* thread = action->get_thread();
 
         assert(thread->get_process_id() == process_id);
 
         printf("thread %d joining %d\n", thread_id, thread->get_thread_id());
         if (thread->get_state() != THREAD_COMPLETED) {
-            curr_thread->set_state(THREAD_BLOCKED);
-            model->get_scheduler()->yield();
+            thread_wait(curr_thread);
         }
         printf("%d joined %d completed\n", thread_id, thread->get_thread_id());
         break;
     }
     case ATOMIC_TRYLOCK: {
         Thread* curr_thread = get_thread(action);
-        Mutex* mutex = (Mutex*)action->get_location();
+        Mutex* mutex = action->get_mutex();
         Thread* owner = mutex->get_owner();
 
         if (!owner) {
@@ -69,7 +79,7 @@ void execute(ModelAction* action) {
     }
     case ATOMIC_LOCK: {
         Thread* curr_thread = get_thread(action);
-        Mutex* mutex = (Mutex*)action->get_location();
+        Mutex* mutex = action->get_mutex();
         Thread* owner = mutex->get_owner();
 
         if (!owner) {
@@ -87,17 +97,19 @@ void execute(ModelAction* action) {
             break;
         }
 
-        curr_thread->set_state(THREAD_BLOCKED);
-        model->get_scheduler()->yield();
+        while (mutex->get_owner())
+            thread_wait(curr_thread);
 
         assert(!mutex->get_owner());
         mutex->set_owner(curr_thread);
         mutex->increment_lock_count();
         break;
     }
+    case ATOMIC_WAIT:
+    case ATOMIC_TIMEDWAIT:
     case ATOMIC_UNLOCK: {
         Thread* curr_thread = get_thread(action);
-        Mutex* mutex = (Mutex*)action->get_location();
+        Mutex* mutex = action->get_mutex();
         Thread* owner = mutex->get_owner();
 
         if (curr_thread != owner) {
@@ -110,7 +122,21 @@ void execute(ModelAction* action) {
         }
 
         mutex->set_owner(nullptr);
-        model->get_scheduler()->wake_thread_waiting_on(mutex);
+        model->get_scheduler()->wake_all_threads_waiting_on(mutex);
+
+        if (action->get_type() == ATOMIC_WAIT) {
+            thread_wait(curr_thread);
+        }
+        break;
+    }
+    case ATOMIC_NOTIFY_ONE: {
+        ConditionVariable* cv = action->get_cond();
+        model->get_scheduler()->wake_thread_waiting_on(cv);
+        break;
+    }
+    case ATOMIC_NOTIFY_ALL: {
+        ConditionVariable* cv = action->get_cond();
+        model->get_scheduler()->wake_all_threads_waiting_on(cv);
         break;
     }
     case NONATOMIC_STORE: {
