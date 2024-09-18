@@ -6,14 +6,26 @@ void user_action(std::string s) {
     model->action(new ModelAction(PLACEHOLDER, &s));
 }
 
-uint8_t cxlmc_load8(void* addrs) {
-    return (uint8_t) model->action(new ModelAction(NONATOMIC_LOAD, addrs));
+#define VOLATILELOAD(size) \
+	uint ## size ## _t cxlmc_load ## size (void* loc) { \
+		return (uint ## size ##_t) model->action(new ModelAction(NONATOMIC_LOAD, loc, VALUE_NONE, size >> 3)); \
+	}
+
+VOLATILELOAD(8)
+VOLATILELOAD(16)
+VOLATILELOAD(32)
+VOLATILELOAD(64)
+
+#define VOLATILESTORE(size) \
+	void cxlmc_store ## size (void* loc, uint ## size ## _t val) { \
+    model->action(new ModelAction(NONATOMIC_STORE, loc, val, size >> 3)); \
+	*((uint ## size ##_t *)loc) = val; \
 }
 
-void cxlmc_store8(void* loc, uint8_t val) {
-    model->action(new ModelAction(NONATOMIC_STORE, loc, val));
-	*((uint8_t *)loc) = val;
-}
+VOLATILESTORE(8)
+VOLATILESTORE(16)
+VOLATILESTORE(32)
+VOLATILESTORE(64)
 
 void cxlmc_sfence(void* loc) {
     model->action(new ModelAction(CACHE_SFENCE, loc));

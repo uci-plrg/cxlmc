@@ -19,14 +19,11 @@ namespace shared {
 	template<typename _T1, typename _T2>
 	class Pair {
 	public:
-		Pair(_T1 mp1, _T2 mp2) :
-			p1(mp1),
-			p2(mp2) {
-		}
-	
+		Pair(_T1 mp1, _T2 mp2) : p1(mp1), p2(mp2) {}
+		
 		_T1 p1;
 		_T2 p2;
-		//SHARED_ALLOC;
+		MODELALLOC;
 	};
 }
 #endif

@@ -32,6 +32,8 @@ class Model {
     int crash_count;
     bool rollback_again;
 
+	void process_store_buffer();
+
 	void reset_execution_data();
 
 	modelclock_t get_next_sequence_num() {return next_sequence_num++; }
@@ -57,9 +59,9 @@ public:
     
 	void evict_clflush(ModelAction* action);
     
-	void build_may_read_from(ModelAction *read, shared::vector<ModelAction *> &rfset);
+	void build_may_read_from(ModelAction *read, shared::vector<shared::Pair<shared::vector<ModelAction *>, CacheLine>> &rfset);
 
-	void do_read(ModelAction* read, ModelAction* write);
+	void do_read(ModelAction* read, ModelAction* write, CacheLine &cl);
 
     void terminate_early();
 
@@ -83,6 +85,8 @@ public:
 	void *get_cxl_mapping() {
 		return cxl_mapping;
 	}
+
+	void set_cacheline(CacheLine &cl);
 
     int decision_point(int numchoices) { return nodestack->explore_next(numchoices)->get_choice(); }
 

@@ -11,21 +11,23 @@ void ThreadMemory::add_to_store_buffer(ModelAction *action) {
     storeBuffer.push_back(action);
 }
 
-ModelAction *ThreadMemory::get_last_write(ModelAction* act) {
+bool ThreadMemory::get_last_write(ModelAction* read, shared::vector<ModelAction *> &overlaps, uint &numslotsleft) {
      for (auto iter = storeBuffer.rbegin(); iter != storeBuffer.rend(); iter++) {
          ModelAction* write = *iter;
-         if (write->get_type() == NONATOMIC_STORE && write->get_location() == act->get_location()) {
-			 return write;
+         if (write->get_type() == NONATOMIC_STORE && get_overlaps(overlaps, write, read, numslotsleft)) {
+			 return true;
          }
      }
 
-     return NULL;
+     return false;
  }
 
 bool ThreadMemory::pop_from_store_buffer() {
     if (storeBuffer.size() == 0)
         return false;
     ModelAction *action = storeBuffer.front();
+	if (VERBOSE > 1)
+		printf("pop store buffer: type=%s, val=%lu\n", action_type2str(action->get_type()), action->get_value());
     storeBuffer.pop_front();
 
     switch (action->get_type()) {

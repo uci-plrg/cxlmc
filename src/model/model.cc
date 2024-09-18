@@ -27,21 +27,27 @@ uint64_t Model::action(ModelAction* action) {
 	uint64_t val = action->get_value();
     delete action; 
 
+	process_store_buffer();
+	return val;
+}
+
+void Model::process_store_buffer() {
 	//placeholder store buffer policy, to be changed later
 	uint num_to_pop = rand()%EVICT_MAX;
 	uint thread_to_pop = rand()%scheduler->get_thread_count();
 	ThreadMemory *mem = scheduler->get_thread(thread_to_pop)->get_thread_memory();
 	for (uint i = 0; i < num_to_pop; i++) {
-		//printf("pop store buffer\n");
 		if (!mem->pop_from_store_buffer())
 			break;
 	}
-
-	return val;
 }
 
 process_id_t Model::get_process_id(ModelAction *action) { 
 	return scheduler->get_thread(action->get_thread_id())->get_process_id(); 
+}
+
+void Model::set_cacheline(CacheLine &cl) {
+	obj_to_cl[cl.getId()] = cl;
 }
 
 CacheLine &Model::get_cacheline(void *addr)  { 
@@ -87,44 +93,79 @@ void Model::evict_clflush(ModelAction* action) {
 		get_cacheline(addr).setBegin(seq_num);
 }
 
-void Model::build_may_read_from(ModelAction *read, shared::vector<ModelAction *> &rfset) {
-	//TODO: handle load/store of varying sizes by checking overlap
+void Model::build_may_read_from(ModelAction *read, shared::vector<shared::Pair<shared::vector<ModelAction *>, CacheLine>> &rfset) {	
+	CacheLine &cl = get_cacheline(read->get_location());
 	
-	ModelAction *lastWrite = scheduler->get_thread(read->get_thread_id())->get_thread_memory()->get_last_write(read);
-	if(lastWrite) {
-		rfset.push_back(lastWrite);
+	uint numslotsleft = read->get_size();
+	shared::vector<ModelAction *> overlaps(numslotsleft);
+	if(scheduler->get_thread(read->get_thread_id())->get_thread_memory()->get_last_write(read, overlaps, numslotsleft)) {
+		rfset.push_back(shared::Pair{overlaps, cl});
 		return;
 	}
 
+	struct seedWrite {
+		shared::vector<ModelAction *> overlaps;
+		CacheLine cl;
+		uint numslotsleft;
+	};
+
 	storelist &stores = get_storelist(read->get_location());
-	CacheLine &cl = get_cacheline(read->get_location());
+	shared::vector<seedWrite> seedWrites;
+	seedWrites.push_back(seedWrite{overlaps, cl, numslotsleft});
 
 	for (auto itr = stores.rbegin(); itr != stores.rend(); itr++) {
-		//running processes
 		ModelAction *store = *itr;
-		if (crashed_processes.find(get_process_id(store)) == crashed_processes.end()) {
-			rfset.push_back(store);
-			return;
-		} else { //crashed processes
-			if (store->get_seq_num() <= cl.getBegin()) {
-				rfset.push_back(store);
-				return;
-			} else if (cl.getEnd() == 0 || store->get_seq_num() <= cl.getEnd())
-				rfset.push_back(store);
+		if (seedWrites.empty())
+			break;
+
+		for (uint i = 0; i < seedWrites.size(); i++) {
+			auto &seedOverlaps = seedWrites[i].overlaps;
+			CacheLine &seedCL = seedWrites[i].cl;
+			uint &seedSlotsleft = seedWrites[i].numslotsleft;
+			uint copySlotsleft = seedWrites[i].numslotsleft;
+				
+			//running processes
+			if (crashed_processes.find(get_process_id(store)) == crashed_processes.end()) {
+				get_overlaps(seedOverlaps, store, read, seedSlotsleft);
+				if (seedSlotsleft < copySlotsleft) {
+					do_read(read, store, seedCL);
+					if (seedSlotsleft == 0) {
+						rfset.push_back(shared::Pair{seedOverlaps, seedCL});
+						seedWrites.erase(seedWrites.begin() + i);
+					}
+				}
+			} else { //crashed processes
+				if (store->get_seq_num() <= seedCL.getBegin()) { //must have persisted
+					get_overlaps(seedOverlaps, store, read, seedSlotsleft);
+					if (seedSlotsleft < copySlotsleft) {
+						do_read(read, store, seedCL);
+						if (seedSlotsleft == 0) {
+							rfset.push_back(shared::Pair{seedOverlaps, seedCL});
+							seedWrites.erase(seedWrites.begin() + i);
+						}
+					}
+				} else if (seedCL.getEnd() == 0 || store->get_seq_num() <= seedCL.getEnd()) { //may have persisted
+					shared::vector<ModelAction *> copyOverlaps = seedOverlaps;
+					CacheLine copyCL = seedCL;
+					get_overlaps(copyOverlaps, store, read, copySlotsleft);
+					if (copySlotsleft < seedSlotsleft) {
+						do_read(read, store, copyCL);
+						if (copySlotsleft == 0)
+							rfset.push_back(shared::Pair{copyOverlaps, copyCL});
+						else
+							seedWrites.push_back(seedWrite{copyOverlaps, copyCL, copySlotsleft});
+					}
+				}
+			}
 		}
 	}
 }
 
-void Model::do_read(ModelAction * read, ModelAction *write) {
+void Model::do_read(ModelAction *read, ModelAction *write, CacheLine &cl) {
 	assert(read->get_type() == NONATOMIC_LOAD);
-	if (!write) {
-		read->set_value(VALUE_NONE);
-		return;
-	}
-
+	
 	modelclock_t write_pid = get_process_id(write);
 	modelclock_t read_pid = get_process_id(read);
-	CacheLine &cl = get_cacheline(read->get_location());
 
 	if (crashed_processes.find(write_pid) != crashed_processes.end()) {
 		modelclock_t write_seq = write->get_seq_num();
@@ -148,8 +189,6 @@ void Model::do_read(ModelAction * read, ModelAction *write) {
 		modelclock_t seq_num = get_next_sequence_num();
 		cl.setBegin(seq_num);
 	}
-
-	read->set_value(write->get_value());
 }
 
 void Model::print_execution_summary() {
@@ -166,7 +205,7 @@ void Model::print_execution_summary() {
 
         printf("cachelines: \n");
 		for (auto &pair: obj_to_cl)
-			printf("%p: (%d, %d), ", pair.first, pair.second.getBegin(), pair.second.getEnd()); 
+			printf("%p: (%d, %d), ", (void *)pair.first, pair.second.getBegin(), pair.second.getEnd()); 
         printf("\n\n");
 
         printf("placeholder data: \n");

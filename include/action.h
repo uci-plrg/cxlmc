@@ -30,7 +30,10 @@ typedef enum action_type {
 	CACHE_CLFLUSH,	  // < A cacheline flush
 	CACHE_CLFLUSHOPT, // < An optimized cacheline flush
 	PLACEHOLDER	      // < Placeholder
+	
 } action_type_t;
+
+const char *action_type2str(action_type_t type);
 
 class ModelAction {
 	thread_id_t tid;
@@ -40,10 +43,11 @@ class ModelAction {
 	uint64_t value;
 	modelclock_t seq_num;
 	modelclock_t last_clflush;
+	uint size;
 public:
-	ModelAction(action_type_t t) : tid(thread_id), type(t) {}
-	ModelAction(action_type_t t, void* loc, uint64_t val=0) : tid(thread_id), type(t), location(loc), value(val) {}
-	ModelAction(ModelAction &action) : tid(action.tid), type(action.type), location(action.location), value(action.value) {}
+	ModelAction(action_type_t t) : tid(thread_id), type(t), seq_num(0), size(0) {}
+	ModelAction(action_type_t t, void* loc, uint64_t val=0, uint sz=1) : tid(thread_id), type(t), location(loc), value(val), seq_num(0), size(sz) {}
+	ModelAction(ModelAction &action) : tid(action.tid), type(action.type), location(action.location), value(action.value), seq_num(action.seq_num), size(action.size) {}
 
 	void set_seq_num(modelclock_t seq_n) { seq_num = seq_n; }
 	modelclock_t get_seq_num () {return seq_num; }
@@ -52,6 +56,7 @@ public:
 	void* get_location() { return location; }
 	uint64_t get_value() { return value; }
 	void set_value(uint64_t val) { value = val; }
+	uint get_size() { return size; }
 	modelclock_t get_last_clflush() { return last_clflush; }
 	void set_last_clflush(modelclock_t lc) { last_clflush = lc; }
 
