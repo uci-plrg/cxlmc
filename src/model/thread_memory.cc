@@ -14,8 +14,10 @@ void ThreadMemory::add_to_store_buffer(ModelAction *action) {
 bool ThreadMemory::get_last_write(ModelAction* read, shared::vector<ModelAction *> &overlaps, uint &numslotsleft) {
      for (auto iter = storeBuffer.rbegin(); iter != storeBuffer.rend(); iter++) {
          ModelAction* write = *iter;
-         if (write->get_type() == NONATOMIC_STORE && get_overlaps(overlaps, write, read, numslotsleft)) {
-			 return true;
+         if (write->get_type() == NONATOMIC_STORE) {
+			 get_overlaps(overlaps, write, read, numslotsleft);
+			 if (numslotsleft == 0)
+				return true;
          }
      }
 

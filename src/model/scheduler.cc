@@ -87,6 +87,24 @@ bool Scheduler::finalize() {
     return last_yield();
 }
 
+void Scheduler::process_proper_shutdown() {
+	yield();
+	for (int i = 0; i < get_thread_count(); i++) {
+        Thread* thread = get_thread(i);
+        if (thread->get_process_id() == process_id) {
+			if (!thread->is_completed()) {
+				printf("thread %d terminated\n", i);
+				if (is_fork)
+					thread->cleanup();
+				thread->set_state(THREAD_COMPLETED);
+			}
+			thread->get_thread_memory()->empty_store_buffer();
+			thread->get_thread_memory()->empty_flush_buffer();
+        }
+    }
+
+}
+
 void Scheduler::reset() {
     for (Thread* thread: threads) {
         delete thread;

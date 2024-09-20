@@ -79,16 +79,15 @@ int main(int argc, char* argv[]) {
             exit(1);
         }
 
-        // void(*user_done)() = (void(*)()) dlsym(handle, "user_done");
-        // if (!user_done) {
-        //     std::cerr << dlerror() << std::endl;
-        //     exit(1);
-        // }
+         void(*user_done)() = (void(*)()) dlsym(handle, "user_done");
+         if (!user_done) {
+             std::cerr << dlerror() << std::endl;
+             exit(1);
+         }
 
         user_init(id, model, shared_space);
         user_main();
-        // user_done();
-        // user_done is now called through atexit() instead
+        user_done();
     } else {
         int status;
         while (waitpid(-1, &status, 0) != -1) {

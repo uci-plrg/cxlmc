@@ -3,6 +3,9 @@
 #include "user.h"
 #include "snapshot.h"
 #include "mspace_malloc.h"
+void user_exit() {
+	model->finish_execution();
+}
 
 void user_init(process_id_t pid, Model *m, mspace ms) {
 	srand(42 + pid);
@@ -26,10 +29,10 @@ void user_init(process_id_t pid, Model *m, mspace ms) {
         exit(1);
     }
 
-    atexit(user_done);
+    atexit(user_exit);
     model->get_scheduler()->wait();
 }
 
 void user_done() {
-    model->finish_execution();
+    model->get_scheduler()->process_proper_shutdown();
 }

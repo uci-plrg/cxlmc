@@ -49,6 +49,8 @@ public:
     //returns true if there are other running threads, else false
     bool finalize();
 
+	void process_proper_shutdown();
+
     void reset();
 
     void assert_active() { assert(active_thread.load() == thread_id || !is_fork); }

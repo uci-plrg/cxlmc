@@ -12,8 +12,18 @@
 #include "nodestack.h"
 #include "condition_variable.h"
 
+struct rfEntry{
+	shared::vector<ModelAction *> overlaps;
+	CacheLine cl;
+	uint numslotsleft;
+	bool shouldCrash;
+
+	rfEntry (const rfEntry &other) = default;
+};
+
 class Model {
 	using storelist = shared::list<ModelAction *>;
+	using cachelinemap = shared::hashmap<uintptr_t, CacheLine>;
 
     Scheduler *scheduler;
     std::atomic_int execution_num;
@@ -23,14 +33,16 @@ class Model {
 	modelclock_t next_sequence_num;
     shared::vector<shared::string> placeholder_data;
 	shared::hashmap<void *, storelist> obj_to_wr;
-	shared::hashmap<uintptr_t, CacheLine> obj_to_cl;
-	shared::hashmap<process_id_t, modelclock_t> crashed_processes;
+	cachelinemap obj_to_cl;
+	shared::hashmap<process_id_t, cachelinemap> crashed_processes;
     shared::hashmap<pthread_mutex_t*, Mutex*> mutex_map;
     shared::hashmap<pthread_cond_t*, ConditionVariable*> cond_map;
     NodeStack* nodestack;
 
     int crash_count;
     bool rollback_again;
+
+	bool is_crashed(process_id_t pid);
 
 	void process_store_buffer();
 
@@ -44,7 +56,9 @@ class Model {
 	
 	storelist &get_storelist(void *addr);
 
-	bool has_postcrash_unflushed_write(void *addr);
+	bool has_noncrashed_unflushed_write(void *addr);
+
+	bool has_unflushed_write(void *addr, process_id_t pid);
 
     void execute_crash();
 
@@ -59,9 +73,9 @@ public:
     
 	void evict_clflush(ModelAction* action);
     
-	void build_may_read_from(ModelAction *read, shared::vector<shared::Pair<shared::vector<ModelAction *>, CacheLine>> &rfset);
+	void build_may_read_from(ModelAction *read, shared::vector<rfEntry> &rfset);
 
-	void do_read(ModelAction* read, ModelAction* write, CacheLine &cl);
+	void do_read(ModelAction* read, ModelAction* write, CacheLine &cl, bool &shouldCrash);
 
     void terminate_early();
 

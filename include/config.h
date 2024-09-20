@@ -14,5 +14,5 @@
 #define DEBUG_LEVEL 1
 #define VERBOSE 2
 #define VALUE_NONE 0xdeadbeef
-#define EVICT_MAX 5;
+#define EVICT_MAX 10;
 #endif

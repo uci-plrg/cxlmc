@@ -145,35 +145,42 @@ void execute(ModelAction* action) {
 		break;
     }
 	case NONATOMIC_LOAD: {
-		shared::vector<shared::Pair<shared::vector<ModelAction *>, CacheLine>> rfset;
+		shared::vector<rfEntry> rfset;
 		model->build_may_read_from(action, rfset);
 
-		printf("rfset: [\n");
-		for (auto pair: rfset) {
-			printf("cacheline: (%d, %d), ", pair.p2.getBegin(), pair.p2.getEnd()); 
+		printf("rfset %p: [\n", action->get_location());
+		for (auto entry: rfset) {
+			printf("\tcacheline: (%d, %d), ", entry.cl.getBegin(), entry.cl.getEnd()); 
 			printf("writes: [");
-			for (uint i = 0; i < pair.p1.size(); i++) {
-				auto s = pair.p1[i];
-				printf("+%u, val=%ld, seq=%u, ", i<<3, s->get_value(), s->get_seq_num());
+			for (uint i = 0; i < entry.overlaps.size(); i++) {
+				auto write = entry.overlaps[i];
+				if (!write)
+					continue;
+				printf("+%u, val=%ld, seq=%u, ", i<<3, write->get_value(), write->get_seq_num());
 			}
 			printf("]\n");
 		}
 		printf("]\n");
 
-		if (rfset.size() != 0) {
-			int index = model->decision_point(rfset.size());
-			auto chosen = rfset[index];
-			model->set_cacheline(chosen.p2);
-			uint64_t value = 0;
-			for (int i= (int)chosen.p1.size()-1; i >= 0; i--) {
-				value = value << 8;
-				auto write = chosen.p1[i];
-				int offset = i + (char *)action->get_location() - (char *)write->get_location();
-				uint64_t writevalue = write->get_value() >> (8 * offset);
-				value |= writevalue & 0xff;
-			}
-			action->set_value(value);
+		assert(rfset.size() != 0);
+		int index = model->decision_point(rfset.size());
+		auto chosen = rfset[index];
+		//TODO: crash the writers
+		//if (chosen.shouldCrash)
+		//	model->insert_crash();
+
+		model->set_cacheline(chosen.cl);
+		uint64_t value = 0;
+		for (int i= (int)chosen.overlaps.size()-1; i >= 0; i--) {
+			value = value << 8;
+			auto write = chosen.overlaps[i];
+			if (!write)
+				continue;
+			int offset = i + (char *)action->get_location() - (char *)write->get_location();
+			uint64_t writevalue = write->get_value() >> (8 * offset);
+			value |= writevalue & 0xff;
 		}
+		action->set_value(value);
 		break;
 	}
     case CACHE_SFENCE:

@@ -31,12 +31,26 @@ uint64_t Model::action(ModelAction* action) {
 	return val;
 }
 
+bool Model::is_crashed(process_id_t pid) {
+	return crashed_processes.find(pid) != crashed_processes.end();
+}
+
 void Model::process_store_buffer() {
 	//placeholder store buffer policy, to be changed later
 	uint num_to_pop = rand()%EVICT_MAX;
-	uint thread_to_pop = rand()%scheduler->get_thread_count();
+	uint thread_count = scheduler->get_thread_count();
+	uint thread_to_pop = rand()%thread_count;
+	uint i = 0;
+	printf("thread_count %d, thread_to_pop %d\n", thread_count, thread_to_pop);
+	while(is_crashed(scheduler->get_thread(thread_to_pop)->get_process_id())) {
+		thread_to_pop = (thread_to_pop+1) % thread_count;
+		i++;
+		if (i == thread_count)
+			return; 
+	}
+	
 	ThreadMemory *mem = scheduler->get_thread(thread_to_pop)->get_thread_memory();
-	for (uint i = 0; i < num_to_pop; i++) {
+	for (uint j = 0; j < num_to_pop; j++) {
 		if (!mem->pop_from_store_buffer())
 			break;
 	}
@@ -68,14 +82,14 @@ void Model::evict_store(ModelAction* action) {
     get_storelist(action->get_location()).push_back(action);
 }
 
-bool Model::has_postcrash_unflushed_write(void *addr) {
+bool Model::has_unflushed_write(void *addr, process_id_t pid) {
 	storelist &stores = get_storelist(addr);
 	modelclock_t cl_begin = get_cacheline(addr).getBegin();
 	for (auto itr = stores.rbegin(); itr != stores.rend(); itr++) {
 		ModelAction *store = *itr;
 		if (store->get_seq_num() <= cl_begin)
 			break;
-		if (crashed_processes.find(get_process_id(store)) == crashed_processes.end())
+		if (get_process_id(store) == pid)
 			return true;
 	}
 
@@ -88,86 +102,76 @@ void Model::evict_clflush(ModelAction* action) {
 	modelclock_t seq_num = get_next_sequence_num();
 	action->set_seq_num(seq_num);
 	void *addr = action->get_location();
-	//only update the flush range when there are writes that can be flushed
-	if (has_postcrash_unflushed_write(addr))
-		get_cacheline(addr).setBegin(seq_num);
+	get_cacheline(addr).setBegin(seq_num);
 }
 
-void Model::build_may_read_from(ModelAction *read, shared::vector<shared::Pair<shared::vector<ModelAction *>, CacheLine>> &rfset) {	
+void Model::build_may_read_from(ModelAction *read, shared::vector<rfEntry> &rfset) {	
 	CacheLine &cl = get_cacheline(read->get_location());
 	
 	uint numslotsleft = read->get_size();
 	shared::vector<ModelAction *> overlaps(numslotsleft);
 	if(scheduler->get_thread(read->get_thread_id())->get_thread_memory()->get_last_write(read, overlaps, numslotsleft)) {
-		rfset.push_back(shared::Pair{overlaps, cl});
+		rfset.push_back(rfEntry{overlaps, cl, numslotsleft, false});
 		return;
 	}
 
-	struct seedWrite {
-		shared::vector<ModelAction *> overlaps;
-		CacheLine cl;
-		uint numslotsleft;
-	};
-
 	storelist &stores = get_storelist(read->get_location());
-	shared::vector<seedWrite> seedWrites;
-	seedWrites.push_back(seedWrite{overlaps, cl, numslotsleft});
+	shared::vector<rfEntry> seedWrites;
+	seedWrites.push_back(rfEntry{overlaps, cl, numslotsleft, false});
 
 	for (auto itr = stores.rbegin(); itr != stores.rend(); itr++) {
 		ModelAction *store = *itr;
 		if (seedWrites.empty())
 			break;
 
-		for (uint i = 0; i < seedWrites.size(); i++) {
-			auto &seedOverlaps = seedWrites[i].overlaps;
-			CacheLine &seedCL = seedWrites[i].cl;
-			uint &seedSlotsleft = seedWrites[i].numslotsleft;
-			uint copySlotsleft = seedWrites[i].numslotsleft;
-				
+		for (auto &w: seedWrites) {
+			uint &seedSlotsleft = w.numslotsleft;
+			auto &seedOverlaps = w.overlaps;
+			CacheLine &seedCL = w.cl;
+			bool &seedShouldCrash = w.shouldCrash;
+		
 			//running processes
-			if (crashed_processes.find(get_process_id(store)) == crashed_processes.end()) {
-				get_overlaps(seedOverlaps, store, read, seedSlotsleft);
-				if (seedSlotsleft < copySlotsleft) {
-					do_read(read, store, seedCL);
-					if (seedSlotsleft == 0) {
-						rfset.push_back(shared::Pair{seedOverlaps, seedCL});
-						seedWrites.erase(seedWrites.begin() + i);
-					}
-				}
+			if (!is_crashed(get_process_id(store))) {
+				if (get_overlaps(seedOverlaps, store, read, seedSlotsleft))
+					do_read(read, store, seedCL, seedShouldCrash);
 			} else { //crashed processes
 				if (store->get_seq_num() <= seedCL.getBegin()) { //must have persisted
-					get_overlaps(seedOverlaps, store, read, seedSlotsleft);
-					if (seedSlotsleft < copySlotsleft) {
-						do_read(read, store, seedCL);
-						if (seedSlotsleft == 0) {
-							rfset.push_back(shared::Pair{seedOverlaps, seedCL});
-							seedWrites.erase(seedWrites.begin() + i);
-						}
-					}
+					if (get_overlaps(seedOverlaps, store, read, seedSlotsleft))
+						do_read(read, store, seedCL, seedShouldCrash);
 				} else if (seedCL.getEnd() == 0 || store->get_seq_num() <= seedCL.getEnd()) { //may have persisted
-					shared::vector<ModelAction *> copyOverlaps = seedOverlaps;
-					CacheLine copyCL = seedCL;
-					get_overlaps(copyOverlaps, store, read, copySlotsleft);
-					if (copySlotsleft < seedSlotsleft) {
-						do_read(read, store, copyCL);
-						if (copySlotsleft == 0)
-							rfset.push_back(shared::Pair{copyOverlaps, copyCL});
+					rfEntry copy(w);
+					if (get_overlaps(copy.overlaps, store, read, copy.numslotsleft)) {
+						do_read(read, store, copy.cl, copy.shouldCrash);
+						if (copy.numslotsleft == 0)
+							rfset.push_back(copy);
 						else
-							seedWrites.push_back(seedWrite{copyOverlaps, copyCL, copySlotsleft});
+							seedWrites.push_back(copy);
 					}
 				}
 			}
 		}
+
+		//move full seedWrites to rfset
+		for (uint i = 0; i < seedWrites.size(); i++) {
+			auto &w = seedWrites[i];
+			if (w.numslotsleft == 0) {
+				rfset.push_back(w);
+				seedWrites[i] = seedWrites.back();
+				seedWrites.pop_back();
+			}
+		}
 	}
+	for (auto w: seedWrites)
+		rfset.push_back(w);
 }
 
-void Model::do_read(ModelAction *read, ModelAction *write, CacheLine &cl) {
+void Model::do_read(ModelAction *read, ModelAction *write, CacheLine &cl, bool &shouldCrash) {
 	assert(read->get_type() == NONATOMIC_LOAD);
 	
 	modelclock_t write_pid = get_process_id(write);
 	modelclock_t read_pid = get_process_id(read);
 
-	if (crashed_processes.find(write_pid) != crashed_processes.end()) {
+	if (is_crashed(write_pid)) {
 		modelclock_t write_seq = write->get_seq_num();
 		if (cl.getBegin() < write_seq)
 			cl.setBegin(write_seq);
@@ -188,6 +192,7 @@ void Model::do_read(ModelAction *read, ModelAction *write, CacheLine &cl) {
 	else if (write_pid != read_pid) { 
 		modelclock_t seq_num = get_next_sequence_num();
 		cl.setBegin(seq_num);
+		shouldCrash = true;
 	}
 }
 
@@ -207,8 +212,15 @@ void Model::print_execution_summary() {
 		for (auto &pair: obj_to_cl)
 			printf("%p: (%d, %d), ", (void *)pair.first, pair.second.getBegin(), pair.second.getEnd()); 
         printf("\n\n");
-
-        printf("placeholder data: \n");
+		
+		for (auto &cpair: crashed_processes) {
+			printf("cachelines for crashed process %u: \n", cpair.first);
+			for (auto &pair: cpair.second)
+				printf("%p: (%d, %d), ", (void *)pair.first, pair.second.getBegin(), pair.second.getEnd()); 
+        	printf("\n\n");
+		}
+        
+		printf("placeholder data: \n");
         for (auto &s: placeholder_data)
             printf("%s, ", s.c_str());
         printf("\n");
@@ -221,21 +233,12 @@ void Model::terminate_early() {
 }
 
 void Model::finish_execution() {
-    for (int i = 0; i < scheduler->get_thread_count(); i++) {
-        Thread* thread = scheduler->get_thread(i);
-        if (thread->get_process_id() == process_id && !thread->is_completed()) {
-            printf("thread %d terminated\n", i);
-            if (is_fork)
-                thread->cleanup();
-            thread->set_state(THREAD_COMPLETED);
-        }
-    }
 
     int num = execution_num.load();
 
     bool isLast = !scheduler->finalize();
-    printf("process %d done\n", process_id);
-                    
+    printf("process %d done\n", process_id);	
+
     if (isLast) {
 		print_execution_summary();
         rollback_again = rollback_again && num+1 <= MAX_EXECUTION && nodestack->has_another_execution();
@@ -284,7 +287,11 @@ void Model::execute_crash() {
             thread->set_state(THREAD_CRASHED);
         }
     }
-	crashed_processes[process_id] = get_next_sequence_num();
+	cachelinemap &map = crashed_processes[process_id];
+	for (auto &pair: obj_to_cl)
+		if (has_unflushed_write((void*)pair.first, process_id))
+			map[pair.first] = pair.second;
+
     exit(EXIT_SUCCESS);
 }
 

@@ -11,13 +11,7 @@ class CacheLine {
 public:
 	CacheLine(): begin(0), end(0) {}
 	CacheLine(uintptr_t ID): begin(0), end(0), id(ID) {}
-	CacheLine(const CacheLine &other): begin(other.begin), end(other.end), id(other.id) {}
-	constexpr CacheLine& operator=(const CacheLine &other) {
-		begin = other.begin;
-		end = other.end;
-		id = other.id;
-		return *this;
-	}
+	CacheLine(const CacheLine &other) = default;
 	uintptr_t getId() { return id; }
 	modelclock_t getBegin() { return begin; }
 	void setBegin(modelclock_t b) { begin = b;} 	
