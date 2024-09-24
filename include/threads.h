@@ -21,7 +21,7 @@ typedef enum thread_state {
 	THREAD_RUNNING,
 	THREAD_BLOCKED,
 	THREAD_COMPLETED,
-	THREAD_CRASHED
+	THREAD_CRASHED,
 } thread_state;
 
 class Thread {

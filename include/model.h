@@ -12,37 +12,42 @@
 #include "nodestack.h"
 #include "condition_variable.h"
 
-struct rfEntry{
+
+struct rfEntry {
 	shared::vector<ModelAction *> overlaps;
 	CacheLine cl;
+	shared::hashmap<process_id_t, CacheLine> crashed_cls;
+	shared::vector<process_id_t> crashes;
 	uint numslotsleft;
-	bool shouldCrash;
 
 	rfEntry (const rfEntry &other) = default;
+	rfEntry (const shared::vector<ModelAction *> &o, const CacheLine &c, uint n): overlaps(o), cl(c), numslotsleft(n) {}
+
+	void dump();
+	uint64_t get_read_value(void *read_location);
 };
 
 class Model {
-	using storelist = shared::list<ModelAction *>;
-	using cachelinemap = shared::hashmap<uintptr_t, CacheLine>;
+	using storeList = shared::list<ModelAction *>;
+	using cachelineMap = shared::hashmap<uintptr_t, CacheLine>;
 
-    Scheduler *scheduler;
+	Scheduler *scheduler;
     std::atomic_int execution_num;
 
 	//should be reset on rollback
 	void* cxl_mapping;
 	modelclock_t next_sequence_num;
     shared::vector<shared::string> placeholder_data;
-	shared::hashmap<void *, storelist> obj_to_wr;
-	cachelinemap obj_to_cl;
-	shared::hashmap<process_id_t, cachelinemap> crashed_processes;
+	shared::hashmap<void *, storeList> obj_to_wr;
+	cachelineMap obj_to_cl;
+	shared::hashmap<process_id_t, cachelineMap> crashed_proc;
     shared::hashmap<pthread_mutex_t*, Mutex*> mutex_map;
     shared::hashmap<pthread_cond_t*, ConditionVariable*> cond_map;
     NodeStack* nodestack;
 
     int crash_count;
+	std::atomic_int exit_count;
     bool rollback_again;
-
-	bool is_crashed(process_id_t pid);
 
 	void process_store_buffer();
 
@@ -53,18 +58,21 @@ class Model {
 	process_id_t get_process_id(ModelAction *action);
 	
 	CacheLine &get_cacheline(void *addr);
+
+	CacheLine &get_cacheline(void *addr, cachelineMap &cl_map);
 	
-	storelist &get_storelist(void *addr);
+	storeList &get_storelist(void *addr);
 
-	bool has_noncrashed_unflushed_write(void *addr);
-
+	void do_crashed_read(ModelAction *write, ModelAction *read, CacheLine &cl);
+	
 	bool has_unflushed_write(void *addr, process_id_t pid);
 
-    void execute_crash();
+	bool should_crash();
+
+    void record_crash_state(process_id_t);
 
 public:
-    Model(Scheduler *s, void* cxl): scheduler(s), execution_num(1), cxl_mapping(cxl), next_sequence_num(0), nodestack(new NodeStack),
-        crash_count(0), rollback_again(true) {}
+    Model(Scheduler *s, void* cxl): scheduler(s), execution_num(1), cxl_mapping(cxl), next_sequence_num(0), nodestack(new NodeStack), crash_count(0), exit_count(0), rollback_again(true) {}
     ~Model() { delete nodestack; }
 
     uint64_t action(ModelAction* action);
@@ -74,8 +82,6 @@ public:
 	void evict_clflush(ModelAction* action);
     
 	void build_may_read_from(ModelAction *read, shared::vector<rfEntry> &rfset);
-
-	void do_read(ModelAction* read, ModelAction* write, CacheLine &cl, bool &shouldCrash);
 
     void terminate_early();
 
@@ -100,11 +106,11 @@ public:
 		return cxl_mapping;
 	}
 
-	void set_cacheline(CacheLine &cl);
+	bool is_crashed(process_id_t pid);
+	
+	void do_read(rfEntry &e);
 
     int decision_point(int numchoices) { return nodestack->explore_next(numchoices)->get_choice(); }
-
-    bool should_crash();
 
     void insert_crash();
 };

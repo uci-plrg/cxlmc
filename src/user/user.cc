@@ -34,5 +34,5 @@ void user_init(process_id_t pid, Model *m, mspace ms) {
 }
 
 void user_done() {
-    model->get_scheduler()->process_proper_shutdown();
+    model->get_scheduler()->process_shutdown();
 }

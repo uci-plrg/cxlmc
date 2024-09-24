@@ -148,39 +148,20 @@ void execute(ModelAction* action) {
 		shared::vector<rfEntry> rfset;
 		model->build_may_read_from(action, rfset);
 
-		printf("rfset %p: [\n", action->get_location());
-		for (auto entry: rfset) {
-			printf("\tcacheline: (%d, %d), ", entry.cl.getBegin(), entry.cl.getEnd()); 
-			printf("writes: [");
-			for (uint i = 0; i < entry.overlaps.size(); i++) {
-				auto write = entry.overlaps[i];
-				if (!write)
-					continue;
-				printf("+%u, val=%ld, seq=%u, ", i<<3, write->get_value(), write->get_seq_num());
-			}
-			printf("]\n");
+		printf("rfset %p: {\n", action->get_location());
+		for (auto &entry: rfset) {
+			printf("\t");
+			entry.dump();
 		}
-		printf("]\n");
+		printf("}\n");
 
 		assert(rfset.size() != 0);
 		int index = model->decision_point(rfset.size());
 		auto chosen = rfset[index];
-		//TODO: crash the writers
-		//if (chosen.shouldCrash)
-		//	model->insert_crash();
+		printf("chosen option %d of rfset\n", index);
+		model->do_read(chosen);
 
-		model->set_cacheline(chosen.cl);
-		uint64_t value = 0;
-		for (int i= (int)chosen.overlaps.size()-1; i >= 0; i--) {
-			value = value << 8;
-			auto write = chosen.overlaps[i];
-			if (!write)
-				continue;
-			int offset = i + (char *)action->get_location() - (char *)write->get_location();
-			uint64_t writevalue = write->get_value() >> (8 * offset);
-			value |= writevalue & 0xff;
-		}
-		action->set_value(value);
+		action->set_value(chosen.get_read_value(action->get_location()));
 		break;
 	}
     case CACHE_SFENCE:

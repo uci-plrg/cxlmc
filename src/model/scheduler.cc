@@ -87,7 +87,8 @@ bool Scheduler::finalize() {
     return last_yield();
 }
 
-void Scheduler::process_proper_shutdown() {
+void Scheduler::process_shutdown() {
+	//TODO: make into an action?
 	yield();
 	for (int i = 0; i < get_thread_count(); i++) {
         Thread* thread = get_thread(i);
@@ -102,7 +103,17 @@ void Scheduler::process_proper_shutdown() {
 			thread->get_thread_memory()->empty_flush_buffer();
         }
     }
+}
 
+void Scheduler::process_crash() {
+	for (int i = 0; i < get_thread_count(); i++) {
+	    Thread* thread = get_thread(i);
+	    if (thread->get_process_id() == process_id && !thread->is_completed()) {
+	        printf("thread %d crashed\n", i);
+	        thread->cleanup();
+	        thread->set_state(THREAD_CRASHED);
+	    }
+	}
 }
 
 void Scheduler::reset() {

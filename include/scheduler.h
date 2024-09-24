@@ -33,6 +33,8 @@ public:
     Thread* get_thread(thread_id_t tid) { return threads[tid]; }
     
     int get_thread_count() { return threads.size(); }
+    
+	int get_process_count() { return process_count; }
 
     Thread* current_thread() { return threads[thread_id]; }
 
@@ -49,7 +51,9 @@ public:
     //returns true if there are other running threads, else false
     bool finalize();
 
-	void process_proper_shutdown();
+	void process_shutdown();
+
+	void process_crash();
 
     void reset();
 
