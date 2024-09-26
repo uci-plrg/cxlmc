@@ -1,7 +1,7 @@
 #include <assert.h>
 
-#include "model.h"
 #include "thread_memory.h"
+#include "model.h"
 
 void ThreadMemory::add_to_store_buffer(ModelAction *action) {
 	assert(action->get_type() == NONATOMIC_STORE
@@ -11,12 +11,12 @@ void ThreadMemory::add_to_store_buffer(ModelAction *action) {
     storeBuffer.push_back(action);
 }
 
-bool ThreadMemory::get_last_write(ModelAction* read, shared::vector<ModelAction *> &overlaps, uint &numslotsleft) {
+bool ThreadMemory::get_last_write(ModelAction* read, rfEntry &entry) {
      for (auto iter = storeBuffer.rbegin(); iter != storeBuffer.rend(); iter++) {
          ModelAction* write = *iter;
          if (write->get_type() == NONATOMIC_STORE) {
-			 get_overlaps(overlaps, write, read, numslotsleft);
-			 if (numslotsleft == 0)
+			 entry.get_overlaps(write, read);
+			 if (entry.numslotsleft == 0)
 				return true;
          }
      }

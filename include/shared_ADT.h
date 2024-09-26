@@ -6,6 +6,7 @@
 #include <vector>
 #include <unordered_map>
 #include <unordered_set>
+#include <map>
 #include "allocators.h"
 
 namespace shared {
@@ -16,6 +17,10 @@ namespace shared {
     using list = std::list<T, model_allocator<T>>;
 	template<typename K, typename T>
 	using hashmap = std::unordered_map<K, T, std::hash<K>, std::equal_to<K>, model_allocator<std::pair<const K, T>>>;
+	template<typename K>
+	using hashset = std::unordered_set<K, std::hash<K>, std::equal_to<K>, model_allocator<K>>;
+	template<typename K, typename T>
+	using map = std::map<K, T, std::less<K>, model_allocator<std::pair<const K, T>>>;
 
 	template<typename _T1, typename _T2>
 	class Pair {

@@ -3,33 +3,7 @@
 
 #include "shared_ADT.h"
 #include "action.h"
-
-//returns whether store is added to overlaps
-inline bool get_overlaps(shared::vector<ModelAction *> &overlaps, ModelAction *write, ModelAction *read, uint &numslotsleft) {
-	uintptr_t wbot = (uintptr_t) write->get_location();
-	uint wsize = write->get_size();
-	uintptr_t wtop = wbot + wsize;
-	uintptr_t rbot = (uintptr_t) read->get_location();
-	uint rsize = read->get_size();
-	uintptr_t rtop = rbot + rsize;
-	bool ret = false;
-	//skip on if there is no overlap
-	if ((wbot >= rtop) || (rbot >= wtop))
-		return ret;
-
-	uintptr_t offset = wbot - rbot;
-	//the ith byte of read will be the (i - offset)th byte of write
-	for(uint i = offset ;i < offset + wsize && i < rsize; i++) {
-		if (overlaps[i] == NULL) {
-			overlaps[i] = write;
-			numslotsleft--;
-			ret = true;
-			if (numslotsleft == 0)
-				return ret;
-		}
-	}
-	return ret;
-}
+#include "rfentry.h"
 
 class ThreadMemory {
     shared::list<ModelAction *> storeBuffer;
@@ -47,7 +21,7 @@ public:
     }
 
     void add_to_store_buffer(ModelAction *action);
-	bool get_last_write(ModelAction* read, shared::vector<ModelAction *> &overlaps, uint &numslotsleft);
+	bool get_last_write(ModelAction* read, rfEntry &entry);
 	ModelAction *get_last_write(ModelAction* act);
 	bool pop_from_store_buffer();
     void empty_store_buffer();

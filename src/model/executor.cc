@@ -158,7 +158,7 @@ void execute(ModelAction* action) {
 		assert(rfset.size() != 0);
 		int index = model->decision_point(rfset.size());
 		auto chosen = rfset[index];
-		printf("chosen option %d of rfset\n", index);
+		printf("choose option %d of rfset\n", index);
 		model->do_read(chosen);
 
 		action->set_value(chosen.get_read_value(action->get_location()));
