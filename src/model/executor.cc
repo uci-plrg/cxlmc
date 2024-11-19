@@ -84,15 +84,17 @@ void execute(ModelAction* action) {
 
         if (!owner) {
             mutex->set_owner(curr_thread);
-            mutex->increment_lock_count();
             break;
         }
 
         if (curr_thread == owner) {
             if (mutex->get_mutex_type() == PTHREAD_MUTEX_RECURSIVE) {
                 mutex->increment_lock_count();
-            } else {
+            } else if (mutex->get_mutex_type() == PTHREAD_MUTEX_ERRORCHECK) {
                 errno = EDEADLK;
+            } else {
+                printf("DEADLOCK\n");
+                abort();
             }
             break;
         }
@@ -102,7 +104,6 @@ void execute(ModelAction* action) {
 
         assert(!mutex->get_owner());
         mutex->set_owner(curr_thread);
-        mutex->increment_lock_count();
         break;
     }
     case ATOMIC_WAIT:
@@ -117,7 +118,8 @@ void execute(ModelAction* action) {
             break;
         }
 
-        if (!mutex->decrement_lock_count()) {
+        if (mutex->get_mutex_type() == PTHREAD_MUTEX_RECURSIVE && mutex->get_recursive_lock_count() > 0) {
+            mutex->decrement_lock_count();
             break;
         }
 
