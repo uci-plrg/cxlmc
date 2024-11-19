@@ -94,9 +94,7 @@ void Model::evict_clflush(ModelAction* action) {
 	CacheLine &cl = get_cacheline(addr);
 	storeList &stores = get_storelist(addr);
 	Range *r = &cl.get_current();
-	if (modelclock_t clock = find_crashed_write(crashes, stores, stores.rbegin(), r->getBegin()) != 0)
-		r = &cl.insert_range(clock, *r);
-	r->setBegin(seq_num);
+	set_cacheline_begin(stores, stores.rbegin(), r, seq_num, cl, crashes);
 }
 
 void Model::build_may_read_from(ModelAction *read, shared::vector<rfEntry> &rfset) {	
@@ -141,19 +139,19 @@ void Model::build_may_read_from(ModelAction *read, shared::vector<rfEntry> &rfse
 				}
 			} else { //crashed processes
 				modelclock_t crash_clock = citr->second;
-				Range &r = w.cl.get_before(crash_clock);
+				Range *r = &w.cl.get_before(crash_clock);
 
-				if (store->get_seq_num() <= r.getBegin()) { //must have persisted
-					if (w.get_overlaps(store, read))
-						read_crashed_update_cacheline(stores, itr, r, w);
-				} else if (r.getEnd() == 0 || store->get_seq_num() <= r.getEnd()) { //may have persisted
+				if (store->get_seq_num() <= r->getBegin()) { //must have persisted
+					if (w.get_overlaps(store, read)) {
+						set_cacheline_begin(stores, itr, r, store->get_seq_num(), w.cl, w.crashes);
+						read_crashed_set_cacheline_end(stores, itr, *r);
+					}
+				} else if (r->getEnd() == 0 || store->get_seq_num() <= r->getEnd()) { //may have persisted
 					rfEntry copy(w);
 					if (copy.get_overlaps(store, read)) {
-						read_crashed_update_cacheline(stores, itr, copy.cl.get_before(crash_clock), copy);
-						if (copy.numslotsleft == 0)
-							rfset.push_back(copy);
-						else
-							seedWrites.push_back(copy);
+						set_cacheline_begin(stores, itr, r, store->get_seq_num(), copy.cl, copy.crashes);
+						read_crashed_set_cacheline_end(stores, itr, *r);
+						seedWrites.push_back(copy);
 					}
 				}
 			}
@@ -173,33 +171,24 @@ void Model::build_may_read_from(ModelAction *read, shared::vector<rfEntry> &rfse
 		rfset.push_back(w);
 }
 
-
 //inline?
-modelclock_t Model::find_crashed_write(const shared::hashmap<process_id_t, modelclock_t> &curr_crashes, const storeList &stores, storeList::reverse_iterator itr, modelclock_t lb) {
+void Model::set_cacheline_begin(const storeList &stores, storeList::reverse_iterator itr, Range *r, modelclock_t new_begin, CacheLine &cl, const shared::hashmap<process_id_t, modelclock_t> &curr_crashes) {
 	for (; itr != stores.rend(); itr++)  {
-		if ((*itr)->get_seq_num() <= lb)
-			return 0;
+		if ((*itr)->get_seq_num() <= r->getBegin())
+			break;
 			
 		auto citr = curr_crashes.find(get_process_id(*itr));
-		if (citr != curr_crashes.end())
-			return citr->second;
+		if (citr != curr_crashes.end()) {
+			r= &cl.insert_range(citr->second, *r);
+			break;
+		}
 	}
-	return 0;
+	r->setBegin(new_begin);
 }
 
 //inline?
-void Model::read_crashed_update_cacheline(const storeList &stores, storeList::reverse_iterator itr, Range &r, rfEntry &e) {
-	assert(itr != stores.rend());
+void Model::read_crashed_set_cacheline_end(const storeList &stores, storeList::reverse_iterator itr, Range &r) {
 	ModelAction *write = *itr;
-
-	modelclock_t write_seq = write->get_seq_num();
-	Range *curr = &r;
-	if (curr->getBegin() < write_seq) {
-		if (modelclock_t clock = find_crashed_write(e.crashes, stores, itr, r.getBegin()) != 0)
-			curr = &e.cl.insert_range(clock, r);
-		curr->setBegin(write_seq);	
-	}
-
 	auto fitr = itr.base();
 	uintptr_t wbot = (uintptr_t) write->get_location();
 	uintptr_t wtop = wbot + write->get_size();
@@ -213,8 +202,8 @@ void Model::read_crashed_update_cacheline(const storeList &stores, storeList::re
 
 	if (fitr != stores.end()) {
 		modelclock_t next_write_seq = (*fitr)->get_seq_num();
-		if (curr->getEnd() == 0 || curr->getEnd() >= next_write_seq)
-			curr->setEnd(next_write_seq);
+		if (r.getEnd() == 0 || r.getEnd() >= next_write_seq)
+			r.setEnd(next_write_seq);
 	}
 }
 

@@ -47,10 +47,10 @@ private:
 
 	storeList &get_storelist(void *addr);
 
-	modelclock_t find_crashed_write(const shared::hashmap<process_id_t, modelclock_t> &curr_crashes, const storeList &stores, storeList::reverse_iterator itr, modelclock_t lb); 
+	void set_cacheline_begin(const storeList &stores, storeList::reverse_iterator itr, Range *r, modelclock_t new_begin, CacheLine &cl, const shared::hashmap<process_id_t, modelclock_t> &curr_crashes);
 
-	void read_crashed_update_cacheline(const storeList &stores, storeList::reverse_iterator itr, Range &r, rfEntry &e);
-	
+	void read_crashed_set_cacheline_end(const storeList &stores, storeList::reverse_iterator itr, Range &r);
+
 	bool has_unflushed_write(void *addr, process_id_t pid);
 
 	bool should_crash();
