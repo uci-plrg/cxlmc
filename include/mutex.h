@@ -8,7 +8,7 @@ class Mutex {
     Thread* owner;
     int recursive_lock_count;
 public:
-    Mutex(int type) : mutex_type(type), owner(nullptr) {}
+    Mutex(int type) : mutex_type(type), owner(nullptr), recursive_lock_count(0) {}
 
     void lock();
 
