@@ -171,7 +171,7 @@ void Model::print_execution_summary() {
 
         printf("placeholder data: \n");
         for (auto &s: placeholder_data)
-            printf("%s, ", s.c_str());
+            printf("%s, ", s);
         printf("\n");
 }
 
@@ -231,6 +231,8 @@ void Model::reset_execution_data() {
 			for (auto s: itr.second)
 				delete s;
         obj_to_wr.clear();
+		for (char *str: placeholder_data)
+			mspace_free(shared_space, str);
         placeholder_data.clear();
 		obj_to_cl.clear();
 		crashed_processes.clear();

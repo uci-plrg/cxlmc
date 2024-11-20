@@ -21,7 +21,7 @@ class Model {
 	//should be reset on rollback
 	void* cxl_mapping;
 	modelclock_t next_sequence_num;
-    shared::vector<shared::string> placeholder_data;
+    shared::vector<char*> placeholder_data;
 	shared::hashmap<void *, storelist> obj_to_wr;
 	shared::hashmap<uintptr_t, CacheLine> obj_to_cl;
 	shared::hashmap<process_id_t, modelclock_t> crashed_processes;
@@ -74,7 +74,7 @@ public:
 
     void print_execution_summary();
 
-    shared::vector<shared::string> &get_placeholder_data() { return placeholder_data; };
+    shared::vector<char*> &get_placeholder_data() { return placeholder_data; };
 
     shared::hashmap<pthread_mutex_t*, Mutex*>* get_mutex_map() { return &mutex_map; }
 
