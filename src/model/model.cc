@@ -132,7 +132,7 @@ void Model::do_read(ModelAction * read, ModelAction *write) {
 			cl.setBegin(write_seq);
 		storelist &stores = get_storelist(read->get_location());
 		
-		storelist::const_iterator itr; 
+		storelist::iterator itr; 
 		for (itr = stores.begin(); itr != stores.end(); itr++) 
 			if (*itr == write)
 				break;
@@ -227,7 +227,7 @@ bool Model::wait_for_next_execution(int num) {
 void Model::reset_execution_data() {
 		memset(cxl_mapping, 0, CXL_MEM_SIZE);
 		next_sequence_num = 0;
-		for (auto itr: obj_to_wr)
+		for (auto& itr: obj_to_wr)
 			for (auto s: itr.second)
 				delete s;
         obj_to_wr.clear();
