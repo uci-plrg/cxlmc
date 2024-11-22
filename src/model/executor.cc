@@ -4,7 +4,6 @@
 #include "model.h"
 #include "executor.h"
 #include "threads.h"
-#include <cstring>
 
 Thread* get_thread(ModelAction* action) {
     return model->get_scheduler()->get_thread(action->get_thread_id());
@@ -40,12 +39,10 @@ void execute(ModelAction* action) {
         break;
     }
     case PLACEHOLDER: {
-        std::string* s = (std::string*)action->get_location();
+        char* s = (char*)action->get_location();
         std::cout << "process " << model->get_scheduler()->get_process_id() << ", " << "thread "
-            << model->get_scheduler()->get_thread_id() << ", " << *s << std::endl;
-        char* copy = (char*) mspace_malloc(shared_space, sizeof(char) * (s->length() + 1));
-        strcpy(copy, s->c_str());
-        model->get_placeholder_data().push_back(copy);
+            << model->get_scheduler()->get_thread_id() << ", " << s << std::endl;
+        model->get_placeholder_data().push_back(s);
         break;
     }
     case PTHREAD_CREATE: {
