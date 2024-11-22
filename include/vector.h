@@ -36,10 +36,24 @@ public:
 		_size(_capacity),
 		capacity(_capacity),
 		array((type *)mspace_malloc(*msp, _capacity * sizeof(type))) {
-		memcpy(array, _array, capacity * sizeof(type));
+		memcpy(array, _array, _size * sizeof(type));
 	}
 
-	Vector(const Vector& vec) = delete;
+	Vector(const Vector& vec) :
+		_size(vec._size),
+		capacity(vec.capacity),
+		array((type *)mspace_malloc(*msp, vec.capacity * sizeof(type))) {
+		memcpy(array, vec.array, _size * sizeof(type));
+	}
+
+	Vector& operator=(const Vector& vec) {
+		mspace_free(*msp, array);
+		_size = vec._size;
+		capacity = vec.capacity;
+		array = (type *)mspace_malloc(*msp, vec.capacity * sizeof(type));
+		memcpy(array, vec.array, _size * sizeof(type));
+		return *this;
+	}
 
 	void pop_back() {
 		_size--;

@@ -27,6 +27,7 @@ template<typename _Tp, void** msp>
 class llnode {
 	using Node = llnode<_Tp, msp>;
 public:
+	llnode(Node *_next, Node *_prev, _Tp _val) : next(_next), prev(_prev), val(_val) {}
 	TEMPLATEALLOC
 private:
 	Node * next;
@@ -62,17 +63,27 @@ public:
 		tail(NULL), _size(0) {
 	}
 
-	List(const List& list) = delete;
+	List(const List& list) : head(NULL),
+		tail(NULL), _size(0) {
+		for (_Tp& item: list) {
+			push_back(item);
+		}
+	}
+
+	List& operator=(const List& list) {
+		clear();
+		for (_Tp& item: list) {
+			push_back(item);
+		}
+		return *this;
+	}
 
 	~List() {
 		clear();
 	}
 
 	void push_front(_Tp val) {
-		Node * tmp = new Node();
-		tmp->prev = NULL;
-		tmp->next = head;
-		tmp->val = val;
+		Node * tmp = new Node(NULL, head, val);
 		if (head == NULL)
 			tail = tmp;
 		else
@@ -82,10 +93,7 @@ public:
 	}
 
 	void push_back(_Tp val) {
-		Node * tmp = new Node();
-		tmp->prev = tail;
-		tmp->next = NULL;
-		tmp->val = val;
+		Node * tmp = new Node(tail, NULL, val);
 		if (tail == NULL)
 			head = tmp;
 		else tail->next = tmp;
@@ -94,10 +102,7 @@ public:
 	}
 
 	Node* add_front(_Tp val) {
-		Node * tmp = new Node();
-		tmp->prev = NULL;
-		tmp->next = head;
-		tmp->val = val;
+		Node * tmp = new Node(NULL, head, val);
 		if (head == NULL)
 			tail = tmp;
 		else
@@ -108,10 +113,7 @@ public:
 	}
 
 	Node * add_back(_Tp val) {
-		Node * tmp = new Node();
-		tmp->prev = tail;
-		tmp->next = NULL;
-		tmp->val = val;
+		Node * tmp = new Node(tail, NULL, val);
 		if (tail == NULL)
 			head = tmp;
 		else tail->next = tmp;
@@ -155,10 +157,7 @@ public:
 	}
 
 	Node * insertAfter(Node * node, _Tp val) {
-		Node *tmp = new Node();
-		tmp->val = val;
-		tmp->prev = node;
-		tmp->next = node->next;
+		Node *tmp = new Node(node, node->next, val);
 		node->next = tmp;
 		if (tmp->next == NULL) {
 			tail = tmp;
@@ -170,10 +169,7 @@ public:
 	}
 
 	void insertBefore(Node * node, _Tp val) {
-		Node *tmp = new Node();
-		tmp->val = val;
-		tmp->next = node;
-		tmp->prev = node->prev;
+		Node *tmp = new Node(node->prev, node, val);
 		node->prev = tmp;
 		if (tmp->prev == NULL) {
 			head = tmp;
@@ -206,7 +202,15 @@ public:
 		return iterator(head);
 	}
 
+	const iterator begin() const {
+		return iterator(head);
+	}
+
 	iterator end() {
+		return iterator(NULL);
+	}
+
+	const iterator end() const {
 		return iterator(NULL);
 	}
 

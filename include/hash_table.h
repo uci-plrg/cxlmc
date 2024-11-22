@@ -36,6 +36,7 @@ class HashTable;
 
 template<typename T1, typename T2>
 struct pair {
+	pair(T1 t1, T2 t2) : first(t1), second(t2) {}
 	T1 first;
 	T2 second;
 };
@@ -46,16 +47,20 @@ struct pair {
  * @tparam _Key    Type name for the key
  * @tparam _Val    Type name for the values to be stored
  */
-template<typename _Key, typename _Val>
+template<typename _Key, typename _Val, void** msp>
 class htnode : public pair<_Key, _Val> {
-	htnode<_Key, _Val> *next;
-	template<typename _K, typename _V, void** msp, size_t (*_hash)(_K), bool (*_equals)(_K, _K)>
+public:
+	htnode(_Key key, _Val val) : pair<_Key, _Val>(key, val), next(NULL) {}
+	TEMPLATEALLOC
+private:
+	htnode<_Key, _Val, msp> *next;
+	template<typename _K, typename _V, void** p, size_t (*_hash)(_K), bool (*_equals)(_K, _K)>
 	friend class HashTable;
 };
 
 template<typename _Key, typename _Val, void** msp, size_t (*_hash)(_Key), bool (*_equals)(_Key, _Key)>
 class HashTable {
-	using Node = htnode<_Key, _Val>;
+	using Node = htnode<_Key, _Val, msp>;
 public:
 	class iterator {
 	public:
@@ -90,15 +95,42 @@ public:
 		size_t _index;
 		friend class HashTable<_Key, _Val, msp, _hash, _equals>;
 	};
-	HashTable(size_t initial_buckets = 1024, double factor = 0.5) : _size(0), buckets(initial_buckets), max_factor(factor) {
-		table = (Node**)mspace_calloc(*msp, buckets, sizeof(Node*));
+	HashTable(size_t initial_buckets = 1024, double factor = 0.5) :
+		table((Node**)mspace_calloc(*msp, initial_buckets, sizeof(Node*))),
+		_size(0),
+		buckets(initial_buckets),
+		max_factor(factor),
+		threshold((size_t)(initial_buckets * factor)) {}
+	HashTable(const HashTable& hashtable) :
+		table((Node**)mspace_calloc(*msp, hashtable.buckets, sizeof(Node*))),
+		_size(hashtable._size),
+		buckets(hashtable.buckets),
+		max_factor(hashtable.max_factor),
+		threshold(hashtable.threshold) {
+		for (pair<_Key, _Val> p: hashtable) {
+			hashtable[p.first] = p.second;
+		}
 	}
-	HashTable(const HashTable& hashtable) = delete;
+	HashTable& operator=(const HashTable& hashtable) {
+		clear();
+		mspace_free(*msp, table);
+		_size = hashtable._size;
+		buckets = hashtable.buckets;
+		max_factor = hashtable.max_factor;
+		threshold = hashtable.threshold;
+
+		table = (Node**)mspace_calloc(*msp, buckets, sizeof(Node*));
+		for (pair<_Key, _Val> p: hashtable) {
+			hashtable[p.first] = p.second;
+		}
+	}
 	~HashTable() {
 		clear();
+		mspace_free(*msp, table);
 	}
 
 	_Val& operator[](_Key key) {
+		resize();
 		size_t index = _hash(key) % buckets;
 		Node* node = table[index];
 		Node* last = NULL;
@@ -109,10 +141,7 @@ public:
 			last = node;
 			node = node->next;
 		}
-		node = (Node*)mspace_malloc(*msp, sizeof(Node));
-		node->first = key;
-		node->second = _Val();
-		node->next = NULL;
+		node = new Node(key, _Val());
 		if (last == NULL) {
 			table[index] = node;
 		} else {
@@ -123,6 +152,7 @@ public:
 	}
 
 	_Val& at(_Key key) {
+		resize();
 		size_t index = _hash(key) % buckets;
 		Node* node = table[index];
 		while (node != NULL) {
@@ -135,6 +165,7 @@ public:
 	}
 
 	pair<iterator, bool> emplace(_Key key, _Val val) {
+		resize();
 		size_t index = _hash(key) % buckets;
 		Node* node = table[index];
 		Node* last = NULL;
@@ -145,10 +176,7 @@ public:
 			last = node;
 			node = node->next;
 		}
-		node = (Node*)mspace_malloc(*msp, sizeof(Node));
-		node->first = key;
-		node->second = val;
-		node->next = NULL;
+		node = new Node(key, val);
 		if (last == NULL) {
 			table[index] = node;
 		} else {
@@ -163,6 +191,7 @@ public:
 	}
 
 	pair<iterator, bool> try_emplace(_Key key) {
+		resize();
 		size_t index = _hash(key) % buckets;
 		Node* node = table[index];
 		Node* last = NULL;
@@ -173,10 +202,7 @@ public:
 			last = node;
 			node = node->next;
 		}
-		node = (Node*)mspace_malloc(*msp, sizeof(Node));
-		node->first = key;
-		node->second = _Val();
-		node->next = NULL;
+		node = new Node(key, _Val());
 		if (last == NULL) {
 			table[index] = node;
 		} else {
@@ -236,8 +262,27 @@ public:
 		_size = 0;
 	}
 
-	void resize(size_t new_size) {
-		// TODO
+	void resize() {
+		if (_size < threshold)
+			return;
+		size_t old_capacity = buckets;
+		Node** old_table = table;
+
+		buckets <<= 1;
+		table = (Node**)mspace_calloc(*msp, buckets, sizeof(Node*));
+
+		for (size_t i = 0; i < old_capacity; i++) {
+			Node* node = old_table[i];
+			while (node != NULL) {
+				Node* tmp = node->next;
+				size_t index = _hash(node->first) % buckets;
+				node->next = table[index];
+				table[index] = node;
+				node = tmp;
+			}
+		}
+
+		mspace_free(*msp, old_table);
 	}
 
 	TEMPLATEALLOC
@@ -246,6 +291,7 @@ private:
 	size_t _size;
 	size_t buckets;
 	double max_factor;
+	size_t threshold;
 };
 
 #endif
