@@ -95,7 +95,7 @@ public:
 		size_t _index;
 		friend class HashTable<_Key, _Val, msp, _hash, _equals>;
 	};
-	HashTable(size_t initial_buckets = 1024, double factor = 0.5) :
+	HashTable(size_t initial_buckets = 16, double factor = 0.75) :
 		table((Node**)mspace_calloc(*msp, initial_buckets, sizeof(Node*))),
 		_size(0),
 		buckets(initial_buckets),
@@ -103,7 +103,7 @@ public:
 		threshold((size_t)(initial_buckets * factor)) {}
 	HashTable(const HashTable& hashtable) :
 		table((Node**)mspace_calloc(*msp, hashtable.buckets, sizeof(Node*))),
-		_size(hashtable._size),
+		_size(0),
 		buckets(hashtable.buckets),
 		max_factor(hashtable.max_factor),
 		threshold(hashtable.threshold) {
@@ -114,7 +114,6 @@ public:
 	HashTable& operator=(const HashTable& hashtable) {
 		clear();
 		mspace_free(*msp, table);
-		_size = hashtable._size;
 		buckets = hashtable.buckets;
 		max_factor = hashtable.max_factor;
 		threshold = hashtable.threshold;
@@ -238,6 +237,7 @@ public:
 
 	iterator begin() {
 		for (size_t i = 0; i < buckets; i++) {
+			printf("%p\n", (void*)table);
 			if (table[i] != NULL) {
 				return iterator(table, buckets, table[i], NULL, i);
 			}
@@ -269,6 +269,7 @@ public:
 		Node** old_table = table;
 
 		buckets <<= 1;
+		threshold = (size_t)(buckets * max_factor);
 		table = (Node**)mspace_calloc(*msp, buckets, sizeof(Node*));
 
 		for (size_t i = 0; i < old_capacity; i++) {

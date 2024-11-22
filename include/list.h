@@ -27,11 +27,11 @@ template<typename _Tp, void** msp>
 class llnode {
 	using Node = llnode<_Tp, msp>;
 public:
-	llnode(Node *_next, Node *_prev, _Tp _val) : next(_next), prev(_prev), val(_val) {}
+	llnode(Node *_prev, Node *_next, _Tp _val) : prev(_prev), next(_next), val(_val) {}
 	TEMPLATEALLOC
 private:
-	Node * next;
 	Node * prev;
+	Node * next;
 	_Tp val;
 	friend class List<_Tp, msp>;
 };
