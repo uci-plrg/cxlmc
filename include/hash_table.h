@@ -120,7 +120,7 @@ public:
 
 		table = (Node**)mspace_calloc(*msp, buckets, sizeof(Node*));
 		for (pair<_Key, _Val> p: hashtable) {
-			hashtable[p.first] = p.second;
+			this->operator[](p.first) = p.second;
 		}
 	}
 	~HashTable() {
@@ -128,7 +128,7 @@ public:
 		mspace_free(*msp, table);
 	}
 
-	_Val& operator[](_Key key) {
+	_Val& operator[](const _Key& key) {
 		resize();
 		size_t index = _hash(key) % buckets;
 		Node* node = table[index];
@@ -150,7 +150,7 @@ public:
 		return node->second;
 	}
 
-	_Val& at(_Key key) {
+	_Val& at(const _Key& key) {
 		resize();
 		size_t index = _hash(key) % buckets;
 		Node* node = table[index];
@@ -163,7 +163,7 @@ public:
 		abort();
 	}
 
-	pair<iterator, bool> emplace(_Key key, _Val val) {
+	pair<iterator, bool> emplace(const _Key& key, const _Val& val) {
 		resize();
 		size_t index = _hash(key) % buckets;
 		Node* node = table[index];
@@ -185,11 +185,11 @@ public:
 		return pair<iterator, bool>{iterator(table, buckets, node, last, index), true};
 	}
 
-	pair<iterator, bool> try_emplace(_Key key, _Val val) {
+	pair<iterator, bool> try_emplace(const _Key& key, const _Val& val) {
 		return emplace(key, val);
 	}
 
-	pair<iterator, bool> try_emplace(_Key key) {
+	pair<iterator, bool> try_emplace(const _Key& key) {
 		resize();
 		size_t index = _hash(key) % buckets;
 		Node* node = table[index];
@@ -211,7 +211,7 @@ public:
 		return pair<iterator, bool>{iterator(table, buckets, node, last, index), true};
 	}
 
-	iterator find(_Key key) {
+	iterator find(const _Key& key) {
 		size_t index = _hash(key) % buckets;
 		Node* node = table[index];
 		Node* last = NULL;
@@ -237,7 +237,6 @@ public:
 
 	iterator begin() {
 		for (size_t i = 0; i < buckets; i++) {
-			printf("%p\n", (void*)table);
 			if (table[i] != NULL) {
 				return iterator(table, buckets, table[i], NULL, i);
 			}
@@ -293,6 +292,64 @@ private:
 	size_t buckets;
 	double max_factor;
 	size_t threshold;
+};
+
+struct Empty {};
+
+template<typename T, void** msp, size_t (*_hash)(T)=default_hash_function, bool (*_equals)(T, T)=default_equals>
+class HashSet {
+	using Base = HashTable<T, struct Empty, msp, _hash, _equals>;
+	using BaseIterator = typename Base::iterator;
+public:
+	class iterator {
+	public:
+		iterator(BaseIterator base) : _base(base) {}
+		T& operator*() const { return _base->first; }
+		T* operator->() const { return &_base->first; }
+		iterator& operator++() {
+			++_base;
+			return *this;
+		}
+		bool operator==(const iterator& other) const {
+			return _base == other._base;
+		}
+		bool operator!=(const iterator& other) const {
+			return !this->operator==(other);
+		}
+	private:
+		BaseIterator _base;
+	};
+
+	HashSet(size_t initial_buckets = 16, double factor = 0.75) :
+		base(initial_buckets, factor) {}
+	HashSet(const HashSet& hashset) :
+		base(hashset.base) {}
+	HashSet& operator=(const HashSet& hashset) {
+		base = hashset.base;
+	}
+	iterator begin() {
+		return iterator(base.begin());
+	}
+	iterator end() {
+		return iterator(base.end());
+	}
+
+	pair<iterator, bool> insert(const T& item) {
+		pair<BaseIterator, bool> ret = base.emplace(item, {});
+		return pair(iterator(ret.first), ret.second);
+	}
+
+	iterator find(const T& item) {
+		return iterator(base.find(item));
+	}
+
+	iterator erase(iterator iter) {
+		return iterator(base.erase(iter.base));
+	}
+
+	TEMPLATEALLOC;
+private:
+	Base base;
 };
 
 #endif

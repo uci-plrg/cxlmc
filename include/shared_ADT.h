@@ -16,6 +16,8 @@ namespace shared {
     using list = List<T, &shared_space>;
 	template<typename K, typename T>
 	using hashmap = HashTable<K, T, &shared_space>;
+	template<typename T>
+	using hashset = HashSet<T, &shared_space>;
 
 	template<typename _T1, typename _T2>
 	class Pair {
