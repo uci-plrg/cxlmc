@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <pthread.h>
 #include <dlfcn.h>
+#include <sched.h>
 #include "threads.h"
 #include "model.h"
 #include "condition_variable.h"

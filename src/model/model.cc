@@ -166,7 +166,7 @@ void Model::print_execution_summary() {
 
         printf("cachelines: \n");
 		for (auto &pair: obj_to_cl)
-			printf("%p: (%d, %d), ", pair.first, pair.second.getBegin(), pair.second.getEnd()); 
+			printf("%p: (%d, %d), ", (void*)pair.first, pair.second.getBegin(), pair.second.getEnd()); 
         printf("\n\n");
 
         printf("placeholder data: \n");
@@ -218,7 +218,7 @@ bool Model::wait_for_next_execution(int num) {
     }
 
     while (execution_num.load() < num) {
-        sleep(0);
+        real_sched_yield();
     }
 
     return rollback_again;
