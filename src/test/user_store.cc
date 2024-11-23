@@ -6,7 +6,7 @@ int main() {
 	void* cxl = get_cxl_mapping();
     for (int i = 0; i < 4; i++) {
 		void *addr = (char*)cxl + i * CACHELINE_SIZE;
-        cxlmc_store8(addr , i);
+        cxlmc_store8(addr , i, NULL);
 		if (i%2==0)
 			cxlmc_clflush(addr);
         printf("iter %d, loaded %d\n", i, cxlmc_load8(addr));

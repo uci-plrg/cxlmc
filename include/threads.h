@@ -2,7 +2,6 @@
 #define _THREAD_INFO_H
 
 #include <ucontext.h>
-#include <atomic>
 #include <pthread.h>
 
 #include "action.h"

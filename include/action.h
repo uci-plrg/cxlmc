@@ -3,6 +3,14 @@
 
 #include "allocators.h"
 #include "types.h"
+#include <atomic>
+using std::memory_order;
+using std::memory_order_relaxed;
+using std::memory_order_consume;
+using std::memory_order_acquire;
+using std::memory_order_release;
+using std::memory_order_acq_rel;
+using std::memory_order_seq_cst;
 
 extern thread_id_t thread_id;
 
@@ -17,6 +25,8 @@ typedef enum action_type {
 	NONATOMIC_STORE,  // < A nonatomic store
 	NONATOMIC_LOAD,	  // < A nonatomic load
 
+	ATOMIC_STORE,   // < Anatomic store
+	ATOMIC_LOAD,	// < Anatomic load
 	ATOMIC_LOCK,	// < A lock action
 	ATOMIC_TRYLOCK,	// < A trylock action
 	ATOMIC_UNLOCK,	// < An unlock action
@@ -44,10 +54,13 @@ class ModelAction {
 	modelclock_t seq_num;
 	modelclock_t last_clflush;
 	uint size;
+	memory_order order;
+	const char *position;
+
 public:
-	ModelAction(action_type_t t) : tid(thread_id), type(t), seq_num(0), size(0) {}
-	ModelAction(action_type_t t, void* loc, uint64_t val=0, uint sz=1) : tid(thread_id), type(t), location(loc), value(val), seq_num(0), size(sz) {}
-	ModelAction(ModelAction &action) : tid(action.tid), type(action.type), location(action.location), value(action.value), seq_num(action.seq_num), size(action.size) {}
+	ModelAction(action_type_t t) : tid(thread_id), type(t), seq_num(0), size(0), order(memory_order_seq_cst), position(NULL) {}
+	ModelAction(action_type_t t, void* loc, uint64_t val=0, memory_order ord=memory_order_seq_cst, uint sz=1, const char *pos=NULL) : tid(thread_id), type(t), location(loc), value(val), seq_num(0), size(sz), order(ord), position(pos) {}
+	ModelAction(ModelAction &action) : tid(action.tid), type(action.type), location(action.location), value(action.value), seq_num(action.seq_num), size(action.size), order(action.order), position(action.position) {}
 
 	void set_seq_num(modelclock_t seq_n) { seq_num = seq_n; }
 	modelclock_t get_seq_num () {return seq_num; }
@@ -59,6 +72,7 @@ public:
 	uint get_size() { return size; }
 	modelclock_t get_last_clflush() { return last_clflush; }
 	void set_last_clflush(modelclock_t lc) { last_clflush = lc; }
+	bool is_seq_cst() { return order == memory_order_seq_cst; }
 
 	Thread* get_thread();
 	Mutex* get_mutex();

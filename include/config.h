@@ -11,8 +11,16 @@
 #define MAX_EXECUTION 100
 #define MAX_CRASHES_PER_EXECUTION 1
 #define SNAPSHOT_PAGES 10000
-#define DEBUG_LEVEL 1
-#define VERBOSE 2
 #define VALUE_NONE 0xdeadbeef
 #define EVICT_MAX 10;
+
+
+/** Logging options */
+#define DEBUG_LEVEL 1
+#define VERBOSE 2
+
+
+/** Define semantics of volatile memory operations. */
+#define memory_order_volatile_load memory_order_acquire
+#define memory_order_volatile_store memory_order_release
 #endif

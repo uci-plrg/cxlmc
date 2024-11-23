@@ -3,6 +3,7 @@
 #include "user.h"
 #include "snapshot.h"
 #include "mspace_malloc.h"
+
 void user_exit() {
 	model->finish_execution();
 }
