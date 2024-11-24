@@ -1,7 +1,7 @@
 #ifndef _VECTOR_H
 #define _VECTOR_H
 
-#include <strings.h>
+#include <string.h>
 #include "mspace_malloc.h"
 
 #define TEMPLATEALLOC \
@@ -29,20 +29,20 @@ public:
 	Vector(uint _capacity = VECTOR_DEFCAP) :
 		_size(0),
 		capacity(_capacity),
-		array((type *)mspace_malloc(*msp, _capacity * sizeof(type))) {
+		array((type *)mspace_calloc(*msp, _capacity, sizeof(type))) {
 	}
 
 	Vector(uint _capacity, type *_array)  :
 		_size(_capacity),
 		capacity(_capacity),
-		array((type *)mspace_malloc(*msp, _capacity * sizeof(type))) {
+		array((type *)mspace_calloc(*msp, _capacity, sizeof(type))) {
 		memcpy(array, _array, _size * sizeof(type));
 	}
 
 	Vector(const Vector& vec) :
 		_size(vec._size),
 		capacity(vec.capacity),
-		array((type *)mspace_malloc(*msp, vec.capacity * sizeof(type))) {
+		array((type *)mspace_calloc(*msp, vec.capacity, sizeof(type))) {
 		memcpy(array, vec.array, _size * sizeof(type));
 	}
 
@@ -50,7 +50,7 @@ public:
 		mspace_free(*msp, array);
 		_size = vec._size;
 		capacity = vec.capacity;
-		array = (type *)mspace_malloc(*msp, vec.capacity * sizeof(type));
+		array = (type *)mspace_calloc(*msp, vec.capacity, sizeof(type));
 		memcpy(array, vec.array, _size * sizeof(type));
 		return *this;
 	}

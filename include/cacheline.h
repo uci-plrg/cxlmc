@@ -2,6 +2,7 @@
 #define CACHELINE_H
 
 #include <cstdint>
+#include <map>
 
 #include "types.h"
 #include "config.h"
@@ -16,7 +17,7 @@ public:
 	void setBegin(modelclock_t b) { begin = b; }
 	void setEnd(modelclock_t e) { end = e; }
 
-	MODELALLOC;
+	SHAREDALLOC;
 private:
 	//both begin and end are inclusive
 	modelclock_t begin;
@@ -24,6 +25,9 @@ private:
 };
 
 class CacheLine {
+	//TODO: change to shared::vector
+	using range_map_t = std::map<modelclock_t, Range, std::greater<modelclock_t>, shared_allocator<std::pair<const modelclock_t, Range>>>;
+ 
 public:
 	CacheLine() = default;
 	CacheLine(const CacheLine &other) = default;
@@ -40,7 +44,7 @@ public:
 	Range &get_before(modelclock_t clock) {
 		if (range_map.size() == 0)
 			return range_map[0];
-		auto itr = range_map.lower_bound(clock);
+		auto itr = range_map.upper_bound(clock);
 		if (itr != range_map.begin())
 			itr--;
 		return itr->second; 
@@ -50,13 +54,13 @@ public:
 		return range_map[clock] = range;
 	}
 
-	const shared::map<modelclock_t, Range> &get_range_map() {
+	const range_map_t &get_range_map() {
 		return range_map;
 	}
 
 private: 
 	uintptr_t id;
-	shared::map<modelclock_t, Range> range_map;
+	range_map_t range_map;
 };
 
 inline uintptr_t getCacheID(const void *address) {

@@ -66,7 +66,7 @@ public:
 
 	bool is_completed() { return state == THREAD_COMPLETED || state == THREAD_CRASHED; }
 
-    MODELALLOC
+    SHAREDALLOC
 };
 
 // int real_epoll_wait(int epfd, struct epoll_event *events, int maxevents, int timeout);

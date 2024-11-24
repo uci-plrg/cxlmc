@@ -78,7 +78,7 @@ public:
 	Mutex* get_mutex();
 	ConditionVariable* get_cond();
 
-    MODELALLOC
+    SHAREDALLOC
 };
 
 #endif

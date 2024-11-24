@@ -8,7 +8,7 @@
 extern mspace shared_space;
 extern mspace snapshot_space;
 
-#define MODELALLOC \
+#define SHAREDALLOC \
 	void * operator new(size_t size) { \
 				return mspace_malloc(shared_space, size); \
 			} \
@@ -26,7 +26,7 @@ extern mspace snapshot_space;
 			}
 
 template <typename T> 
-class model_allocator { 
+class shared_allocator { 
 public:// type definitions
 	typedef T value_type;
 	typedef T*       pointer;
@@ -39,7 +39,7 @@ public:// type definitions
 	// rebind allocator to type U
 	template <class U>
 	struct rebind {
-		typedef model_allocator<U> other;
+		typedef shared_allocator<U> other;
 	};
 
 	// return address of values
@@ -51,17 +51,17 @@ public:// type definitions
 	}
 
     //constructors and destructors
-    model_allocator() throw() {}
+    shared_allocator() throw() {}
 
-	model_allocator(const model_allocator&) throw() {}
+	shared_allocator(const shared_allocator&) throw() {}
 
 	template<typename T2>
-    model_allocator(const model_allocator<T2> &alloc) throw() {}
+    shared_allocator(const shared_allocator<T2> &alloc) throw() {}
  
-    ~model_allocator() throw() {}
+    ~shared_allocator() throw() {}
 
 	//operators
-	bool operator!=(const model_allocator<T> other) {return true;} 
+	bool operator!=(const shared_allocator<T> other) {return true;} 
 
 	// Allocate memory for n objects of type T 
     pointer allocate(size_t n) {

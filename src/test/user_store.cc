@@ -9,7 +9,7 @@ int main() {
         cxlmc_store8(addr , i, NULL);
 		if (i%2==0)
 			cxlmc_clflush(addr);
-        printf("iter %d, loaded %d\n", i, cxlmc_load8(addr));
+        printf("iter %d, loaded %d\n", i, cxlmc_load8(addr, NULL));
     }
     cxlmc_mfence(cxl);
     return 0;

@@ -1,9 +1,7 @@
 #ifndef _SHARED_ADT_H
 #define _SHARED_ADT_H
 
-#include <unordered_map>
-#include <unordered_set>
-#include <map>
+#include <vector>
 #include "allocators.h"
 #include "vector.h"
 #include "list.h"
@@ -13,7 +11,8 @@
 
 namespace shared { 
     template <typename T>
-    using vector = Vector<T, &shared_space>;
+    //using vector = Vector<T, &shared_space>;
+    using vector = std::vector<T, shared_allocator<T>>;
     template <typename T>
     using list = List<T, &shared_space>;
 	template<typename K, typename T>
@@ -28,7 +27,7 @@ namespace shared {
 		
 		_T1 p1;
 		_T2 p2;
-		MODELALLOC;
+		SHAREDALLOC;
 	};
 }
 #endif

@@ -25,7 +25,7 @@ public:
     int get_recursive_lock_count() { return recursive_lock_count; }
     void decrement_lock_count() { recursive_lock_count--; }
 
-    MODELALLOC
+    SHAREDALLOC
 };
 
 #endif

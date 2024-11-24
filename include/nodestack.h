@@ -25,7 +25,7 @@ public:
 	int get_read_from_size() const;
 	// void print() const;
 
-	MODELALLOC
+	SHAREDALLOC
 private:
 
 	/**
@@ -63,7 +63,7 @@ public:
 	Node * create_node(uint numchoices);
 	Node * explore_next(uint numchoises);
 
-	MODELALLOC
+	SHAREDALLOC
 private:
 	node_list_t node_list;
 	Node * last_backtrack;
