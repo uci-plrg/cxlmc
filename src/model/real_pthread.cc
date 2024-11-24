@@ -45,6 +45,12 @@ void real_pthread_exit (void * value_ptr) {
 	pthread_exit_p(value_ptr);
 }
 
+static int (*sched_yield_p) () = NULL;
+
+int real_sched_yield() {
+	return sched_yield_p();
+}
+
 void real_init_all() {
 	char * error;
 	// if (!real_epoll_wait_p) {
@@ -93,6 +99,14 @@ void real_init_all() {
 
 	if (!pthread_exit_p) {
 		*((void (**)(void *)) &pthread_exit_p) = (void (*)(void *))dlsym(RTLD_NEXT, "pthread_exit");
+		if ((error = dlerror()) != NULL) {
+			fputs(error, stderr);
+			exit(EXIT_FAILURE);
+		}
+	}
+
+	if (!sched_yield_p) {
+		sched_yield_p = (int (*)())dlsym(RTLD_NEXT, "sched_yield");
 		if ((error = dlerror()) != NULL) {
 			fputs(error, stderr);
 			exit(EXIT_FAILURE);

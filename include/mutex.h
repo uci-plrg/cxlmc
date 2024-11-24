@@ -22,7 +22,8 @@ public:
     int get_mutex_type() { return mutex_type; }
     
     void increment_lock_count() { recursive_lock_count++; }
-    bool decrement_lock_count() { return --recursive_lock_count <= 0; }
+    int get_recursive_lock_count() { return recursive_lock_count; }
+    void decrement_lock_count() { recursive_lock_count--; }
 
     MODELALLOC
 };

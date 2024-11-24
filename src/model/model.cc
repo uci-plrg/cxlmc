@@ -64,7 +64,7 @@ process_id_t Model::get_process_id(ModelAction *action) {
 
 void Model::do_read(rfEntry &e) {
 	for (auto &pair: e.crashes)
-		crashes.insert(pair);
+		crashes.emplace(pair.first, pair.second);
 
 	obj_to_cl[e.cl.getId()] = e.cl;
 }
@@ -235,7 +235,7 @@ void Model::print_execution_summary() {
         
 		printf("placeholder data: \n");
         for (auto &s: placeholder_data)
-            printf("%s, ", s.c_str());
+            printf("%s, ", s);
         printf("\n");
 }
 
@@ -270,7 +270,7 @@ bool Model::wait_for_next_execution(int num) {
     }
 
     while (execution_num.load() < num) {
-        sleep(0);
+        real_sched_yield();
     }
 
     return rollback_again;
@@ -279,10 +279,12 @@ bool Model::wait_for_next_execution(int num) {
 void Model::reset_execution_data() {
 		memset(cxl_mapping, 0, CXL_MEM_SIZE);
 		next_sequence_num = 0;
-		for (auto itr: obj_to_wr)
+		for (auto& itr: obj_to_wr)
 			for (auto s: itr.second)
 				delete s;
         obj_to_wr.clear();
+		for (char *str: placeholder_data)
+			mspace_free(shared_space, str);
         placeholder_data.clear();
 		obj_to_cl.clear();
 		crashes.clear();

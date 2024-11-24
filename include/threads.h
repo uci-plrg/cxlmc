@@ -76,6 +76,7 @@ int real_pthread_mutex_unlock (pthread_mutex_t *__mutex);
 int real_pthread_create (pthread_t *__restrict __newthread, const pthread_attr_t *__restrict __attr, void *(*__start_routine)(void *), void *__restrict __arg);
 int real_pthread_join (pthread_t __th, void ** __thread_return);
 void real_pthread_exit (void * value_ptr) __attribute__((noreturn));
+int real_sched_yield();
 void real_init_all();
 
 #endif

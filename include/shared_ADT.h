@@ -1,26 +1,25 @@
 #ifndef _SHARED_ADT_H
 #define _SHARED_ADT_H
 
-#include <list>
-#include <string>
-#include <vector>
 #include <unordered_map>
 #include <unordered_set>
 #include <map>
 #include "allocators.h"
+#include "vector.h"
+#include "list.h"
+#include "hash_table.h"
 
-namespace shared {
-    using string = std::basic_string<char, std::char_traits<char>, model_allocator<char>>;   
+
+
+namespace shared { 
     template <typename T>
-    using vector = std::vector<T, model_allocator<T>>;
+    using vector = Vector<T, &shared_space>;
     template <typename T>
-    using list = std::list<T, model_allocator<T>>;
+    using list = List<T, &shared_space>;
 	template<typename K, typename T>
-	using hashmap = std::unordered_map<K, T, std::hash<K>, std::equal_to<K>, model_allocator<std::pair<const K, T>>>;
-	template<typename K>
-	using hashset = std::unordered_set<K, std::hash<K>, std::equal_to<K>, model_allocator<K>>;
-	template<typename K, typename T>
-	using map = std::map<K, T, std::less<K>, model_allocator<std::pair<const K, T>>>;
+	using hashmap = HashTable<K, T, &shared_space>;
+	template<typename T>
+	using hashset = HashSet<T, &shared_space>;
 
 	template<typename _T1, typename _T2>
 	class Pair {
