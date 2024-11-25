@@ -25,8 +25,13 @@ typedef enum action_type {
 	NONATOMIC_STORE,  // < A nonatomic store
 	NONATOMIC_LOAD,	  // < A nonatomic load
 
-	ATOMIC_STORE,   // < Anatomic store
-	ATOMIC_LOAD,	// < Anatomic load
+	ATOMIC_INIT,	// < Initialization of an atomic object (e.g., atomic_init())
+	ATOMIC_STORE,	// < An atomic store action
+	ATOMIC_LOAD,	// < An atomic read action
+	ATOMIC_RMWR,	// Read part of an atomic RMW action
+	ATOMIC_CAS_FAILED,
+	ATOMIC_RMW,	// < The write part of an atomic RMW action
+
 	ATOMIC_LOCK,	// < A lock action
 	ATOMIC_TRYLOCK,	// < A trylock action
 	ATOMIC_UNLOCK,	// < An unlock action
