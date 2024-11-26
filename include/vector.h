@@ -10,6 +10,7 @@
 
 template<typename type, void** msp>
 class Vector {
+
 public:
 	Vector() :
 		_size(0),
@@ -27,14 +28,16 @@ public:
 		_size(size),
 		capacity(size),
 		array((type *)mspace_calloc(*msp, capacity, sizeof(type))) {
-		memcpy(array, _array, _size * sizeof(type));
+		for (uint i=0; i<_size; i++)
+			array[i] = _array[i];
 	}
 
 	Vector(const Vector& vec) :
 		_size(vec._size),
 		capacity(vec.capacity),
 		array((type *)mspace_calloc(*msp, vec.capacity, sizeof(type))) {
-		memcpy(array, vec.array, _size * sizeof(type));
+		for (uint i=0; i<_size; i++)
+			array[i] = vec.array[i];
 	}
 
 	Vector& operator=(const Vector& vec) {
@@ -42,7 +45,8 @@ public:
 		_size = vec._size;
 		capacity = vec.capacity;
 		array = (type *)mspace_calloc(*msp, vec.capacity, sizeof(type));
-		memcpy(array, vec.array, _size * sizeof(type));
+		for (uint i=0; i<_size; i++)
+			array[i] = vec.array[i];
 		return *this;
 	}
 
@@ -60,7 +64,6 @@ public:
 			return;
 		} else if (psize > capacity) {
 			array = (type *)mspace_realloc(*msp, array, (psize << 1) * sizeof(type));
-			memset(array, 0, (psize << 1) * sizeof(type));
 			capacity = psize << 1;
 		}
 		bzero(&array[_size], (psize - _size) * sizeof(type));
@@ -71,7 +74,6 @@ public:
 		if (_size >= capacity) {
 			uint newcap = capacity << 1;
 			array = (type *)mspace_realloc(*msp, array, newcap * sizeof(type));
-			memset(array, 0, newcap * sizeof(type));
 			capacity = newcap;
 		}
 		array[_size++] = item;
@@ -123,13 +125,13 @@ public:
 	}
 
 	~Vector() {
-		clear();
+		for (uint i=0; i<_size; i++) {
+			array[i].~type();
+		}
 		mspace_free(*msp, array);
 	}
 
 	void clear() {
-		for (auto &item: *this)
-			item.~type();
 		_size = 0;
 	}
 

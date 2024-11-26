@@ -3,7 +3,7 @@
 
 #include "allocators.h"
 #include "shared_ADT.h"
-
+#include <vector>
 /**
  * @brief A single node in a NodeStack
  *

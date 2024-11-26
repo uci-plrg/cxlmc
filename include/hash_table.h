@@ -274,7 +274,7 @@ public:
 		mspace_free(*msp, old_table);
 	}
 
-	size_t size() {
+	size_t size() const {
 		return _size;
 	} 
 

@@ -109,7 +109,7 @@ public:
 
 	void dump() {
 		for (const auto &pair: _store) {
-			if (pair.second.empty())
+			if (pair.second.size() == 0)
 				continue;
 			if (pair.first == UINT_MAX)
 				printf("current: {");
