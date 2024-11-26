@@ -142,13 +142,15 @@ void execute(ModelAction* action) {
         break;
     }
 	case ATOMIC_STORE: 
-    case NONATOMIC_STORE: {
+    case NONATOMIC_STORE:
+    case ATOMIC_RMW: {
 		ModelAction *storeAction = new ModelAction(*action); //old copy will be deleted
 		get_thread(storeAction)->get_thread_memory()->add_to_store_buffer(storeAction); 
 		break;
     }
 	case ATOMIC_LOAD:
-	case NONATOMIC_LOAD: {
+	case NONATOMIC_LOAD:
+    case ATOMIC_RMWR: {
 		shared::vector<rfEntry> rfset;
 		model->build_may_read_from(action, rfset);
 
@@ -181,6 +183,9 @@ void execute(ModelAction* action) {
         memory->empty_flush_buffer(); 
 		break;
 	}
+    case ATOMIC_CAS_FAILED: {
+        break;
+    }
 	default:
 		assert(false && "not implemented");
     }

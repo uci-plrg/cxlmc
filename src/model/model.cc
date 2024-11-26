@@ -25,7 +25,8 @@ uint64_t Model::action(ModelAction* action) {
 
     Thread* curr_thread = scheduler->current_thread();
     curr_thread->set_pending(action);
-    scheduler->yield();
+	if (!action->is_second_part_of_rmw())
+	    scheduler->yield();
     execute(action);
     curr_thread->set_pending(nullptr);
 
