@@ -1,24 +1,8 @@
 #ifndef _HASH_TABLE_H
 #define _HASH_TABLE_H
 
+#include "allocators.h"
 #include "mspace_malloc.h"
-
-#define TEMPLATEALLOC \
-	void * operator new(size_t size) { \
-				return mspace_malloc(*msp, size); \
-			} \
-	void operator delete(void *p, size_t size) { \
-				mspace_free(*msp, p); \
-			} \
-	void * operator new[](size_t size) { \
-				return mspace_malloc(*msp, size); \
-			} \
-	void operator delete[](void *p, size_t size) { \
-				mspace_free(*msp, p); \
-			} \
-	void * operator new(size_t size, void *p) {	/* placement new */ \
-				return p; \
-			}
 
 template<typename _Key>
 inline size_t default_hash_function(_Key hash) {

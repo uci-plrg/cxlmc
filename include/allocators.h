@@ -8,6 +8,23 @@
 extern mspace shared_space;
 extern mspace snapshot_space;
 
+#define TEMPLATEALLOC \
+	void * operator new(size_t size) { \
+				return mspace_malloc(*msp, size); \
+			} \
+	void operator delete(void *p, size_t size) { \
+				mspace_free(*msp, p); \
+			} \
+	void * operator new[](size_t size) { \
+				return mspace_malloc(*msp, size); \
+			} \
+	void operator delete[](void *p, size_t size) { \
+				mspace_free(*msp, p); \
+			} \
+	void * operator new(size_t size, void *p) {	/* placement new */ \
+				return p; \
+			}
+
 #define SHAREDALLOC \
 	void * operator new(size_t size) { \
 				return mspace_malloc(shared_space, size); \

@@ -1,24 +1,8 @@
 #ifndef _LIST_H
 #define _LIST_H
 
+#include "allocators.h"
 #include "mspace_malloc.h"
-
-#define TEMPLATEALLOC \
-	void * operator new(size_t size) { \
-				return mspace_malloc(*msp, size); \
-			} \
-	void operator delete(void *p, size_t size) { \
-				mspace_free(*msp, p); \
-			} \
-	void * operator new[](size_t size) { \
-				return mspace_malloc(*msp, size); \
-			} \
-	void operator delete[](void *p, size_t size) { \
-				mspace_free(*msp, p); \
-			} \
-	void * operator new(size_t size, void *p) {	/* placement new */ \
-				return p; \
-			}
 
 template<typename _Tp, void** msp>
 class List;

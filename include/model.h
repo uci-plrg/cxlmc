@@ -27,7 +27,7 @@ private:
 	modelclock_t next_sequence_num;
     shared::vector<char*> placeholder_data;
 	shared::hashmap<void *, storeList> obj_to_wr;
-	shared::hashmap<uintptr_t, CacheLine> obj_to_cl;
+	CacheLineStore obj_to_cl;
 	//stores the last model clock after which the process crashed
 	shared::hashmap<process_id_t, modelclock_t> crashes;
     shared::hashmap<pthread_mutex_t*, Mutex*> mutex_map;
@@ -43,11 +43,7 @@ private:
 
 	process_id_t get_process_id(ModelAction *action);
 	
-	CacheLine &get_cacheline(void *addr);
-
 	storeList &get_storelist(void *addr);
-
-	void set_cacheline_begin(const storeList &stores, storeList::reverse_iterator itr, Range *r, modelclock_t new_begin, CacheLine &cl, const shared::hashmap<process_id_t, modelclock_t> &curr_crashes);
 
 	void read_crashed_set_cacheline_end(const storeList &stores, storeList::reverse_iterator itr, Range &r);
 

@@ -2,40 +2,31 @@
 #define _VECTOR_H
 
 #include <string.h>
+#include "allocators.h"
 #include "mspace_malloc.h"
 
-#define TEMPLATEALLOC \
-	void * operator new(size_t size) { \
-				return mspace_malloc(*msp, size); \
-			} \
-	void operator delete(void *p, size_t size) { \
-				mspace_free(*msp, p); \
-			} \
-	void * operator new[](size_t size) { \
-				return mspace_malloc(*msp, size); \
-			} \
-	void operator delete[](void *p, size_t size) { \
-				mspace_free(*msp, p); \
-			} \
-	void * operator new(size_t size, void *p) {	/* placement new */ \
-				return p; \
-			}
 
 #define VECTOR_DEFCAP 8
 
 template<typename type, void** msp>
 class Vector {
 public:
-	Vector(uint _capacity = VECTOR_DEFCAP) :
+	Vector() :
 		_size(0),
-		capacity(_capacity),
-		array((type *)mspace_calloc(*msp, _capacity, sizeof(type))) {
+		capacity(VECTOR_DEFCAP),
+		array((type *)mspace_calloc(*msp, capacity, sizeof(type))) {
 	}
 
-	Vector(uint _capacity, type *_array)  :
-		_size(_capacity),
-		capacity(_capacity),
-		array((type *)mspace_calloc(*msp, _capacity, sizeof(type))) {
+	Vector(uint size) :
+		_size(size),
+		capacity(size),
+		array((type *)mspace_calloc(*msp, capacity, sizeof(type))) {
+	}
+
+	Vector(uint size, type *_array)  :
+		_size(size),
+		capacity(size),
+		array((type *)mspace_calloc(*msp, capacity, sizeof(type))) {
 		memcpy(array, _array, _size * sizeof(type));
 	}
 
@@ -69,6 +60,7 @@ public:
 			return;
 		} else if (psize > capacity) {
 			array = (type *)mspace_realloc(*msp, array, (psize << 1) * sizeof(type));
+			memset(array, 0, (psize << 1) * sizeof(type));
 			capacity = psize << 1;
 		}
 		bzero(&array[_size], (psize - _size) * sizeof(type));
@@ -79,6 +71,7 @@ public:
 		if (_size >= capacity) {
 			uint newcap = capacity << 1;
 			array = (type *)mspace_realloc(*msp, array, newcap * sizeof(type));
+			memset(array, 0, newcap * sizeof(type));
 			capacity = newcap;
 		}
 		array[_size++] = item;
@@ -130,21 +123,24 @@ public:
 	}
 
 	~Vector() {
+		clear();
 		mspace_free(*msp, array);
 	}
 
 	void clear() {
+		for (auto &item: *this)
+			item.~type();
 		_size = 0;
 	}
 
-	type *begin() {
+	type *begin() const {
 		return array;
 	}
 
-	type *end() {
+	type *end() const {
 		return array + _size;
 	}
-	
+
 	TEMPLATEALLOC
 private:
 	uint _size;
