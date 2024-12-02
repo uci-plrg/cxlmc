@@ -1,18 +1,14 @@
 #ifndef _SHARED_ADT_H
 #define _SHARED_ADT_H
 
-#include <vector>
 #include "allocators.h"
 #include "vector.h"
 #include "list.h"
 #include "hash_table.h"
 
-
-
 namespace shared { 
     template <typename T>
-    //using vector = Vector<T, &shared_space>;
-    using vector = std::vector<T, shared_allocator<T>>;
+    using vector = Vector<T, &shared_space>;
     template <typename T>
     using list = List<T, &shared_space>;
 	template<typename K, typename T>
@@ -23,10 +19,10 @@ namespace shared {
 	template<typename _T1, typename _T2>
 	class Pair {
 	public:
-		Pair(_T1 mp1, _T2 mp2) : p1(mp1), p2(mp2) {}
+		Pair(_T1 mp1, _T2 mp2) : first(mp1), second(mp2) {}
 		
-		_T1 p1;
-		_T2 p2;
+		_T1 first;
+		_T2 second;
 		SHAREDALLOC;
 	};
 }

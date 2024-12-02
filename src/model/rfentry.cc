@@ -1,11 +1,11 @@
 #include "rfentry.h"
 
 void rfEntry::dump() {
-	printf("cacheline: [");
-	for (auto &pair: cl.get_range_map())
-		printf("(%d, %d), ", pair.second.getBegin(), pair.second.getEnd()); 
-	printf("], "); 
-	//processes crashes due to the read can be inferred from crashed cachelines
+	printf("constraints: {");
+	cl_store.dump(addr);	
+	printf("}, "); 
+
+	//processes crashes due to the read can be inferred from cls
 	printf("crashed processes {");
 	for (auto &pair: crashes) {
 		printf("p%d at %d, ", pair.first, pair.second);

@@ -8,12 +8,15 @@
 
 struct rfEntry {
 	shared::vector<ModelAction *> overlaps;
-	CacheLine cl;
+	CacheLineStore cl_store;
+	uintptr_t addr;
 	shared::hashmap<process_id_t, modelclock_t> crashes;
 	uint numslotsleft;
 
 	rfEntry (const rfEntry &other) = default;
-	rfEntry (const CacheLine &c, const shared::hashmap<process_id_t, modelclock_t> &cr, uint n): overlaps(n), cl(c), crashes(cr), numslotsleft(n) {}
+	rfEntry (uintptr_t a, const CacheLineStore &cls, const shared::hashmap<process_id_t, modelclock_t> &cr, uint n): overlaps(n), addr(a), crashes(cr), numslotsleft(n) {
+		cl_store.copy_at(cls, addr);
+	}
 
 	void dump();
 	uint64_t get_read_value(void *read_location);

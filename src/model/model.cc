@@ -67,12 +67,7 @@ void Model::do_read(rfEntry &e) {
 	for (auto &pair: e.crashes)
 		crashes.emplace(pair.first, pair.second);
 
-	obj_to_cl[e.cl.getId()] = e.cl;
-}
-
-CacheLine &Model::get_cacheline(void *addr)  { 
-	uintptr_t id = getCacheID(addr);
-	return obj_to_cl.try_emplace(id, id).first->second;
+	obj_to_cl.copy_at(e.cl_store, e.addr);
 }
 
 Model::storeList &Model::get_storelist(void *addr)  { 
@@ -91,18 +86,16 @@ void Model::evict_clflush(ModelAction* action) {
     insert_crash();
 	modelclock_t seq_num = get_next_sequence_num();
 	action->set_seq_num(seq_num);
-	void *addr = action->get_location();
-	CacheLine &cl = get_cacheline(addr);
-	storeList &stores = get_storelist(addr);
-	Range *r = &cl.get_current();
-	set_cacheline_begin(stores, stores.rbegin(), r, seq_num, cl, crashes);
+	uintptr_t addr = getCacheID(action->get_location());
+	cacheline cl = obj_to_cl.get_cacheline(addr);
+	obj_to_cl.set_cacheline(addr, cl.setBegin(seq_num));
 }
 
 void Model::build_may_read_from(ModelAction *read, shared::vector<rfEntry> &rfset) {	
-	CacheLine &cl = get_cacheline(read->get_location());
+	uintptr_t addr = getCacheID(read->get_location());
 	uint numslotsleft = read->get_size();
 	//optimize: maybe only store delta to cl
-	rfEntry entry{cl, crashes, numslotsleft};
+	rfEntry entry{addr, obj_to_cl, crashes, numslotsleft};
 
 	if(scheduler->get_thread(read->get_thread_id())->get_thread_memory()->get_last_write(read, entry)) {
 		rfset.push_back(entry);
@@ -129,29 +122,30 @@ void Model::build_may_read_from(ModelAction *read, shared::vector<rfEntry> &rfse
 				rfEntry copy{w};
 				if (w.get_overlaps(store, read)) {
 					if (wpid != rpid) {
-						w.cl.get_current().setBegin(next_sequence_num);
+						cacheline cl = w.cl_store.get_cacheline(addr);
+						w.cl_store.set_cacheline(addr, cl.setBegin(next_sequence_num));
 				
-						//consider crashing the writing process
+						//consider crashing the writing process before the read
 						if (!scheduler->get_thread(store->get_thread_id())->is_completed() && copy.crashes.size() < MAX_CRASHES_PER_EXECUTION) {
 							copy.crashes.emplace(wpid, next_sequence_num);
+							copy.cl_store.insert_crash(next_sequence_num);
 							seedWrites.push_back(copy);
 						}
 					}
 				}
 			} else { //crashed processes
 				modelclock_t crash_clock = citr->second;
-				Range *r = &w.cl.get_before(crash_clock);
-
-				if (store->get_seq_num() <= r->getBegin()) { //must have persisted
+				cacheline cl = w.cl_store.get_cacheline(addr, crash_clock);
+				if (store->get_seq_num() <= cl.getBegin()) { //must have persisted
 					if (w.get_overlaps(store, read)) {
-						set_cacheline_begin(stores, itr, r, store->get_seq_num(), w.cl, w.crashes);
-						read_crashed_set_cacheline_end(stores, itr, *r);
+						auto new_cl = w.cl_store.set_cacheline(addr, cl.setBegin(store->get_seq_num()));
+						read_crashed_set_cacheline_end(stores, itr, new_cl);
 					}
-				} else if (r->getEnd() == 0 || store->get_seq_num() <= r->getEnd()) { //may have persisted
+				} else if (cl.getEnd() == 0 || store->get_seq_num() <= cl.getEnd()) { //may have persisted
 					rfEntry copy(w);
 					if (copy.get_overlaps(store, read)) {
-						set_cacheline_begin(stores, itr, r, store->get_seq_num(), copy.cl, copy.crashes);
-						read_crashed_set_cacheline_end(stores, itr, *r);
+						auto new_cl = copy.cl_store.set_cacheline(addr, cl.setBegin(store->get_seq_num()));
+						read_crashed_set_cacheline_end(stores, itr, new_cl);
 						seedWrites.push_back(copy);
 					}
 				}
@@ -173,22 +167,7 @@ void Model::build_may_read_from(ModelAction *read, shared::vector<rfEntry> &rfse
 }
 
 //inline?
-void Model::set_cacheline_begin(const storeList &stores, storeList::reverse_iterator itr, Range *r, modelclock_t new_begin, CacheLine &cl, const shared::hashmap<process_id_t, modelclock_t> &curr_crashes) {
-	for (; itr != stores.rend(); itr++)  {
-		if ((*itr)->get_seq_num() <= r->getBegin())
-			break;
-			
-		auto citr = curr_crashes.find(get_process_id(*itr));
-		if (citr != curr_crashes.end()) {
-			r= &cl.insert_range(citr->second, *r);
-			break;
-		}
-	}
-	r->setBegin(new_begin);
-}
-
-//inline?
-void Model::read_crashed_set_cacheline_end(const storeList &stores, storeList::reverse_iterator itr, Range &r) {
+void Model::read_crashed_set_cacheline_end(const storeList &stores, storeList::reverse_iterator itr, cacheline &cl) {
 	ModelAction *write = *itr;
 	auto fitr = itr.base();
 	uintptr_t wbot = (uintptr_t) write->get_location();
@@ -203,8 +182,8 @@ void Model::read_crashed_set_cacheline_end(const storeList &stores, storeList::r
 
 	if (fitr != stores.end()) {
 		modelclock_t next_write_seq = (*fitr)->get_seq_num();
-		if (r.getEnd() == 0 || r.getEnd() >= next_write_seq)
-			r.setEnd(next_write_seq);
+		if (cl.getEnd() == 0 || cl.getEnd() >= next_write_seq)
+			cl.setEnd(next_write_seq);
 	}
 }
 
@@ -212,7 +191,7 @@ void Model::print_execution_summary() {
 		printf("\nExecution Summary\n");
         printf("stores: \n");
         for (auto &itr: obj_to_wr) {
-			printf("aligned loc %p [", itr.first);
+			printf("cacheline %p [", itr.first);
 			for (auto s: itr.second) {
 				int offset = (char *) s->get_location() - (char *) itr.first;
 				printf("(+%d: val=%ld, seq=%u), ", offset, s->get_value(), s->get_seq_num());
@@ -221,13 +200,9 @@ void Model::print_execution_summary() {
 		}
         printf("\n");
 
-        printf("cachelines: \n");
-		for (auto &pair: obj_to_cl) {
-			printf("%p: {", (void *)pair.first);
-			for (auto &cpair: pair.second.get_range_map())
-				printf("(%d, %d), ", cpair.second.getBegin(), cpair.second.getEnd()); 
-			printf("}\n\n");
-		}	
+        printf("constraints: \n");
+		obj_to_cl.dump();	
+        printf("\n");
 
 		printf("crashed processes: \n");
 		for (auto &pair: crashes)
@@ -304,6 +279,7 @@ void Model::insert_crash() {
     }
 	
 	crashes[process_id] = next_sequence_num;
+	obj_to_cl.insert_crash(next_sequence_num);
 	scheduler->process_crash();
 	exit(EXIT_SUCCESS);
 }
