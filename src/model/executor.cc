@@ -165,7 +165,7 @@ void execute(ModelAction* action) {
 		shared::vector<rfEntry> rfset;
 		model->build_may_read_from(action, rfset);
 
-		printf("rfset %p: {\n", action->get_location());
+		printf("thread %u rfset %p: {\n", action->get_thread_id(), action->get_location());
 		for (auto &entry: rfset) {
 			printf("\t");
 			entry.dump();

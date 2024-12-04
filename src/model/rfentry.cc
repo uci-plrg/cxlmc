@@ -17,7 +17,7 @@ void rfEntry::dump() {
 		auto write = overlaps[i];
 		if (!write)
 			continue;
-		printf("(+%u, val=%ld, seq=%u), ", i<<3, write->get_value(), write->get_seq_num());
+		printf("(+%u, val=%ld, seq=%u, tid=%u), ", i<<3, write->get_value(), write->get_seq_num(), write->get_thread_id());
 	}
 	printf("]\n");
 }
