@@ -56,6 +56,18 @@ VOLATILESTORE(16)
 VOLATILESTORE(32)
 VOLATILESTORE(64)
 
+#define CXLMCATOMICINT(size)                                              \
+	void cxlmc_atomic_init ## size (void* loc, uint ## size ## _t val, const char * position) { \
+		ModelAction *action = new ModelAction(ATOMIC_INIT, loc, val, memory_order_relaxed, size>>3, position); \
+		model->action(action); \
+		*((uint ## size ## _t *)loc) = val; \
+    }
+
+CXLMCATOMICINT(8)
+CXLMCATOMICINT(16)
+CXLMCATOMICINT(32)
+CXLMCATOMICINT(64)
+
 #define ATOMICLOAD(size) \
 	uint ## size ## _t cxlmc_atomic_load ## size (void* loc, int atomic_index, const char *position) { \
 		return (uint ## size ##_t) model->action(new ModelAction(ATOMIC_LOAD, loc, VALUE_NONE, orders[atomic_index], size >> 3, position)); \

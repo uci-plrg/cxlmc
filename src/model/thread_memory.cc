@@ -4,7 +4,10 @@
 #include "model.h"
 
 void ThreadMemory::add_to_store_buffer(ModelAction *action) {
-	assert(action->get_type() == NONATOMIC_STORE
+	assert(action->get_type() == ATOMIC_INIT
+        || action->get_type() == ATOMIC_STORE
+        || action->get_type() == NONATOMIC_STORE
+        || action->get_type() == ATOMIC_RMW
         || action->get_type() == CACHE_SFENCE
         || action->get_type() == CACHE_CLFLUSH
         || action->get_type() == CACHE_CLFLUSHOPT);
@@ -33,7 +36,10 @@ bool ThreadMemory::pop_from_store_buffer() {
     storeBuffer.pop_front();
 
     switch (action->get_type()) {
-	case NONATOMIC_STORE: {
+	case ATOMIC_INIT:
+	case ATOMIC_STORE: 
+    case NONATOMIC_STORE:
+    case ATOMIC_RMW: {
 		model->evict_store(action);
 		break;
 	}

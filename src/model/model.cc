@@ -27,6 +27,8 @@ uint64_t Model::action(ModelAction* action) {
     curr_thread->set_pending(action);
 	if (!action->is_second_part_of_rmw())
 	    scheduler->yield();
+	if (action->is_read() || action->is_write())
+		ensureInitialValue(action);
     execute(action);
     curr_thread->set_pending(nullptr);
 
@@ -76,7 +78,10 @@ Model::storeList &Model::get_storelist(void *addr)  {
 }
 
 void Model::evict_store(ModelAction* action) {
-    assert(action->get_type() == NONATOMIC_STORE);
+    assert(action->get_type() == ATOMIC_INIT
+		|| action->get_type() == NONATOMIC_STORE
+		|| action->get_type() == ATOMIC_STORE
+		|| action->get_type() == ATOMIC_RMW);
 	action->set_seq_num(get_next_sequence_num());
     get_storelist(action->get_location()).push_back(action);
 }
@@ -282,4 +287,12 @@ void Model::insert_crash() {
 	obj_to_cl.insert_crash(next_sequence_num);
 	scheduler->process_crash();
 	exit(EXIT_SUCCESS);
+}
+
+void Model::ensureInitialValue(ModelAction *action) {
+    void* addr = alignAddress(action->get_location());
+    Model::storeList& list = get_storelist(addr);
+    if (list.size() == 0) {
+		list.push_back(new ModelAction(ATOMIC_INIT, addr, *(uint64_t*)addr, memory_order_relaxed, 8, "ensureInitialValue"));
+	}
 }

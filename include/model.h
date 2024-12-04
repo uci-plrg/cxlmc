@@ -53,6 +53,8 @@ private:
 
     void record_crash_state(process_id_t);
 
+	void ensureInitialValue(ModelAction *action);
+
 public:
     Model(Scheduler *s, void* cxl): scheduler(s), execution_num(1), cxl_mapping(cxl), next_sequence_num(0), nodestack(new NodeStack), rollback_again(true) {}
     ~Model() { delete nodestack; }

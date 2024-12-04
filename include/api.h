@@ -32,6 +32,11 @@ void cxlmc_volatile_store16(void* loc, uint16_t val, const char *position);
 void cxlmc_volatile_store32(void* loc, uint32_t val, const char *position);
 void cxlmc_volatile_store64(void* loc, uint64_t val, const char *position);
 
+void cxlmc_atomic_init8(void * obj, uint8_t val, const char * position);
+void cxlmc_atomic_init16(void * obj, uint16_t val, const char * position);
+void cxlmc_atomic_init32(void * obj, uint32_t val, const char * position);
+void cxlmc_atomic_init64(void * obj, uint64_t val, const char * position);
+
 uint8_t cxlmc_atomic_load8(void* loc, int atomic_index, const char *position);
 uint16_t cxlmc_atomic_load16(void* loc, int atomic_index, const char *position);
 uint32_t cxlmc_atomic_load32(void* loc, int atomic_index, const char *position);

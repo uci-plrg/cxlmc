@@ -33,9 +33,9 @@ struct rfEntry {
 		if ((wbot >= rtop) || (rbot >= wtop))
 			return ret;
 	
-		uintptr_t offset = wbot - rbot;
+		uintptr_t offset = rbot - wbot;
 		//the ith byte of read will be the (i - offset)th byte of write
-		for(uint i = offset ;i < offset + wsize && i < rsize; i++) {
+		for(uint i = 0 ; i < wsize && i < offset + rsize; i++) {
 			if (overlaps[i] == NULL) {
 				overlaps[i] = write;
 				numslotsleft--;

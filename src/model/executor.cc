@@ -141,16 +141,27 @@ void execute(ModelAction* action) {
         model->get_scheduler()->wake_all_threads_waiting_on(cv);
         break;
     }
+    case ATOMIC_INIT:
 	case ATOMIC_STORE: 
     case NONATOMIC_STORE:
     case ATOMIC_RMW: {
 		ModelAction *storeAction = new ModelAction(*action); //old copy will be deleted
-		get_thread(storeAction)->get_thread_memory()->add_to_store_buffer(storeAction); 
+		get_thread(storeAction)->get_thread_memory()->add_to_store_buffer(storeAction);
+        if (action->get_type() == ATOMIC_RMW || action->is_seq_cst()) {
+            ThreadMemory* memory = get_thread(action)->get_thread_memory();
+            memory->empty_store_buffer();
+            memory->empty_flush_buffer();
+        }
 		break;
     }
-	case ATOMIC_LOAD:
-	case NONATOMIC_LOAD:
     case ATOMIC_RMWR: {
+		ThreadMemory* memory = get_thread(action)->get_thread_memory();
+        memory->empty_store_buffer();
+        memory->empty_flush_buffer();
+        [[fallthrough]];
+    }
+	case ATOMIC_LOAD:
+	case NONATOMIC_LOAD: {
 		shared::vector<rfEntry> rfset;
 		model->build_may_read_from(action, rfset);
 

@@ -18,6 +18,18 @@ const char *action_type2str(action_type_t type) {
 			return "NONACTOMIC_STORE";
 		case NONATOMIC_LOAD:
 			return "NONACTOMIC_LOAD";
+		case ATOMIC_INIT:
+			return "ATOMIC_INIT";
+		case ATOMIC_STORE:
+			return "ATOMIC_STORE";
+		case ATOMIC_LOAD:
+			return "ATOMIC_LOAD";
+		case ATOMIC_RMWR:
+			return "ATOMIC_RMWR";
+		case ATOMIC_CAS_FAILED:
+			return "ATOMIC_CAS_FAILED";
+		case ATOMIC_RMW:
+			return "ATOMIC_RMW";
 		case ATOMIC_LOCK:
 			return "ATOMIC_LOCK";
 		case ATOMIC_TRYLOCK:

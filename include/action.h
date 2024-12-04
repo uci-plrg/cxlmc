@@ -79,6 +79,8 @@ public:
 	void set_last_clflush(modelclock_t lc) { last_clflush = lc; }
 	bool is_seq_cst() { return order == memory_order_seq_cst; }
 	bool is_second_part_of_rmw() { return type == ATOMIC_RMW || type == ATOMIC_CAS_FAILED; }
+	bool is_read() { return type == ATOMIC_LOAD || type == NONATOMIC_LOAD || type == ATOMIC_RMWR || type == ATOMIC_RMW; }
+	bool is_write() { return type == ATOMIC_STORE || type == ATOMIC_RMW || type == ATOMIC_INIT || type == NONATOMIC_STORE; }
 
 	Thread* get_thread();
 	Mutex* get_mutex();
