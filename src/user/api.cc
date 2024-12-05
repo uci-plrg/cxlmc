@@ -16,7 +16,7 @@ memory_order orders[7] = {
 
 #define CXLMCLOAD(size) \
 	uint ## size ## _t cxlmc_load ## size (void* loc, const char* position) { \
-		return (uint ## size ##_t) model->action(new ModelAction(NONATOMIC_LOAD, loc, VALUE_NONE, memory_order_seq_cst, size >> 3, position)); \
+		return (uint ## size ##_t) model->action(new ModelAction(NONATOMIC_LOAD, loc, VALUE_NONE, memory_order_relaxed, size >> 3, position)); \
 	}
 
 CXLMCLOAD(8)
@@ -26,7 +26,7 @@ CXLMCLOAD(64)
 
 #define CXLMCSTORE(size) \
 	void cxlmc_store ## size (void* loc, uint ## size ## _t val, const char* position) { \
-    model->action(new ModelAction(NONATOMIC_STORE, loc, val, memory_order_seq_cst, size >> 3, position)); \
+    model->action(new ModelAction(NONATOMIC_STORE, loc, val, memory_order_relaxed, size >> 3, position)); \
 	*((uint ## size ##_t *)loc) = val; \
 }
 

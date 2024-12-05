@@ -126,7 +126,7 @@ void Model::build_may_read_from(ModelAction *read, shared::vector<rfEntry> &rfse
 			if (citr == w.crashes.end()) {
 				rfEntry copy{w};
 				if (w.get_overlaps(store, read)) {
-					if (wpid != rpid) {
+					if (store->get_type() != ATOMIC_INIT && wpid != rpid) {
 						cacheline cl = w.cl_store.get_cacheline(addr);
 						w.cl_store.set_cacheline(addr, cl.setBegin(next_sequence_num));
 				
