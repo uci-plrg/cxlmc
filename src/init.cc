@@ -5,6 +5,7 @@
 #include <sys/wait.h>
 #include <errno.h>
 #include <dlfcn.h>
+#include <cstring>
 
 #include "scheduler.h"
 #include "model.h"
@@ -61,7 +62,25 @@ int main(int argc, char* argv[]) {
 
     if (pid == 0) {
         char* cur_prog = argv[2+(id%user_progs)];
-        void* handle = dlopen(cur_prog, RTLD_LAZY);
+        char* cur_prog_cpy = (char*)malloc(sizeof(char) * (strlen(cur_prog) + 1));
+        strcpy(cur_prog_cpy, cur_prog);
+        int user_argc = 0;
+        int argv_capacity = 5;
+        char** user_argv = (char**)malloc(sizeof(char*) * argv_capacity);
+        char* token;
+        while ((token = strtok_r(cur_prog_cpy, " ", &cur_prog_cpy)) != NULL) {
+            if (user_argc == argv_capacity) {
+                argv_capacity *= 2;
+                user_argv = (char**)realloc(user_argv, sizeof(char*) * argv_capacity);
+            }
+            user_argv[user_argc++] = token;
+        }
+        if (user_argc == 0) {
+            std::cerr << "no program path" << std::endl;
+            exit(1);
+        }
+
+        void* handle = dlopen(user_argv[0], RTLD_LAZY);
         if (!handle) {
             std::cerr << dlerror() << std::endl;
             exit(1);
@@ -73,7 +92,7 @@ int main(int argc, char* argv[]) {
             exit(1);
         }
 
-        int(*user_main)() = (int(*)()) dlsym(handle, "main");
+        int(*user_main)(int, char**) = (int(*)(int, char**)) dlsym(handle, "main");
         if (!user_main) {
             std::cerr << dlerror() << std::endl;
             exit(1);
@@ -84,9 +103,9 @@ int main(int argc, char* argv[]) {
              std::cerr << dlerror() << std::endl;
              exit(1);
          }
-
+        
         user_init(id, model, shared_space);
-        user_main();
+        user_main(user_argc, user_argv);
         user_done();
     } else {
         int status;
