@@ -107,6 +107,8 @@ int main(int argc, char* argv[]) {
         user_init(id, model, shared_space);
         user_main(user_argc, user_argv);
         user_done();
+        free(user_argv);
+        free(cur_prog_cpy);
     } else {
         int status;
         while (waitpid(-1, &status, 0) != -1) {
