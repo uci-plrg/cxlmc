@@ -75,6 +75,7 @@ public:
 	uint64_t get_value() { return value; }
 	void set_value(uint64_t val) { value = val; }
 	uint get_size() { return size; }
+	const char *get_position() { return position; }
 	modelclock_t get_last_clflush() { return last_clflush; }
 	void set_last_clflush(modelclock_t lc) { last_clflush = lc; }
 	bool is_seq_cst() { return order == memory_order_seq_cst; }

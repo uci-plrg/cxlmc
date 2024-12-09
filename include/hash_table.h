@@ -19,8 +19,8 @@ template<typename _Key, typename _Val, void** msp, size_t (*_hash)(_Key)=default
 class HashTable;
 
 template<typename T1, typename T2>
-struct pair {
-	pair(T1 t1, T2 t2) : first(t1), second(t2) {}
+struct Pair {
+	Pair(T1 t1, T2 t2) : first(t1), second(t2) {}
 	T1 first;
 	T2 second;
 };
@@ -32,9 +32,9 @@ struct pair {
  * @tparam _Val    Type name for the values to be stored
  */
 template<typename _Key, typename _Val, void** msp>
-class htnode : public pair<_Key, _Val> {
+class htnode : public Pair<_Key, _Val> {
 public:
-	htnode(_Key key, _Val val) : pair<_Key, _Val>(key, val), next(NULL) {}
+	htnode(_Key key, _Val val) : Pair<_Key, _Val>(key, val), next(NULL) {}
 	TEMPLATEALLOC
 private:
 	htnode<_Key, _Val, msp> *next;
@@ -93,7 +93,7 @@ public:
 		buckets(hashtable.buckets),
 		max_factor(hashtable.max_factor),
 		threshold(hashtable.threshold) {
-		for (pair<_Key, _Val> p: hashtable) {
+		for (Pair<_Key, _Val> p: hashtable) {
 			(*this)[p.first] = p.second;
 		}
 	}
@@ -106,7 +106,7 @@ public:
 		threshold = hashtable.threshold;
 
 		table = (Node**)mspace_calloc(*msp, buckets, sizeof(Node*));
-		for (pair<_Key, _Val> p: hashtable) {
+		for (Pair<_Key, _Val> p: hashtable) {
 			this->operator[](p.first) = p.second;
 		}
 		return *this;
@@ -152,14 +152,14 @@ public:
 		abort();
 	}
 
-	pair<iterator, bool> emplace(const _Key& key, const _Val& val) {
+	Pair<iterator, bool> emplace(const _Key& key, const _Val& val) {
 		resize();
 		size_t index = _hash(key) % buckets;
 		Node* node = table[index];
 		Node* last = NULL;
 		while (node != NULL) {
 			if (_equals(node->first, key)) {
-				return pair<iterator, bool>{iterator(table, buckets, node, last, index), false};
+				return Pair<iterator, bool>{iterator(table, buckets, node, last, index), false};
 			}
 			last = node;
 			node = node->next;
@@ -171,21 +171,21 @@ public:
 			last->next = node;
 		}
 		_size++;
-		return pair<iterator, bool>{iterator(table, buckets, node, last, index), true};
+		return Pair<iterator, bool>{iterator(table, buckets, node, last, index), true};
 	}
 
-	pair<iterator, bool> try_emplace(const _Key& key, const _Val& val) {
+	Pair<iterator, bool> try_emplace(const _Key& key, const _Val& val) {
 		return emplace(key, val);
 	}
 
-	pair<iterator, bool> try_emplace(const _Key& key) {
+	Pair<iterator, bool> try_emplace(const _Key& key) {
 		resize();
 		size_t index = _hash(key) % buckets;
 		Node* node = table[index];
 		Node* last = NULL;
 		while (node != NULL) {
 			if (_equals(node->first, key)) {
-				return pair<iterator, bool>{iterator(table, buckets, node, last, index), false};
+				return Pair<iterator, bool>{iterator(table, buckets, node, last, index), false};
 			}
 			last = node;
 			node = node->next;
@@ -197,7 +197,7 @@ public:
 			last->next = node;
 		}
 		_size++;
-		return pair<iterator, bool>{iterator(table, buckets, node, last, index), true};
+		return Pair<iterator, bool>{iterator(table, buckets, node, last, index), true};
 	}
 
 	iterator find(const _Key& key) const {
@@ -327,9 +327,9 @@ public:
 		return iterator(base.end());
 	}
 
-	pair<iterator, bool> insert(const T& item) {
-		pair<BaseIterator, bool> ret = base.emplace(item, {});
-		return pair(iterator(ret.first), ret.second);
+	Pair<iterator, bool> insert(const T& item) {
+		Pair<BaseIterator, bool> ret = base.emplace(item, {});
+		return Pair(iterator(ret.first), ret.second);
 	}
 
 	iterator find(const T& item) {
