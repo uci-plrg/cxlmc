@@ -10,8 +10,6 @@
 #include "config.h"
 #include "shared_ADT.h"
 
-using namespace shared;
-
 class Range {
 public:
 	Range() : begin(0), end(0) {}
@@ -34,7 +32,7 @@ class CacheLineStore {
 	// stores a crash point A (or UINT_MAX if no crash) and a map of cacheline constraints.
 	// Let B be the crash point before A or 0 if none. the map stores constraints whose begin is in [B, A) 
 	// ordered from earliest crash point to latest
-	using store_t = vector<Pair<modelclock_t, hashmap<uintptr_t, cacheline>>>;
+	using store_t = shared::vector<shared::Pair<modelclock_t, shared::hashmap<uintptr_t, cacheline>>>;
 	store_t  _store; 
 
 	//return the first cacheline and the map index searching from ith map towards the beginning of the vector
@@ -50,7 +48,7 @@ class CacheLineStore {
 	}
 public:
 	CacheLineStore() {
-		_store.push_back(Pair{UINT_MAX, hashmap<uintptr_t, cacheline>{}}); 
+		_store.push_back(shared::Pair{UINT_MAX, shared::hashmap<uintptr_t, cacheline>{}}); 
 	}
 
 	CacheLineStore(const CacheLineStore &other) = default;
@@ -78,7 +76,7 @@ public:
 
 	void insert_crash(modelclock_t crash_point) {
 		_store[_store.size()-1].first = crash_point;
-		_store.push_back(Pair(UINT_MAX, hashmap<uintptr_t, cacheline>{}));
+		_store.push_back(shared::Pair(UINT_MAX, shared::hashmap<uintptr_t, cacheline>{}));
 	}
 
 	void copy_at(const CacheLineStore &other, uintptr_t addr) {
@@ -88,7 +86,7 @@ public:
 		unsigned i = _store.size()-1;
 		_store[i].first = other_store[i].first;
 		for (i++;i < other_store.size(); i++)
-			_store.push_back(Pair{other_store[i].first, hashmap<uintptr_t, cacheline>{}});
+			_store.push_back(shared::Pair{other_store[i].first, shared::hashmap<uintptr_t, cacheline>{}});
 
 		for (i = 0; i < other_store.size(); i++) {
 			auto &map = other_store[i].second;
@@ -104,7 +102,7 @@ public:
 
 	void clear() {
 		_store.clear();
-		_store.push_back(Pair{UINT_MAX, hashmap<uintptr_t, cacheline>{}}); 
+		_store.push_back(shared::Pair{UINT_MAX, shared::hashmap<uintptr_t, cacheline>{}}); 
 	}
 
 	void dump() {
@@ -140,7 +138,7 @@ inline uintptr_t getCacheID(const void *address) {
 	return ((uintptr_t)address) & ~(CACHELINE_SIZE - 1);
 }
 
-inline Pair<uintptr_t, uintptr_t> getCacheRange(const uintptr_t id) {
-	return Pair(id, id | (CACHELINE_SIZE -1));
+inline shared::Pair<uintptr_t, uintptr_t> getCacheRange(const uintptr_t id) {
+	return shared::Pair(id, id | (CACHELINE_SIZE -1));
 }
 #endif
