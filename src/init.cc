@@ -64,11 +64,12 @@ int main(int argc, char* argv[]) {
         char* cur_prog = argv[2+(id%user_progs)];
         char* cur_prog_cpy = (char*)malloc(sizeof(char) * (strlen(cur_prog) + 1));
         strcpy(cur_prog_cpy, cur_prog);
+        char* save_ptr = cur_prog_cpy;
         int user_argc = 0;
         int argv_capacity = 5;
         char** user_argv = (char**)malloc(sizeof(char*) * argv_capacity);
         char* token;
-        while ((token = strtok_r(cur_prog_cpy, " ", &cur_prog_cpy)) != NULL) {
+        while ((token = strtok_r(save_ptr, " ", &save_ptr)) != NULL) {
             if (user_argc == argv_capacity) {
                 argv_capacity *= 2;
                 user_argv = (char**)realloc(user_argv, sizeof(char*) * argv_capacity);
