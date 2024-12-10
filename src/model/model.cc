@@ -12,7 +12,7 @@
 #include "scheduler.h"
 #include "executor.h"
 
-Model *model;
+Model *model = nullptr;
 mspace shared_space;
 mspace snapshot_space;
 
