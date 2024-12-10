@@ -8,7 +8,7 @@ add_library(user_mixedsizeB MODULE user_mixedsizeB.cc)
 add_library(user_cond MODULE user_cond.cc)
 
 foreach (target IN ITEMS userA userB user_store user_crashA user_crashB user_mixedsizeA user_mixedsizeB user_cond)
-	target_link_libraries(${target} PUBLIC user allocators)
+	target_link_libraries(${target} PUBLIC user)
 	include_directories(${target} PUBLIC "${PROJECT_SOURCE_DIR}/include")
 	target_link_options(${target} PUBLIC "-Wl,--no-as-needed")
 endforeach()

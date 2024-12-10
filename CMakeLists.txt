@@ -20,7 +20,7 @@ add_subdirectory(src)
 
 add_executable(init src/init.cc)
 include_directories(init PUBLIC "${PROJECT_SOURCE_DIR}/include")
-target_link_libraries(init PUBLIC ${CMAKE_DL_LIBS} allocators model)
+target_link_libraries(init PUBLIC ${CMAKE_DL_LIBS} user allocators model)
 
 add_custom_target(run COMMAND $<TARGET_FILE:init> 16 $<TARGET_FILE:userA> $<TARGET_FILE:userB>)
 add_custom_target(run_store COMMAND $<TARGET_FILE:init> 16 $<TARGET_FILE:user_store>)
