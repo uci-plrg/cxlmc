@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <string>
+#include "config.h"
 
 void user_action(std::string s);
 
@@ -94,6 +95,7 @@ void cxlmc_mfence(void* loc);
 void cxlmc_clflush(void* loc);
 void cxlmc_clflushopt(void* loc);
 void* get_cxl_mapping();
+void init_cxl_space(uint offset=0, size_t size=CXL_MEM_SIZE);
 
 #if __cplusplus
 }

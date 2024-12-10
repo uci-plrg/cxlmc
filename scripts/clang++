@@ -1,0 +1,6 @@
+#/bin/bash
+LLVMDIR=/scratch/simon/CXL/llvm-project
+CC=${LLVMDIR}/build/bin/clang++
+LLVMPASS=${LLVMDIR}/build/lib/CXLMCPass.so
+CXLMCDIR=/scratch/simon/CXL/cxlmc/build
+$CC -fpass-plugin=$LLVMPASS -fpic -shared -rpath ${CXLMCDIR}/src/user/ -rpath ${CXLMCDIR}/src/allocators/ -L${CXLMCDIR}/src/user/ -L${CXLMCDIR}/src/allocators/ -luser -lallocators -Wno-unused-command-line-argument -Wno-address-of-packed-member -Wno-mismatched-tags -Wno-unused-private-field -Wno-constant-conversion -Wno-null-dereference $@

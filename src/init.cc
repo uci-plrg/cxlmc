@@ -40,7 +40,7 @@ int main(int argc, char* argv[]) {
     
     int reserved = sizeof(Scheduler) + sizeof(Model);
     //shared space needs to be initialized before scheduler and model
-    shared_space = create_mspace_with_base((char *)mapping + reserved, SHARED_MAP_SIZE - reserved, 1);
+    shared_space = create_mspace_with_base((char *)mapping + reserved, SHARED_MAP_SIZE - CXL_MEM_SIZE - reserved, 1);
 
     if (!shared_space) { 
         perror("create_mspace_with_base");

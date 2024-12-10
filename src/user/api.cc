@@ -1,5 +1,6 @@
 #include "api.h"
 #include "action.h"
+#include "cxl_allocator.h"
 #include "model.h"
 #include <cstring>
 
@@ -237,4 +238,8 @@ void cxlmc_clflushopt(void* loc) {
 
 void* get_cxl_mapping() {
 	return model->get_cxl_mapping();
+}
+
+void init_cxl_space(uint offset, size_t size) {
+	cxl_space = create_mspace_with_base((char *)model->get_cxl_mapping() + offset, size, 1);
 }

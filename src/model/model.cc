@@ -15,6 +15,7 @@
 Model *model;
 mspace shared_space;
 mspace snapshot_space;
+mspace cxl_space;
 
 uint64_t Model::action(ModelAction* action) {
     scheduler->assert_active();

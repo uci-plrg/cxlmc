@@ -1,10 +1,10 @@
-#ifndef _SHARED_MEM_H
-#define _SHARED_MEM_H
+#ifndef _ALLOCATORS_H
+#define _ALLOCATORS_H
 
 #include <memory>
 #include "mspace_malloc.h"
 
-    //shared_space needs to be defined before model allocator can be used
+    //shared_space needs to be defined before shared allocator can be used
 extern mspace shared_space;
 extern mspace snapshot_space;
 
