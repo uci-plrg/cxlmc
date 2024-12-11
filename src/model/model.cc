@@ -13,6 +13,7 @@
 #include "executor.h"
 
 Model *model = nullptr;
+bool inside_model = false;
 mspace shared_space;
 mspace snapshot_space;
 mspace cxl_space;
@@ -30,6 +31,7 @@ uint64_t Model::action(ModelAction* action) {
 	    scheduler->yield();
 	if (action->is_read() || action->is_write())
 		ensureInitialValue(action);
+	inside_model = true;
     execute(action);
     curr_thread->set_pending(nullptr);
 
@@ -37,6 +39,7 @@ uint64_t Model::action(ModelAction* action) {
     delete action; 
 
 	process_store_buffer();
+	inside_model = false;
 	return val;
 }
 
@@ -233,6 +236,7 @@ void Model::finish_execution() {
     int num = execution_num.load();
 
     if (isLast) {
+		inside_model = true;
 		print_execution_summary();
         rollback_again = rollback_again && num+1 <= MAX_EXECUTION && nodestack->has_another_execution();
         if (rollback_again) {
@@ -242,6 +246,7 @@ void Model::finish_execution() {
         }
 
         scheduler->reset();
+		inside_model = false;
         execution_num.store(num+1);
     }
 }

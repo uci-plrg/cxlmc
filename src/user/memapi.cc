@@ -8,6 +8,7 @@
 
 class Model;
 extern Model *model;
+extern bool inside_model;
 
 int FILLBYTE=0;
 void * persistentMemoryRegion;
@@ -20,7 +21,6 @@ char * (*volatile strcpy_real)(char * dst, const char *src) = NULL;
 
 const void * altRegion = NULL;
 uint64_t altSize = 0;
-bool inside_model = false;
 
 void init_memory_ops() {
 	if (!memcpy_real) {
