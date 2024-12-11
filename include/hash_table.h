@@ -1,6 +1,7 @@
 #ifndef _HASH_TABLE_H
 #define _HASH_TABLE_H
 
+#include "stdlib.h"
 #include "allocators.h"
 #include "mspace_malloc.h"
 

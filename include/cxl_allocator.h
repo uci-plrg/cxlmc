@@ -1,7 +1,7 @@
 #ifndef _CXL_ALLOCATOR_H
 #define _CXL_ALLOCATOR_H
 
-#include <memory>
+#include "assert.h"
 #include "mspace_malloc.h"
 
 //cxl space is not defined by default, to use CXL allocators, initialize through api call
@@ -67,15 +67,16 @@ public:// type definitions
         //mspace_malloc_stats(cxl_space);
         void *addr = mspace_malloc(cxl_space, n * sizeof(T));
         if (!addr) {
-            std::__throw_bad_alloc();
+            assert(false && "bad alloc");
         }
         return static_cast<pointer>(addr);
     }
 
+	template<typename... _Args>
 	// initialize elements of allocated storage p with value value
-	void construct(pointer p, const T& value) {
+	void construct(pointer p, _Args&&... args) {
 		// initialize memory with placement new
-		new((void*)p)T(value);
+		new((void*)p)T(static_cast<_Args&&>(args)...);
 	}
 
 	// destroy elements of initialized storage p

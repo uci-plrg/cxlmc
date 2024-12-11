@@ -1,7 +1,8 @@
 #ifndef _ALLOCATORS_H
 #define _ALLOCATORS_H
 
-#include <memory>
+#include "assert.h"
+#include "types.h"
 #include "mspace_malloc.h"
 
     //shared_space needs to be defined before shared allocator can be used
@@ -85,15 +86,16 @@ public:// type definitions
         //mspace_malloc_stats(shared_space);
         void *addr = mspace_malloc(shared_space, n * sizeof(T));
         if (!addr) {
-            std::__throw_bad_alloc();
+            assert(false && "bad alloc");
         }
         return static_cast<pointer>(addr);
     }
 
+	template<typename... _Args>
 	// initialize elements of allocated storage p with value value
-	void construct(pointer p, const T& value) {
+	void construct(pointer p, _Args&&... args) {
 		// initialize memory with placement new
-		new((void*)p)T(value);
+		new((void*)p)T(static_cast<_Args&&>(args)...);
 	}
 
 	// destroy elements of initialized storage p
@@ -150,15 +152,16 @@ public:// type definitions
         //mspace_malloc_stats(shared_space);
         void *addr = mspace_malloc(snapshot_space, n * sizeof(T));
         if (!addr) {
-            std::__throw_bad_alloc();
+            assert(false && "bad alloc");
         }
         return static_cast<pointer>(addr);
     }
 
+	template<typename... _Args>
 	// initialize elements of allocated storage p with value value
-	void construct(pointer p, const T& value) {
+	void construct(pointer p, _Args&&... args) {
 		// initialize memory with placement new
-		new((void*)p)T(value);
+		new((void*)p)T(static_cast<_Args&&>(args)...);
 	}
 
 	// destroy elements of initialized storage p

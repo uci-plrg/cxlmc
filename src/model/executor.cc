@@ -175,10 +175,11 @@ void execute(ModelAction* action) {
 		assert(rfset.size() != 0);
 		int index = model->decision_point(rfset.size());
 		auto chosen = rfset[index];
-		printf("choose option %d of rfset\n", index);
+		uint64_t read_value = chosen.get_read_value(action->get_location());
+		printf("choose option %d of rfset, val=%lx\n", index, read_value);
 		model->do_read(chosen);
 
-		action->set_value(chosen.get_read_value(action->get_location()));
+		action->set_value(read_value);
 		break;
 	}
     case CACHE_SFENCE:

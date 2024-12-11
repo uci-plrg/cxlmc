@@ -11,6 +11,8 @@ void ThreadMemory::add_to_store_buffer(ModelAction *action) {
         || action->get_type() == CACHE_SFENCE
         || action->get_type() == CACHE_CLFLUSH
         || action->get_type() == CACHE_CLFLUSHOPT);
+	if (VERBOSE > 1)
+		printf("add to store buffer: type=%s, val=%lx\n", action_type2str(action->get_type()), action->get_value());
     storeBuffer.push_back(action);
 }
 
@@ -32,7 +34,7 @@ bool ThreadMemory::pop_from_store_buffer() {
         return false;
     ModelAction *action = storeBuffer.front();
 	if (VERBOSE > 1)
-		printf("pop store buffer: type=%s, val=%lu\n", action_type2str(action->get_type()), action->get_value());
+		printf("pop store buffer: type=%s, val=%lx\n", action_type2str(action->get_type()), action->get_value());
     storeBuffer.pop_front();
 
     switch (action->get_type()) {

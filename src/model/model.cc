@@ -203,7 +203,7 @@ void Model::print_execution_summary() {
 			printf("cacheline %p [", itr.first);
 			for (auto s: itr.second) {
 				int offset = (char *) s->get_location() - (char *) itr.first;
-				printf("(+%d: val=%ld, seq=%u), ", offset, s->get_value(), s->get_seq_num());
+				printf("(+%d: val=%lx, seq=%u), ", offset, s->get_value(), s->get_seq_num());
 			}
 			printf("]\n");
 		}
