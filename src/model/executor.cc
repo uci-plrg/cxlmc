@@ -47,7 +47,9 @@ void execute(ModelAction* action) {
     }
     case PTHREAD_CREATE: {
         struct pthread_params* params = (struct pthread_params*)action->get_value();
-        *(int*)action->get_location() = model->get_scheduler()->new_thread(params->func, params->arg);
+		thread_id_t tid = model->get_scheduler()->new_thread(params->func, params->arg);
+		get_thread(action)->get_thread_memory()->add_to_store_buffer(new ModelAction(NONATOMIC_STORE, action->get_location(), tid, memory_order_relaxed, sizeof(thread_id_t), "pthread_create"));
+        *(thread_id_t*)action->get_location() = tid; 
         break;
     }
     case PTHREAD_JOIN: {

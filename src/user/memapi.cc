@@ -47,16 +47,6 @@ void init_memory_ops() {
 	}
 }
 
-bool mem_is_cxl(const void *address, size_t size) {
-	if (model == nullptr) {
-		return false;
-	}
-    void* mapping = get_cxl_mapping();
-	return ((mapping != NULL) &&
-					(((uintptr_t)address) >= ((uintptr_t)mapping)) &&
-					(((uintptr_t)address) < (((uintptr_t)mapping) + SHARED_MAP_SIZE)));
-}
-
 const char * memmovestring = "memmove";
 void *cxlmc_memmove(void *dst, const void *src, size_t n) {
 	for(uint i=0;i<n;) {
