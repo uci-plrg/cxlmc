@@ -8,6 +8,9 @@
 extern mspace cxl_space;
 
 #define CXLALLOC \
+	void * operator new(size_t size, std::align_val_t al) { \
+				return mspace_memalign(cxl_space, (size_t)al, size); \
+			} \
 	void * operator new(size_t size) { \
 				return mspace_malloc(cxl_space, size); \
 			} \

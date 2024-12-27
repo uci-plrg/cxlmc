@@ -10,6 +10,9 @@ extern mspace shared_space;
 extern mspace snapshot_space;
 
 #define TEMPLATEALLOC \
+	void * operator new(size_t size, std::align_val_t al) { \
+				return mspace_memalign(*msp, (size_t)al, size); \
+			} \
 	void * operator new(size_t size) { \
 				return mspace_malloc(*msp, size); \
 			} \
@@ -27,6 +30,9 @@ extern mspace snapshot_space;
 			}
 
 #define SHAREDALLOC \
+	void * operator new(size_t size, std::align_val_t al) { \
+				return mspace_memalign(shared_space, (size_t)al, size); \
+			} \
 	void * operator new(size_t size) { \
 				return mspace_malloc(shared_space, size); \
 			} \

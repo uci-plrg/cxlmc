@@ -30,7 +30,8 @@ int main(int argc, char* argv[]) {
         exit(EXIT_FAILURE);
     }
 
-	size_t total_map_size = SHARED_MAP_SIZE + CXL_MEM_SIZE;
+    int reserved = sizeof(Scheduler) + sizeof(Model);
+	size_t total_map_size = SHARED_MAP_SIZE + CXL_MEM_SIZE + reserved;
     void* mapping = mmap(NULL, total_map_size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
 
     if (mapping == MAP_FAILED) {
@@ -38,18 +39,17 @@ int main(int argc, char* argv[]) {
         return 1;
     }
     
-    int reserved = sizeof(Scheduler) + sizeof(Model);
     //shared space needs to be initialized before scheduler and model
-    shared_space = create_mspace_with_base((char *)mapping + reserved, SHARED_MAP_SIZE - CXL_MEM_SIZE - reserved, 1);
+    shared_space = create_mspace_with_base(mapping, SHARED_MAP_SIZE, 1);
 
     if (!shared_space) { 
         perror("create_mspace_with_base");
         return 1;
     }
 
-    Scheduler *scheduler = new (mapping) Scheduler(processes);
 	void *cxl_mapping = (char *)mapping + SHARED_MAP_SIZE;	
-	model = new((char*)mapping + sizeof(Scheduler)) Model(scheduler, cxl_mapping);
+    Scheduler *scheduler = new ((char *)mapping + SHARED_MAP_SIZE + CXL_MEM_SIZE) Scheduler(processes);
+	model = new((char*)mapping + SHARED_MAP_SIZE + CXL_MEM_SIZE + sizeof(Scheduler)) Model(scheduler, cxl_mapping);
 
     pid_t pid;
     int id;
