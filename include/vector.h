@@ -16,18 +16,21 @@ public:
 		_size(0),
 		capacity(VECTOR_DEFCAP),
 		array((type *)mspace_calloc(*msp, capacity, sizeof(type))) {
+		assert(array && "bad alloc");
 	}
 
 	Vector(uint size) :
 		_size(size),
 		capacity(size),
 		array((type *)mspace_calloc(*msp, capacity, sizeof(type))) {
+		assert(array && "bad alloc");
 	}
 
 	Vector(uint size, type *_array)  :
 		_size(size),
 		capacity(size),
 		array((type *)mspace_calloc(*msp, capacity, sizeof(type))) {
+		assert(array && "bad alloc");
 		for (uint i=0; i<_size; i++)
 			array[i] = _array[i];
 	}
@@ -36,6 +39,7 @@ public:
 		_size(vec._size),
 		capacity(vec.capacity),
 		array((type *)mspace_calloc(*msp, vec.capacity, sizeof(type))) {
+		assert(array && "bad alloc");
 		for (uint i=0; i<_size; i++)
 			array[i] = vec.array[i];
 	}
@@ -45,6 +49,7 @@ public:
 		_size = vec._size;
 		capacity = vec.capacity;
 		array = (type *)mspace_calloc(*msp, vec.capacity, sizeof(type));
+		assert(array && "bad alloc");
 		for (uint i=0; i<_size; i++)
 			array[i] = vec.array[i];
 		return *this;
@@ -64,6 +69,7 @@ public:
 			return;
 		} else if (psize > capacity) {
 			array = (type *)mspace_realloc(*msp, array, (psize << 1) * sizeof(type));
+			assert(array && "bad alloc");
 			capacity = psize << 1;
 		}
 		bzero(&array[_size], (psize - _size) * sizeof(type));
@@ -74,12 +80,13 @@ public:
 		if (_size >= capacity) {
 			uint newcap = capacity << 1;
 			array = (type *)mspace_realloc(*msp, array, newcap * sizeof(type));
+			assert(array && "bad alloc");
 			capacity = newcap;
 		}
 		array[_size++] = item;
 	}
 
-	type operator[](int index) const {
+	const type & operator[](int index) const {
 		return array[index];
 	}
 

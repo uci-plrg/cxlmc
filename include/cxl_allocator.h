@@ -12,13 +12,19 @@ extern mspace cxl_space;
 				return mspace_memalign(cxl_space, (size_t)al, size); \
 			} \
 	void * operator new(size_t size) { \
-				return mspace_malloc(cxl_space, size); \
+				void* addr = mspace_malloc(cxl_space, size); \
+				if (!addr) \
+					assert(false && "bad alloc"); \
+				return addr; \
 			} \
 	void operator delete(void *p, size_t size) { \
 				mspace_free(cxl_space, p); \
 			} \
 	void * operator new[](size_t size) { \
-				return mspace_malloc(cxl_space, size); \
+				void* addr = mspace_malloc(cxl_space, size); \
+				if (!addr) \
+					assert(false && "bad alloc"); \
+				return addr; \
 			} \
 	void operator delete[](void *p, size_t size) { \
 				mspace_free(cxl_space, p); \

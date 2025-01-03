@@ -167,18 +167,21 @@ void execute(ModelAction* action) {
 		shared::vector<rfEntry> rfset;
 		model->build_may_read_from(action, rfset);
 
-		printf("thread %u rfset %p: {\n", action->get_thread_id(), action->get_location());
-		for (auto &entry: rfset) {
-			printf("\t");
-			entry.dump();
+		if (VERBOSE > 0) {
+			printf("thread %u rfset %p: {\n", action->get_thread_id(), action->get_location());
+			for (auto &entry: rfset) {
+				printf("\t");
+				entry.dump();
+			}
+			printf("}\n");
 		}
-		printf("}\n");
 
 		assert(rfset.size() != 0);
 		int index = model->decision_point(rfset.size());
 		auto chosen = rfset[index];
 		uint64_t read_value = chosen.get_read_value(action->get_location());
-		printf("choose option %d of rfset, val=%lx\n", index, read_value);
+		if (VERBOSE > 0)
+			printf("choose option %d of rfset, val=%lx\n", index, read_value);
 		model->do_read(chosen);
 
 		action->set_value(read_value);

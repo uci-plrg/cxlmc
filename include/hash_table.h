@@ -86,7 +86,9 @@ public:
 		_size(0),
 		buckets(initial_buckets),
 		max_factor(factor),
-		threshold((size_t)(initial_buckets * factor)) {}
+		threshold((size_t)(initial_buckets * factor)) {
+			assert(table && "bad alloc");
+		}
 
 	HashTable(const HashTable& hashtable) :
 		table((Node**)mspace_calloc(*msp, hashtable.buckets, sizeof(Node*))),
@@ -94,6 +96,7 @@ public:
 		buckets(hashtable.buckets),
 		max_factor(hashtable.max_factor),
 		threshold(hashtable.threshold) {
+		assert(table && "bad alloc");
 		for (Pair<_Key, _Val> p: hashtable) {
 			(*this)[p.first] = p.second;
 		}
@@ -107,6 +110,7 @@ public:
 		threshold = hashtable.threshold;
 
 		table = (Node**)mspace_calloc(*msp, buckets, sizeof(Node*));
+		assert(table && "bad alloc");
 		for (Pair<_Key, _Val> p: hashtable) {
 			this->operator[](p.first) = p.second;
 		}
@@ -260,6 +264,7 @@ public:
 		buckets <<= 1;
 		threshold = (size_t)(buckets * max_factor);
 		table = (Node**)mspace_calloc(*msp, buckets, sizeof(Node*));
+		assert(table && "bad alloc");
 
 		for (size_t i = 0; i < old_capacity; i++) {
 			Node* node = old_table[i];

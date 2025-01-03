@@ -14,13 +14,19 @@ extern mspace snapshot_space;
 				return mspace_memalign(*msp, (size_t)al, size); \
 			} \
 	void * operator new(size_t size) { \
-				return mspace_malloc(*msp, size); \
+				void* addr = mspace_malloc(*msp, size); \
+				if (!addr) \
+					assert(false && "bad alloc"); \
+				return addr; \
 			} \
 	void operator delete(void *p, size_t size) { \
 				mspace_free(*msp, p); \
 			} \
 	void * operator new[](size_t size) { \
-				return mspace_malloc(*msp, size); \
+				void* addr = mspace_malloc(*msp, size); \
+				if (!addr) \
+					assert(false && "bad alloc"); \
+				return addr; \
 			} \
 	void operator delete[](void *p, size_t size) { \
 				mspace_free(*msp, p); \
@@ -34,13 +40,19 @@ extern mspace snapshot_space;
 				return mspace_memalign(shared_space, (size_t)al, size); \
 			} \
 	void * operator new(size_t size) { \
-				return mspace_malloc(shared_space, size); \
+				void* addr = mspace_malloc(shared_space, size); \
+				if (!addr) \
+					assert(false && "bad alloc"); \
+				return addr; \
 			} \
 	void operator delete(void *p, size_t size) { \
 				mspace_free(shared_space, p); \
 			} \
 	void * operator new[](size_t size) { \
-				return mspace_malloc(shared_space, size); \
+				void* addr = mspace_malloc(shared_space, size); \
+				if (!addr) \
+					assert(false && "bad alloc"); \
+				return addr; \
 			} \
 	void operator delete[](void *p, size_t size) { \
 				mspace_free(shared_space, p); \
@@ -91,9 +103,8 @@ public:// type definitions
     pointer allocate(size_t n) {
         //mspace_malloc_stats(shared_space);
         void *addr = mspace_malloc(shared_space, n * sizeof(T));
-        if (!addr) {
+        if (!addr)
             assert(false && "bad alloc");
-        }
         return static_cast<pointer>(addr);
     }
 
@@ -157,9 +168,8 @@ public:// type definitions
     pointer allocate(size_t n) {
         //mspace_malloc_stats(shared_space);
         void *addr = mspace_malloc(snapshot_space, n * sizeof(T));
-        if (!addr) {
+        if (!addr)
             assert(false && "bad alloc");
-        }
         return static_cast<pointer>(addr);
     }
 

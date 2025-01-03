@@ -80,7 +80,7 @@ public:
 	}
 
 	void copy_at(const CacheLineStore &other, uintptr_t addr) {
-		auto other_store = other.get_store();
+		const store_t &other_store = other.get_store();
 		assert(other_store.size() >= _store.size());
 
 		unsigned i = _store.size()-1;
@@ -89,7 +89,7 @@ public:
 			_store.push_back(shared::Pair{other_store[i].first, shared::hashmap<uintptr_t, cacheline>{}});
 
 		for (i = 0; i < other_store.size(); i++) {
-			auto &map = other_store[i].second;
+			const auto &map = other_store[i].second;
 			auto itr = map.find(addr);
 			if (itr != map.end())
 				_store[i].second[addr] = itr->second;

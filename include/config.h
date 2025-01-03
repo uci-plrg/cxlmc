@@ -4,7 +4,7 @@
 #define MAX_THREADS 64
 #define PAGE_SIZE 4096 //4KB
 #define CACHELINE_SIZE 64
-#define SHARED_MAP_SIZE 0x4000000 //64MB
+#define SHARED_MAP_SIZE 0x16000000 //256MB
 #define CXL_MEM_SIZE 0x2000000 //32MB
 #define SYS_LOCAL_SIZE 0x10000 //64KB
 #define STACK_SIZE 0x100000 //1MB
@@ -17,7 +17,7 @@
 
 /** Logging options */
 #define DEBUG_LEVEL 1
-#define VERBOSE 2
+#define VERBOSE 0
 
 
 /** Define semantics of volatile memory operations. */

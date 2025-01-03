@@ -237,7 +237,8 @@ void Model::finish_execution() {
 
     if (isLast) {
 		inside_model = true;
-		print_execution_summary();
+		if (VERBOSE > 0)
+			print_execution_summary();
         rollback_again = rollback_again && num+1 <= MAX_EXECUTION && nodestack->has_another_execution();
         if (rollback_again) {
             printf("-------------------------- execution %d--------------------------\n", num+1);
