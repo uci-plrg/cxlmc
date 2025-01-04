@@ -276,7 +276,7 @@ bool mem_is_cxl(const void *address, size_t size) {
     void* mapping = get_cxl_mapping();
 	return ((mapping != NULL) &&
 					(((uintptr_t)address) >= ((uintptr_t)mapping)) &&
-					(((uintptr_t)address) < (((uintptr_t)mapping) + SHARED_MAP_SIZE)));
+					(((uintptr_t)address) < (((uintptr_t)mapping) + CXL_MEM_SIZE)));
 }
 
 void init_cxl_space(uint offset, size_t size) {
