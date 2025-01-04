@@ -516,6 +516,8 @@ MAX_RELEASE_CHECK_RATE   default: 4095 unless not HAVE_MMAP
   improvement at the expense of carrying around more memory.
 */
 
+#include "valgrind.h"
+
 /* Version identifier to allow people to support multiple versions */
 #ifndef DLMALLOC_VERSION
 #define DLMALLOC_VERSION 20805
@@ -4859,6 +4861,7 @@ static mchunkptr try_realloc_chunk(mstate m, mchunkptr p, size_t nb,
   else {
     USAGE_ERROR_ACTION(m, oldmem);
   }
+
   return newp;
 }
 
@@ -4880,6 +4883,7 @@ static void* internal_memalign(mstate m, size_t alignment, size_t bytes) {
     size_t nb = request2size(bytes);
     size_t req = nb + alignment + MIN_CHUNK_SIZE - CHUNK_OVERHEAD;
     mem = internal_malloc(m, req);
+	VALGRIND_FREELIKE_BLOCK(mem, 0);
     if (mem != 0) {
       mchunkptr p = mem2chunk(mem);
       if (PREACTION(m))
@@ -4931,6 +4935,7 @@ static void* internal_memalign(mstate m, size_t alignment, size_t bytes) {
       assert(((size_t)mem & (alignment - 1)) == 0);
       check_inuse_chunk(m, p);
       POSTACTION(m);
+	  VALGRIND_MALLOCLIKE_BLOCK (mem, nb, 0, 0);
     }
   }
   return mem;
@@ -5577,6 +5582,7 @@ void* mspace_malloc(mspace msp, size_t bytes) {
 
   postaction:
     POSTACTION(ms);
+	VALGRIND_MALLOCLIKE_BLOCK (mem, nb, 0, 0);
     return mem;
   }
 
@@ -5679,6 +5685,7 @@ void mspace_free(mspace msp, void* mem) {
     erroraction:
       USAGE_ERROR_ACTION(fm, p);
     postaction:
+	  VALGRIND_FREELIKE_BLOCK (mem, 0);
       POSTACTION(fm);
     }
   }
@@ -5735,6 +5742,8 @@ void* mspace_realloc(mspace msp, void* oldmem, size_t bytes) {
       if (newp != 0) {
         check_inuse_chunk(m, newp);
         mem = chunk2mem(newp);
+		VALGRIND_FREELIKE_BLOCK(oldmem, 0);
+		VALGRIND_MALLOCLIKE_BLOCK (mem, nb, 0, 0);
       }
       else {
         mem = mspace_malloc(m, bytes);

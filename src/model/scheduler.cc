@@ -90,7 +90,7 @@ bool Scheduler::finalize() {
 void Scheduler::process_shutdown() {
 	//TODO: make into an action?
 	yield();
-	for (int i = 0; i < get_thread_count(); i++) {
+	for (unsigned i = 0; i < get_thread_count(); i++) {
         Thread* thread = get_thread(i);
         if (thread->get_process_id() == process_id) {
 			if (!thread->is_completed()) {
@@ -106,7 +106,7 @@ void Scheduler::process_shutdown() {
 }
 
 void Scheduler::process_crash() {
-	for (int i = 0; i < get_thread_count(); i++) {
+	for (unsigned i = 0; i < get_thread_count(); i++) {
 	    Thread* thread = get_thread(i);
 	    if (thread->get_process_id() == process_id && !thread->is_completed()) {
 	        printf("thread %d crashed\n", i);
@@ -121,7 +121,7 @@ void Scheduler::reset() {
         delete thread;
     }
     threads.clear();
-    for (int i = 0; i < process_count; i++) {
+    for (unsigned i = 0; i < process_count; i++) {
         threads.push_back(new Thread(i));
     }
 

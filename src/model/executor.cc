@@ -164,6 +164,8 @@ void execute(ModelAction* action) {
     }
 	case ATOMIC_LOAD:
 	case NONATOMIC_LOAD: {
+		//printf("before\n");
+		//mspace_malloc_stats(shared_space);
 		shared::vector<rfEntry> rfset;
 		model->build_may_read_from(action, rfset);
 
@@ -178,13 +180,18 @@ void execute(ModelAction* action) {
 
 		assert(rfset.size() != 0);
 		int index = model->decision_point(rfset.size());
-		auto chosen = rfset[index];
+		auto &chosen = rfset[index];
 		uint64_t read_value = chosen.get_read_value(action->get_location());
 		if (VERBOSE > 0)
 			printf("choose option %d of rfset, val=%lx\n", index, read_value);
 		model->do_read(chosen);
-
 		action->set_value(read_value);
+
+		for (auto &e: rfset)
+			e.~rfEntry();
+		rfset.clear();
+		//printf("after\n");
+		//mspace_malloc_stats(shared_space);
 		break;
 	}
     case CACHE_SFENCE:

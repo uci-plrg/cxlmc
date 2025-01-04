@@ -98,6 +98,7 @@ void Model::evict_clflush(ModelAction* action) {
 	uintptr_t addr = getCacheID(action->get_location());
 	cacheline cl = obj_to_cl.get_cacheline(addr);
 	obj_to_cl.set_cacheline(addr, cl.setBegin(seq_num));
+	delete action;
 }
 
 void Model::build_may_read_from(ModelAction *read, shared::vector<rfEntry> &rfset) {	
@@ -171,7 +172,7 @@ void Model::build_may_read_from(ModelAction *read, shared::vector<rfEntry> &rfse
 			}
 		}
 	}
-	for (auto w: seedWrites)
+	for (auto &w: seedWrites)
 		rfset.push_back(w);
 }
 
@@ -242,11 +243,13 @@ void Model::finish_execution() {
         rollback_again = rollback_again && num+1 <= MAX_EXECUTION && nodestack->has_another_execution();
         if (rollback_again) {
             printf("-------------------------- execution %d--------------------------\n", num+1);
-			reset_execution_data();
             nodestack->reset_execution();
         }
 
+		reset_execution_data();
         scheduler->reset();
+		printf("Shared Space Memory Usage:\n");
+		mspace_malloc_stats(shared_space);
 		inside_model = false;
         execution_num.store(num+1);
     }
@@ -268,7 +271,7 @@ void Model::reset_execution_data() {
 		memset(cxl_mapping, 0, CXL_MEM_SIZE);
 		next_sequence_num = 0;
 		for (auto& itr: obj_to_wr)
-			for (auto s: itr.second)
+			for (ModelAction* s: itr.second)
 				delete s;
         obj_to_wr.clear();
 		for (char *str: placeholder_data)
@@ -279,7 +282,7 @@ void Model::reset_execution_data() {
 }
 
 bool Model::should_crash() {
-    if (crashes.size() < MAX_CRASHES_PER_EXECUTION && decision_point(2) == 0) {
+    if (crashes.size() < MAX_CRASHES_PER_EXECUTION && crashes.size() + 1 < scheduler->get_process_count() && decision_point(2) == 0) {
         return true;
     }
     return false;

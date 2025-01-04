@@ -80,7 +80,7 @@ public:
 	}
 
 	void copy_at(const CacheLineStore &other, uintptr_t addr) {
-		const store_t &other_store = other.get_store();
+		const auto &other_store = other.get_store();
 		assert(other_store.size() >= _store.size());
 
 		unsigned i = _store.size()-1;

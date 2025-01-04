@@ -30,8 +30,9 @@ void take_snapshot() {
             model->terminate_early();
         }
         
-        if (!model->wait_for_next_execution(++execution_num))
+        if (!model->wait_for_next_execution(++execution_num)) {	
             exit(EXIT_SUCCESS);
+		}
 
         std::cout << "restart process " << process_id << std::endl;
     }

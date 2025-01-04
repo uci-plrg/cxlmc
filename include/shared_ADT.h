@@ -13,6 +13,7 @@ namespace shared {
     using list = List<T, &shared_space>;
 	template<typename K, typename T>
 	using hashmap = HashTable<K, T, &shared_space>;
+	//using hashmap = std::unordered_map<K, T, std::hash<K>, std::equal<K>, shared_allocator<std::pair<const K, T>>>;
 	template<typename T>
 	using hashset = HashSet<T, &shared_space>;
 

@@ -32,7 +32,7 @@ public:
 		array((type *)mspace_calloc(*msp, capacity, sizeof(type))) {
 		assert(array && "bad alloc");
 		for (uint i=0; i<_size; i++)
-			array[i] = _array[i];
+			new (&array[i]) type(_array[i]);
 	}
 
 	Vector(const Vector& vec) :
@@ -41,21 +41,24 @@ public:
 		array((type *)mspace_calloc(*msp, vec.capacity, sizeof(type))) {
 		assert(array && "bad alloc");
 		for (uint i=0; i<_size; i++)
-			array[i] = vec.array[i];
+			new (&array[i]) type(vec.array[i]);
 	}
 
 	Vector& operator=(const Vector& vec) {
+		for (uint i=0; i<_size; i++)
+			array[i].~type();
 		mspace_free(*msp, array);
 		_size = vec._size;
 		capacity = vec.capacity;
 		array = (type *)mspace_calloc(*msp, vec.capacity, sizeof(type));
 		assert(array && "bad alloc");
 		for (uint i=0; i<_size; i++)
-			array[i] = vec.array[i];
+			new (&array[i]) type(vec.array[i]);
 		return *this;
 	}
 
 	void pop_back() {
+		array[_size-1].~type();
 		_size--;
 	}
 
@@ -65,14 +68,16 @@ public:
 
 	void resize(uint psize) {
 		if (psize <= _size) {
+			for (uint i = psize; i < _size; i++)
+				array[i].~type();
 			_size = psize;
 			return;
 		} else if (psize > capacity) {
 			array = (type *)mspace_realloc(*msp, array, (psize << 1) * sizeof(type));
 			assert(array && "bad alloc");
+			memset(&array[_size], 0, (psize - capacity) * sizeof(type));
 			capacity = psize << 1;
 		}
-		bzero(&array[_size], (psize - _size) * sizeof(type));
 		_size = psize;
 	}
 
@@ -83,7 +88,7 @@ public:
 			assert(array && "bad alloc");
 			capacity = newcap;
 		}
-		array[_size++] = item;
+		new (&array[_size++]) type(item);
 	}
 
 	const type & operator[](int index) const {
@@ -109,7 +114,7 @@ public:
 	}
 
 	void set(uint index, type item) {
-		array[index] = item;
+		new (&array[index]) type(item);
 	}
 
 	void insertAt(uint index, type item) {
@@ -117,7 +122,7 @@ public:
 		for (uint i = _size - 1;i > index;i--) {
 			set(i, at(i - 1));
 		}
-		array[index] = item;
+		set(index, item);
 	}
 
 	void removeAt(uint index) {
@@ -132,9 +137,8 @@ public:
 	}
 
 	~Vector() {
-		for (uint i=0; i<_size; i++) {
+		for (uint i=0; i<_size; i++)
 			array[i].~type();
-		}
 		mspace_free(*msp, array);
 	}
 

@@ -247,7 +247,7 @@ public:
 			Node* node = table[i];
 			while (node != NULL) {
 				Node* tmp = node->next;
-				mspace_free(*msp, node);
+				delete node;
 				node = tmp;
 			}
 			table[i] = NULL;
