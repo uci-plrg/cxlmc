@@ -75,7 +75,6 @@ public:
 		} else if (psize > capacity) {
 			array = (type *)mspace_realloc(*msp, array, (psize << 1) * sizeof(type));
 			assert(array && "bad alloc");
-			memset(&array[_size], 0, (psize - capacity) * sizeof(type));
 			capacity = psize << 1;
 		}
 		_size = psize;

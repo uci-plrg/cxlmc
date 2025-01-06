@@ -22,6 +22,10 @@ class Scheduler {
 
 public:
     Scheduler(int pc);
+	~Scheduler() {
+		for (Thread *t: threads)
+			delete t;
+	}
     void process_init(process_id_t pid) { process_id = pid; thread_id = pid; }
     
     process_id_t get_process_id() { return process_id; }

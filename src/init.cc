@@ -119,6 +119,9 @@ int main(int argc, char* argv[]) {
                 std::cerr << "child stopped by sig " << WSTOPSIG(status) << std::endl;
         }
         
+		//scheduler->~Scheduler();
+		//model->~Model();
+		//mspace_malloc_stats(shared_space);
         munmap(mapping, total_map_size);
     }
 

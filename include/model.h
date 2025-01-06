@@ -65,7 +65,7 @@ public:
     
 	void evict_clflush(ModelAction* action);
     
-	void build_may_read_from(ModelAction *read, shared::vector<rfEntry> &rfset);
+	void build_may_read_from(ModelAction *read, shared::vector<rfEntry*> &rfset);
 
     void terminate_early();
 
