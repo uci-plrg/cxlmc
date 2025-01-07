@@ -28,6 +28,7 @@ void execute(ModelAction* action) {
     case THREAD_FINISH: {
         Thread* curr_thread = get_thread(action); 
         model->get_scheduler()->wake_all_threads_waiting_on(get_thread(action));
+        delete action;
         curr_thread->finalize();
         break;
     }
@@ -35,6 +36,7 @@ void execute(ModelAction* action) {
         Thread* curr_thread = get_thread(action);  
         curr_thread->ret_val = action->get_location();
         model->get_scheduler()->wake_all_threads_waiting_on(get_thread(action));
+        delete action;
         curr_thread->finalize();
         break;
     }

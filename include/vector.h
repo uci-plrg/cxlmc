@@ -142,6 +142,8 @@ public:
 	}
 
 	void clear() {
+		for (uint i = 0; i < _size; i++)
+			array[i].~type();
 		_size = 0;
 	}
 
