@@ -13,11 +13,12 @@
 class Range {
 public:
 	Range() : begin(0), end(0) {}
+	Range(modelclock_t b, modelclock_t e): begin(b), end(e) {}
 	Range(const Range &other) = default;
 	modelclock_t getBegin() const { return begin; }
 	modelclock_t getEnd() const { return end; }
-	Range &setBegin(modelclock_t b) { begin = b; return *this;}
-	Range &setEnd(modelclock_t e) { end = e; return *this;}
+	void setBegin(modelclock_t b) { begin = b; }
+	void setEnd(modelclock_t e) { end = e; }
 
 	SHAREDALLOC;
 private:

@@ -16,7 +16,7 @@ extern thread_id_t thread_id;
 extern bool is_fork;
 
 class Scheduler {
-    const unsigned process_count;
+    const process_id_t process_count;
     std::atomic<thread_id_t> active_thread;
     shared::vector<Thread*> threads;
 
@@ -36,9 +36,9 @@ public:
 
     Thread* get_thread(thread_id_t tid) { return threads[tid]; }
     
-    unsigned get_thread_count() { return threads.size(); }
+    thread_id_t get_thread_count() { return threads.size(); }
     
-	unsigned get_process_count() { return process_count; }
+	process_id_t get_process_count() { return process_count; }
 
     Thread* current_thread() { return threads[thread_id]; }
 

@@ -97,7 +97,7 @@ void Model::evict_clflush(ModelAction* action) {
 	action->set_seq_num(seq_num);
 	uintptr_t addr = getCacheID(action->get_location());
 	cacheline cl = obj_to_cl.get_cacheline(addr);
-	obj_to_cl.set_cacheline(addr, cl.setBegin(seq_num));
+	obj_to_cl.set_cacheline(addr, cacheline{seq_num, cl.getEnd()});
 	delete action;
 }
 
@@ -135,7 +135,7 @@ void Model::build_may_read_from(ModelAction *read, shared::vector<rfEntry *> &rf
 				if (w->get_overlaps(store, read)) {
 					if (store->get_type() != ATOMIC_INIT && wpid != rpid) {
 						cacheline cl = w->cl_store.get_cacheline(addr);
-						w->cl_store.set_cacheline(addr, cl.setBegin(next_sequence_num));
+						w->cl_store.set_cacheline(addr, cacheline{next_sequence_num, cl.getEnd()});
 				
 						//consider crashing the writing process before the read
 						if (!scheduler->get_thread(store->get_thread_id())->is_completed() && 
@@ -152,16 +152,15 @@ void Model::build_may_read_from(ModelAction *read, shared::vector<rfEntry *> &rf
 					delete copy;
 			} else { //crashed processes
 				modelclock_t crash_clock = citr->second;
-				cacheline cl = w->cl_store.get_cacheline(addr, crash_clock);
+				cacheline &cl = w->cl_store.get_cacheline(addr, crash_clock);
 				if (store->get_seq_num() <= cl.getBegin()) { //must have persisted
 					if (w->get_overlaps(store, read)) {
-						cacheline &new_cl = w->cl_store.set_cacheline(addr, cl.setBegin(store->get_seq_num()));
-						read_crashed_set_cacheline_end(stores, itr, new_cl);
+						read_crashed_set_cacheline_end(stores, itr, cl);
 					}
 				} else if (cl.getEnd() == 0 || store->get_seq_num() <= cl.getEnd()) { //may have persisted
 					rfEntry *copy = new rfEntry(*w);
 					if (copy->get_overlaps(store, read)) {
-						cacheline &new_cl = copy->cl_store.set_cacheline(addr, cl.setBegin(store->get_seq_num()));
+						cacheline &new_cl = copy->cl_store.set_cacheline(addr, cacheline{store->get_seq_num(), cl.getEnd()});
 						read_crashed_set_cacheline_end(stores, itr, new_cl);
 						seedWrites.push_back(copy);
 					} else
@@ -295,7 +294,7 @@ void Model::reset_execution_data() {
 }
 
 bool Model::should_crash() {
-    if (crashes.size() < MAX_CRASHES_PER_EXECUTION && crashes.size() + 1 < scheduler->get_process_count() && decision_point(2) == 0) {
+    if (crashes.size() < MAX_CRASHES_PER_EXECUTION && (process_id_t) crashes.size() + 1 < scheduler->get_process_count() && decision_point(2) == 0) {
         return true;
     }
     return false;
