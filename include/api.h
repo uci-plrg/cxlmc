@@ -101,6 +101,7 @@ bool mem_is_cxl(const void *address, size_t size);
 void init_cxl_space(uint offset=0, size_t size=CXL_MEM_SIZE);
 process_id_t get_process_count();
 process_id_t get_process_id();
+process_id_t get_crashed_process_count();
 
 #if __cplusplus
 }

@@ -97,6 +97,8 @@ public:
     int decision_point(int numchoices) { return nodestack->explore_next(numchoices)->get_choice(); }
 
     void insert_crash();
+
+    process_id_t get_crashed_process_count() { return crashes.size(); }
 };
 
 extern Model *model;

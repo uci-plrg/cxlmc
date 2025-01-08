@@ -291,3 +291,7 @@ process_id_t get_process_count() {
 process_id_t get_process_id() {
 	return process_id;
 }
+
+process_id_t get_crashed_process_count() {
+	return model->get_crashed_process_count();
+}

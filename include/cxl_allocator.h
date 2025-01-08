@@ -17,7 +17,7 @@ extern mspace cxl_space;
 					assert(false && "bad alloc"); \
 				return addr; \
 			} \
-	void operator delete(void *p, size_t size) { \
+	void operator delete(void *p, __attribute__((unused)) size_t size) { \
 				mspace_free(cxl_space, p); \
 			} \
 	void * operator new[](size_t size) { \
@@ -26,10 +26,10 @@ extern mspace cxl_space;
 					assert(false && "bad alloc"); \
 				return addr; \
 			} \
-	void operator delete[](void *p, size_t size) { \
+	void operator delete[](void *p, __attribute__((unused)) size_t size) { \
 				mspace_free(cxl_space, p); \
 			} \
-	void * operator new(size_t size, void *p) {	/* placement new */ \
+	void * operator new(__attribute__((unused)) size_t size, void *p) {	/* placement new */ \
 				return p; \
 			}
 
@@ -94,7 +94,7 @@ public:// type definitions
 		p->~T();
 	}
     // Deallocate memory 
-    void deallocate(pointer p, size_t n) {
+    void deallocate(pointer p, __attribute__((unused)) size_t n) {
         mspace_free(cxl_space, p);
     }
 };
