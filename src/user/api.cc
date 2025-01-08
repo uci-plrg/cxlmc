@@ -283,3 +283,11 @@ void init_cxl_space(uint offset, size_t size) {
 	assert (offset + size <= CXL_MEM_SIZE);
 	cxl_space = create_mspace_with_base((char *)model->get_cxl_mapping() + offset, size, 1);
 }
+
+process_id_t get_process_count() {
+	return model->get_scheduler()->get_process_count();
+}
+
+process_id_t get_process_id() {
+	return process_id;
+}
