@@ -240,7 +240,8 @@ void Model::terminate_early() {
 
 void Model::finish_execution() {
     bool isLast = !scheduler->finalize();
-    printf("process %d done\n", process_id);	
+	if (VERBOSE > 0)
+    	printf("process %d done\n", process_id);
     int num = execution_num.load();
 
     if (isLast) {

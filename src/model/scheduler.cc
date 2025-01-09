@@ -15,7 +15,8 @@ Scheduler::Scheduler(int pc):
 
 thread_id_t Scheduler::new_thread(pthread_start_t func, void* arg) {
     thread_id_t tid = get_thread_count();
-    printf("init thread %d\n", tid);
+    if (VERBOSE > 0)
+        printf("init thread %d\n", tid);
     threads.push_back(new Thread(tid, process_id, current_thread(), pthread_params{func, arg}));
     return tid;
 }
@@ -81,7 +82,8 @@ bool Scheduler::last_yield() {
 
 bool Scheduler::finalize() {
     if (!threads[thread_id]->is_completed()) {
-        printf("thread %d done\n", thread_id);
+        if (VERBOSE > 0)
+            printf("thread %d done\n", thread_id);
         threads[thread_id]->set_state(THREAD_COMPLETED);
     }
     return last_yield();
@@ -94,7 +96,8 @@ void Scheduler::process_shutdown() {
         Thread* thread = get_thread(i);
         if (thread->get_process_id() == process_id) {
 			if (!thread->is_completed()) {
-				printf("thread %d terminated\n", i);
+                if (VERBOSE > 0)
+				    printf("thread %d terminated\n", i);
 				if (is_fork)
 					thread->cleanup();
 				thread->set_state(THREAD_COMPLETED);
@@ -109,7 +112,8 @@ void Scheduler::process_crash() {
 	for (thread_id_t i = 0; i < get_thread_count(); i++) {
 	    Thread* thread = get_thread(i);
 	    if (thread->get_process_id() == process_id && !thread->is_completed()) {
-	        printf("thread %d crashed\n", i);
+            if (VERBOSE > 0)
+	            printf("thread %d crashed\n", i);
 	        thread->cleanup();
 	        thread->set_state(THREAD_CRASHED);
 	    }
@@ -131,7 +135,8 @@ void Scheduler::reset() {
 void Scheduler::wake_all_threads_waiting_on(void* v) {
     for (Thread* waiter: threads) {
         if (waiter->waiting_on() == v) {
-            printf("waking thread %d\n", waiter->get_thread_id());
+            if (VERBOSE > 0)
+                printf("waking thread %d\n", waiter->get_thread_id());
             waiter->set_state(THREAD_RUNNING);
         }
     }
@@ -142,7 +147,8 @@ void Scheduler::wake_thread_waiting_on(void* v) { // should be random?
     for (int i = 1; i < tc; i++) {
         thread_id_t tid = (thread_id + i) % tc;
         if (threads[tid]->waiting_on() == v) {
-            printf("waking thread %d\n", tid);
+            if (VERBOSE > 0)
+                printf("waking thread %d\n", tid);
             threads[tid]->set_state(THREAD_RUNNING);
             return;
         }

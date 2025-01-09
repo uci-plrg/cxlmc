@@ -14,8 +14,8 @@ void thread_wait(Thread* thread) {
     assert(thread->get_pending()->get_type() == PTHREAD_JOIN ||
         thread->get_pending()->get_type() == ATOMIC_LOCK ||
         thread->get_pending()->get_type() == ATOMIC_WAIT);
-
-    printf("thread %d waiting\n", thread->get_thread_id());
+    if (VERBOSE > 0)
+        printf("thread %d waiting\n", thread->get_thread_id());
     thread->set_state(THREAD_BLOCKED);
     model->get_scheduler()->yield();
 }
@@ -59,12 +59,13 @@ void execute(ModelAction* action) {
         Thread* thread = action->get_thread();
 
         assert(thread->get_process_id() == process_id);
-
-        printf("thread %d joining %d\n", thread_id, thread->get_thread_id());
+        if (VERBOSE > 0)
+            printf("thread %d joining %d\n", thread_id, thread->get_thread_id());
         if (thread->get_state() != THREAD_COMPLETED) {
             thread_wait(curr_thread);
         }
-        printf("%d joined %d completed\n", thread_id, thread->get_thread_id());
+        if (VERBOSE > 0)
+            printf("%d joined %d completed\n", thread_id, thread->get_thread_id());
         break;
     }
     case ATOMIC_TRYLOCK: {
