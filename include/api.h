@@ -92,6 +92,7 @@ void cxlmc_sfence(void* loc);
 void cxlmc_mfence(void* loc);
 void cxlmc_clflush(void* loc);
 void cxlmc_clflushopt(void* loc);
+void cxlmc_clwb(void* loc);
 
 void* get_cxl_mapping();
 bool mem_is_cxl(const void *address, size_t size);

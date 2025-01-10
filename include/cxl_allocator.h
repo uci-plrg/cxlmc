@@ -7,6 +7,35 @@
 //cxl space is not defined by default, to use CXL allocators, initialize through api call
 extern mspace cxl_space;
 
+#if __cplusplus
+extern "C" {
+#endif
+
+inline void * cxl_malloc(size_t bytes) {
+	return mspace_malloc(cxl_space, bytes);
+}
+
+inline void cxl_free(void* mem) {
+	mspace_free(cxl_space, mem);
+}
+
+inline void * cxl_realloc(void* mem, size_t newsize) {
+	return mspace_realloc(cxl_space, mem, newsize);
+}
+
+inline void * cxl_calloc(size_t n_elements, size_t elem_size) {
+	return mspace_calloc(cxl_space, n_elements, elem_size);
+}
+
+inline void * cxl_memalign(size_t alignment, size_t bytes) {
+	return mspace_memalign(cxl_space, alignment, bytes);
+}
+
+#if __cplusplus
+}
+#endif
+
+#if __cplusplus
 #define CXLALLOC \
 	void * operator new(size_t size, std::align_val_t al) { \
 				return mspace_memalign(cxl_space, (size_t)al, size); \
@@ -98,5 +127,6 @@ public:// type definitions
         mspace_free(cxl_space, p);
     }
 };
+#endif
 
 #endif

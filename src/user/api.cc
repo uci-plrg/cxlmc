@@ -258,6 +258,10 @@ void cxlmc_clflushopt(void* loc) {
     model->action(new ModelAction(CACHE_CLFLUSHOPT, loc));
 }
 
+void cxlmc_clwb(void* loc) {
+	cxlmc_clflushopt(loc);
+}
+
 void* get_cxl_mapping() {
 	return model->get_cxl_mapping();
 }
