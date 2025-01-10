@@ -272,7 +272,7 @@ bool mem_is_cxl(const void *address, size_t size) {
 					(((uintptr_t)address) < (((uintptr_t)mapping) + CXL_MEM_SIZE)));
 }
 
-void init_cxl_space(uint offset, size_t size) {
+void init_cxl_space(size_t offset, size_t size) {
 	assert (offset + size <= CXL_MEM_SIZE);
 	cxl_space = create_mspace_with_base((char *)model->get_cxl_mapping() + offset, size, 1);
 }
