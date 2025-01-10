@@ -8,6 +8,8 @@ public:
     void notify_one();
     void notify_all();
     void wait(Mutex* lock);
+
+	SHAREDALLOC
 };
 
 #endif
