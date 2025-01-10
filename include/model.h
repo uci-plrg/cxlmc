@@ -25,7 +25,6 @@ private:
 	//should be reset on rollback
 	void* cxl_mapping;
 	modelclock_t next_sequence_num;
-    shared::vector<char*> placeholder_data;
 	shared::hashmap<void *, storeList> obj_to_wr;
 	CacheLineStore obj_to_cl;
 	//stores the last model clock after which the process crashed
@@ -79,8 +78,6 @@ public:
     bool wait_for_next_execution(int num);
 
     void print_execution_summary();
-
-    shared::vector<char*> &get_placeholder_data() { return placeholder_data; };
 
     shared::hashmap<pthread_mutex_t*, Mutex*>* get_mutex_map() { return &mutex_map; }
 

@@ -2,13 +2,6 @@
 #include "action.h"
 #include "cxl_allocator.h"
 #include "model.h"
-#include <cstring>
-
-void user_action(std::string s) {
-    char* copy = (char*) mspace_malloc(shared_space, sizeof(char) * (s.length() + 1));
-    strcpy(copy, s.c_str());
-    model->action(new ModelAction(PLACEHOLDER, copy));
-}
 
 memory_order orders[7] = {
 	memory_order_relaxed, memory_order_consume, memory_order_acquire,

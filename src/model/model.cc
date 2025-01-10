@@ -226,9 +226,6 @@ void Model::print_execution_summary() {
 			printf("p%d at %d, ", pair.first, pair.second);
 		printf("\n\n");
         
-		printf("placeholder data: \n");
-        for (auto &s: placeholder_data)
-            printf("%s, ", s);
         printf("\n");
 }
 
@@ -281,9 +278,6 @@ void Model::reset_execution_data() {
 			for (ModelAction* s: itr.second)
 				delete s;
         obj_to_wr.clear();
-		for (char *str: placeholder_data)
-			mspace_free(shared_space, str);
-        placeholder_data.clear();
 		obj_to_cl.clear();
 		crashes.clear();
 		for (auto &itr: mutex_map)

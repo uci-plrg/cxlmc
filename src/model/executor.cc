@@ -40,13 +40,6 @@ void execute(ModelAction* action) {
         curr_thread->finalize();
         break;
     }
-    case PLACEHOLDER: {
-        char* s = (char*)action->get_location();
-        std::cout << "process " << model->get_scheduler()->get_process_id() << ", " << "thread "
-            << model->get_scheduler()->get_thread_id() << ", " << s << std::endl;
-        model->get_placeholder_data().push_back(s);
-        break;
-    }
     case PTHREAD_CREATE: {
         struct pthread_params* params = (struct pthread_params*)action->get_value();
 		thread_id_t tid = model->get_scheduler()->new_thread(params->func, params->arg);

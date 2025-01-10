@@ -44,7 +44,6 @@ typedef enum action_type {
 	CACHE_SFENCE,	  // < A store fence
 	CACHE_CLFLUSH,	  // < A cacheline flush
 	CACHE_CLFLUSHOPT, // < An optimized cacheline flush
-	PLACEHOLDER	      // < Placeholder
 	
 } action_type_t;
 

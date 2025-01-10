@@ -1,4 +1,3 @@
-#include <sstream>
 #include <pthread.h>
 #include "api.h"
 #include "user.h"
@@ -10,9 +9,7 @@ pthread_mutex_t mutex;
 void* thread(void* arg) {
     pthread_mutex_lock(&mutex);
     for (int i = 0; i < 10; i++) {
-        std::ostringstream oss;
-        oss << "thread iter " << i << " tls " << tls_i++;
-        user_action(oss.str());
+        printf("thread iter %d, tls %d\n", i, tls_i++);
     }
     int* a = new int(97);
     pthread_mutex_unlock(&mutex);
@@ -30,9 +27,7 @@ int main() {
         pthread_create(&pid[i], nullptr, &thread, nullptr);
     }
     for (int i = 0; i < 2; i++) {
-        std::ostringstream oss;
-        oss << "user A iter " << i;
-        user_action(oss.str());
+		printf("user A iter %d\n", i);
     }
     pthread_mutex_unlock(&mutex);
 

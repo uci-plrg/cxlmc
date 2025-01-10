@@ -52,8 +52,6 @@ const char *action_type2str(action_type_t type) {
 			return "CACHE_CLFLUSH";
 		case CACHE_CLFLUSHOPT:
 			return "CACHE_CLFLUSHOPT";
-		case PLACEHOLDER:
-			return "PLACEHOLDER";
 		default:
 			assert(false && "unreachable");
 			return "";

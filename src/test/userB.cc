@@ -1,4 +1,3 @@
-#include <sstream>
 #include <unistd.h>
 #include <time.h>
 
@@ -12,9 +11,7 @@ int main() {
     nanosleep(&ts, &ts);
     
     for (int i = 0; i < 4; i++) {
-        std::ostringstream oss;
-        oss << "user B iter " << i;
-        user_action(oss.str());
+		printf("user A iter %d\n", i);
 
         model->insert_crash();
     }

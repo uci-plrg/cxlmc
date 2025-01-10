@@ -49,7 +49,7 @@ void init_memory_ops() {
 
 const char * memmovestring = "memmove";
 void *cxlmc_memmove(void *dst, const void *src, size_t n) {
-	for(uint i=0;i<n;) {
+	for(unsigned i=0;i<n;) {
 		if ((((uintptr_t)src+i)&7)==0 && (((uintptr_t)dst+i)&7)==0 && (i + 8) <= n) {
 			uint64_t val = cxlmc_atomic_load64(((char *) src) + i, 0, memmovestring);
 			cxlmc_atomic_store64(((char *) dst)+i, val, 0, memmovestring);
@@ -73,7 +73,7 @@ void *cxlmc_memmove(void *dst, const void *src, size_t n) {
 
 const char * memstring = "memcpy";
 void *cxlmc_memcpy(void *dst, const void *src, size_t n) {
-	for(uint i=0;i<n;) {
+	for(unsigned i=0;i<n;) {
 		if ((((uintptr_t)src+i)&7)==0 && (((uintptr_t)dst+i)&7)==0 && (i + 8) <= n) {
 			uint64_t val = cxlmc_atomic_load64(((char *) src) + i, 0, memstring);
 			cxlmc_atomic_store64(((char *) dst)+i, val, 0, memstring);
@@ -98,7 +98,7 @@ void *cxlmc_memcpy(void *dst, const void *src, size_t n) {
 const char * memsetstring = "memset";
 void *cxlmc_memset(void *dst, int c, size_t n) {
 	uint8_t cs = c&0xff;
-	for(uint i=0;i<n;) {
+	for(unsigned i=0;i<n;) {
 		if ((((uintptr_t)dst+i)&7)==0 && (i + 8) <= n) {
 			uint16_t cs2 = cs << 8 | cs;
 			uint64_t cs3 = cs2 << 16 | cs2;
