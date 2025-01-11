@@ -1,5 +1,10 @@
 #include "nodestack.h"
 #include "assert.h"
+#include "stdio.h"
+#include <fcntl.h>
+#include <unistd.h>
+#include <errno.h>
+#include <stdint.h>
 
 /**
  * @brief Node constructor
@@ -12,6 +17,12 @@
  */
 Node::Node(int mrf_size) :
 	read_from_idx(0),
+	rf_size(mrf_size)
+{
+}
+
+Node::Node(int idx, int mrf_size) :
+	read_from_idx(idx),
 	rf_size(mrf_size)
 {
 }
@@ -73,6 +84,7 @@ NodeStack::NodeStack() :
 	node_list(),
 	last_backtrack(NULL),
 	curr_backtrack(NULL),
+	save_state_path(NULL),
 	head_idx(-1)
 {
 }
@@ -95,6 +107,34 @@ NodeStack::~NodeStack()
 // 	model_print("............................................\n");
 // }
 
+void NodeStack::save_state() const {
+	if (save_state_path == NULL) {
+		return;
+	}
+
+	int fd;
+	if ((fd = open(save_state_path, O_WRONLY | O_CREAT, 00777)) == -1) {
+		perror("open");
+		return;
+	}
+
+	int16_t curr_ind = -1;
+	for (unsigned int it = 0; it < node_list.size(); it++) {
+		if (node_list[it] == curr_backtrack) {
+			curr_ind = it;
+			break;
+		}
+	}
+	assert(curr_ind != -1);
+	write(fd, &curr_ind, 2);
+	for (unsigned int it = 0; it < node_list.size(); it++) {
+		uint8_t i1 = node_list[it]->get_choice();
+		uint8_t i2  = node_list[it]->get_read_from_size();
+		write(fd, &i1, 1);
+		write(fd, &i2, 1);
+	}
+	close(fd);
+}
 
 /**
  * Empties the stack of all trailing nodes after a given position and calls the
@@ -171,4 +211,37 @@ Node * NodeStack::create_node(uint numchoices) {
 	node_list.push_back(n);
 	head_idx++;
 	return n;
+}
+
+void NodeStack::set_state(char *file) {
+	int fd;
+	uint16_t curr_ind;
+	uint8_t buf[2];
+
+	save_state_path = file;
+
+	if ((fd = open(file, O_RDONLY)) == -1) {
+		if (errno != ENOENT) {
+			perror("open");
+		}
+		return;
+	}
+
+	printf("Loading nodestack state from file: %s\n", file);
+	full_reset();
+	int size;
+	if ((size = read(fd, &curr_ind, 2)) != 2) {
+		if (size == -1) {
+			perror("read");
+		}
+		return;
+	}
+	while ((size = read(fd, buf, 2)) == 2) {
+		node_list.push_back(new Node(buf[0], buf[1]));
+	}
+	if (size == -1) {
+		perror("read");
+	}
+	curr_backtrack = node_list[curr_ind];\
+	close(fd);
 }

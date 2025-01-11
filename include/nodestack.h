@@ -16,6 +16,7 @@
 class Node {
 public:
 	Node(int mrf_size);
+	Node(int idx, int mrf_size);
 	~Node();
 
 	void increment_read_from();
@@ -23,7 +24,7 @@ public:
 	// void print_read_from();
 	int get_choice() const;
 	int get_read_from_size() const;
-	// void print() const;
+	void print() const;
 
 	SHAREDALLOC
 private:
@@ -59,15 +60,18 @@ public:
 	void pop_restofstack(int numAhead);
 	void full_reset();
 	// void print() const;
+	void save_state() const;
 	bool has_another_execution() {return last_backtrack != NULL;}
 	Node * create_node(uint numchoices);
 	Node * explore_next(uint numchoises);
+	void set_state(char *state);
 
 	SHAREDALLOC
 private:
 	node_list_t node_list;
 	Node * last_backtrack;
 	Node * curr_backtrack;
+	char * save_state_path;
 	/**
 	 * @brief the index position of the current head Node
 	 *

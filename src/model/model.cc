@@ -249,6 +249,7 @@ void Model::finish_execution() {
         if (rollback_again) {
             printf("-------------------------- execution %d--------------------------\n", num+1);
             nodestack->reset_execution();
+			nodestack->save_state();
         }	
 		reset_execution_data();
 		scheduler->reset();
