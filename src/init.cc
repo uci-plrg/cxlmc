@@ -13,20 +13,31 @@
 #include "config.h"
 
 int main(int argc, char* argv[]) {
-    int processes = 16;
-    if (argc > 1) {
-        processes = atoi(argv[1]);
+    int opt;
+    char *ns_state = NULL;
+    int processes = 0;
+    char *file_path = NULL;
+    while ((opt = getopt(argc, argv, "f:n:s:")) != -1) {
+        switch (opt) {
+            case 'f':
+                file_path = optarg;
+                break;
+            case 'n':
+                processes = atoi(optarg);
+                break;
+            case 's':
+                ns_state = optarg;
+                break;
+        }
     }
-
+    
     if (processes < 1) {
         std::cerr << "Less than 1 processs" << std::endl;
         exit(EXIT_FAILURE);
     }
-    
-    int user_progs = argc - 2;
 
-    if (user_progs < 1) {
-        std::cerr << "Less than 1 user program" << std::endl;
+    if (file_path == NULL) {
+        std::cerr << "No file path specified" << std::endl;
         exit(EXIT_FAILURE);
     }
 
@@ -51,6 +62,10 @@ int main(int argc, char* argv[]) {
     Scheduler *scheduler = new ((char *)mapping + SHARED_MAP_SIZE + CXL_MEM_SIZE) Scheduler(processes);
 	model = new((char*)mapping + SHARED_MAP_SIZE + CXL_MEM_SIZE + sizeof(Scheduler)) Model(scheduler, cxl_mapping);
 
+    if (ns_state != NULL) {
+        model->get_node_stack()->set_state(ns_state);
+    }
+
     pid_t pid;
     int id;
     for (id = 0; id < processes; id++) {
@@ -61,7 +76,7 @@ int main(int argc, char* argv[]) {
     }
 
     if (pid == 0) {
-        char* cur_prog = argv[2+(id%user_progs)];
+        char* cur_prog = file_path;
         char* cur_prog_cpy = (char*)malloc(sizeof(char) * (strlen(cur_prog) + 1));
         strcpy(cur_prog_cpy, cur_prog);
         char* save_ptr = cur_prog_cpy;

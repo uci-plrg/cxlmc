@@ -3,6 +3,7 @@
 #include "snapshot.h"
 
 bool is_fork = false;
+extern int process_id;
 
 void take_snapshot() {
     int execution_num = 1;
@@ -13,6 +14,7 @@ void take_snapshot() {
 
 		if (0 == forkedID) {
             is_fork = true;
+            srand(42 + process_id);
             return;
         }
             
