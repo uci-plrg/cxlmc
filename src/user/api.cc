@@ -267,13 +267,9 @@ void* get_cxl_mapping() {
 }
 
 bool mem_is_cxl(const void *address, size_t size) {
-	if (model == nullptr) {
+	if (!model)
 		return false;
-	}
-    void* mapping = get_cxl_mapping();
-	return ((mapping != NULL) &&
-					(((uintptr_t)address) >= ((uintptr_t)mapping)) &&
-					(((uintptr_t)address) < (((uintptr_t)mapping) + CXL_MEM_SIZE)));
+	return model->mem_is_cxl(address);  
 }
 
 void init_cxl_space(size_t offset, size_t size) {

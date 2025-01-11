@@ -247,7 +247,6 @@ void Model::finish_execution() {
 			print_execution_summary();
         rollback_again = rollback_again && num+1 <= MAX_EXECUTION && nodestack->has_another_execution();
         if (rollback_again) {
-            printf("-------------------------- execution %d--------------------------\n", num+1);
             nodestack->reset_execution();
 			nodestack->save_state();
         }	
@@ -257,6 +256,8 @@ void Model::finish_execution() {
 		mspace_malloc_stats(shared_space);
 		inside_model = false;
         execution_num.store(num+1);
+		if(rollback_again)
+			printf("-------------------------- execution %d done--------------------------\n", num);
     }
 }
 
@@ -313,4 +314,11 @@ void Model::ensureInitialValue(ModelAction *action) {
     if (list.size() == 0) {
 		list.push_back(new ModelAction(ATOMIC_INIT, addr, *(uint64_t*)addr, memory_order_relaxed, 8, "ensureInitialValue"));
 	}
+}
+
+bool Model::mem_is_cxl(const void *addr) {
+	return ((cxl_mapping != NULL) &&
+					(((uintptr_t)addr) >= ((uintptr_t)cxl_mapping)) &&
+					(((uintptr_t)addr) < (((uintptr_t)cxl_mapping) + CXL_MEM_SIZE)));
+
 }

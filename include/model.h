@@ -13,7 +13,7 @@
 #include "nodestack.h"
 #include "condition_variable.h"
 
-
+using ExtPtr = shared::Pair<void *, process_id_t>;
 class Model {
 public:
 	using storeList = shared::list<ModelAction *>;
@@ -29,8 +29,8 @@ private:
 	CacheLineStore obj_to_cl;
 	//stores the last model clock after which the process crashed
 	shared::hashmap<process_id_t, modelclock_t> crashes;
-    shared::hashmap<pthread_mutex_t*, Mutex*> mutex_map;
-    shared::hashmap<pthread_cond_t*, ConditionVariable*> cond_map;
+    shared::hashmap<ExtPtr, Mutex*, ExtPtr::hash> mutex_map;
+    shared::hashmap<ExtPtr, ConditionVariable*, ExtPtr::hash> cond_map;
     NodeStack* nodestack;
     bool rollback_again;
 
@@ -79,13 +79,15 @@ public:
 
     void print_execution_summary();
 
-    shared::hashmap<pthread_mutex_t*, Mutex*>* get_mutex_map() { return &mutex_map; }
+    shared::hashmap<ExtPtr, Mutex*, ExtPtr::hash>* get_mutex_map() { return &mutex_map; }
 
-    shared::hashmap<pthread_cond_t*, ConditionVariable*>* get_cond_map() { return &cond_map; }
+    shared::hashmap<ExtPtr, ConditionVariable*, ExtPtr::hash>* get_cond_map() { return &cond_map; }
 
 	void *get_cxl_mapping() {
 		return cxl_mapping;
 	}
+
+	bool mem_is_cxl(const void *);
 
 	bool is_crashed(process_id_t pid);
 	
