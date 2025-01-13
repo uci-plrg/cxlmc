@@ -109,6 +109,8 @@ public:
     void insert_crash();
 
     process_id_t get_crashed_process_count() { return crashes.size(); }
+
+	int get_execution_num() { return execution_num.load(); }
 };
 
 extern Model *model;

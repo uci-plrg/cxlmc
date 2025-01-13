@@ -6,7 +6,7 @@ bool is_fork = false;
 extern int process_id;
 
 void take_snapshot() {
-    int execution_num = 1;
+    int execution_num = model->get_execution_num();
     while (true) {
 		pid_t forkedID;
 
