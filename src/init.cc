@@ -14,19 +14,27 @@
 
 int main(int argc, char* argv[]) {
     int opt;
-    char *ns_state = NULL;
+    char *ns_save = NULL;
+    char *ns_load = NULL;
     int processes = 0;
     char *file_path = NULL;
-    while ((opt = getopt(argc, argv, "f:n:s:")) != -1) {
+    int execution_num_save = 0;
+    while ((opt = getopt(argc, argv, "e:f:l:n:s:")) != -1) {
         switch (opt) {
+            case 'e':
+                execution_num_save = atoi(optarg);
+                break;
             case 'f':
                 file_path = optarg;
+                break;
+            case 'l':
+                ns_load = optarg;
                 break;
             case 'n':
                 processes = atoi(optarg);
                 break;
             case 's':
-                ns_state = optarg;
+                ns_save = optarg;
                 break;
         }
     }
@@ -62,8 +70,12 @@ int main(int argc, char* argv[]) {
     Scheduler *scheduler = new ((char *)mapping + SHARED_MAP_SIZE + CXL_MEM_SIZE) Scheduler(processes);
 	model = new((char*)mapping + SHARED_MAP_SIZE + CXL_MEM_SIZE + sizeof(Scheduler)) Model(scheduler, cxl_mapping);
 
-    if (ns_state != NULL) {
-        model->get_node_stack()->set_state(ns_state);
+    if (ns_save != NULL) {
+        model->save_execution(execution_num_save, ns_save);
+    }
+
+    if (ns_load != NULL) {
+        model->load_nodestack(ns_load);
     }
 
     pid_t pid;

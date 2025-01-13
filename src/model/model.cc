@@ -246,18 +246,19 @@ void Model::finish_execution() {
 		if (VERBOSE > 0)
 			print_execution_summary();
         rollback_again = rollback_again && num+1 <= MAX_EXECUTION && nodestack->has_another_execution();
-        if (rollback_again) {
+        if (rollback_again)
             nodestack->reset_execution();
-			nodestack->save_state();
-        }	
 		reset_execution_data();
 		scheduler->reset();
 		printf("Shared Space Memory Usage:\n");
 		mspace_malloc_stats(shared_space);
 		inside_model = false;
-        execution_num.store(num+1);
-		if(rollback_again)
+		if (rollback_again) {
 			printf("-------------------------- execution %d done--------------------------\n", num);
+			if (execution_num_save == num + 1)
+				nodestack->save_state(num + 1, ns_save);
+		}
+        execution_num.store(num+1);
     }
 }
 
@@ -321,4 +322,9 @@ bool Model::mem_is_cxl(const void *addr) {
 					(((uintptr_t)addr) >= ((uintptr_t)cxl_mapping)) &&
 					(((uintptr_t)addr) < (((uintptr_t)cxl_mapping) + CXL_MEM_SIZE)));
 
+}
+
+void Model::load_nodestack(char *filepath) {
+	int exec_num = nodestack->set_state(filepath);
+	execution_num.store(exec_num);
 }

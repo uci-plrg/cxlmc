@@ -4,7 +4,6 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <errno.h>
-#include <stdint.h>
 
 /**
  * @brief Node constructor
@@ -84,7 +83,6 @@ NodeStack::NodeStack() :
 	node_list(),
 	last_backtrack(NULL),
 	curr_backtrack(NULL),
-	save_state_path(NULL),
 	head_idx(-1)
 {
 }
@@ -107,25 +105,24 @@ NodeStack::~NodeStack()
 // 	model_print("............................................\n");
 // }
 
-void NodeStack::save_state() const {
-	if (save_state_path == NULL) {
-		return;
-	}
-
+void NodeStack::save_state(uint32_t exec_num, char *ns_save) const {
 	int fd;
-	if ((fd = open(save_state_path, O_WRONLY | O_CREAT, 00777)) == -1) {
+	if ((fd = open(ns_save, O_WRONLY | O_CREAT, 00777)) == -1) {
 		perror("open");
 		return;
 	}
+	printf("Saving nodestack state to file: %s\n", ns_save);
 
-	int16_t curr_ind = -1;
-	for (unsigned int it = 0; it < node_list.size(); it++) {
-		if (node_list[it] == curr_backtrack) {
-			curr_ind = it;
-			break;
+	uint16_t curr_ind = -1;
+	if (curr_backtrack != NULL) {
+		for (unsigned int it = 0; it < node_list.size(); it++) {
+			if (node_list[it] == curr_backtrack) {
+				curr_ind = it;
+				break;
+			}
 		}
 	}
-	assert(curr_ind != -1);
+	write(fd, &exec_num, 4);
 	write(fd, &curr_ind, 2);
 	for (unsigned int it = 0; it < node_list.size(); it++) {
 		uint8_t i1 = node_list[it]->get_choice();
@@ -213,35 +210,43 @@ Node * NodeStack::create_node(uint numchoices) {
 	return n;
 }
 
-void NodeStack::set_state(char *file) {
+uint32_t NodeStack::set_state(char *ns_load) {
 	int fd;
+	uint32_t exec_num;
 	uint16_t curr_ind;
 	uint8_t buf[2];
 
-	save_state_path = file;
-
-	if ((fd = open(file, O_RDONLY)) == -1) {
+	if ((fd = open(ns_load, O_RDONLY)) == -1) {
 		if (errno != ENOENT) {
 			perror("open");
 		}
-		return;
+		return -1;
 	}
 
-	printf("Loading nodestack state from file: %s\n", file);
+	printf("Loading nodestack state from file: %s\n", ns_load);
 	full_reset();
 	int size;
+	if ((size = read(fd, &exec_num, 4)) != 4) {
+		if (size == -1) {
+			perror("read");
+		}
+		return -1;
+	}
 	if ((size = read(fd, &curr_ind, 2)) != 2) {
 		if (size == -1) {
 			perror("read");
 		}
-		return;
+		return -1;
 	}
 	while ((size = read(fd, buf, 2)) == 2) {
 		node_list.push_back(new Node(buf[0], buf[1]));
 	}
 	if (size == -1) {
 		perror("read");
+		return -1;
 	}
-	curr_backtrack = node_list[curr_ind];\
+	if (curr_ind < node_list.size())
+		curr_backtrack = node_list[curr_ind];
 	close(fd);
+	return exec_num;
 }

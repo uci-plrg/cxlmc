@@ -34,6 +34,9 @@ private:
     NodeStack* nodestack;
     bool rollback_again;
 
+	int execution_num_save;
+	char *ns_save;
+
 	void process_store_buffer();
 
 	void reset_execution_data();
@@ -55,7 +58,8 @@ private:
 	void ensureInitialValue(ModelAction *action);
 
 public:
-    Model(Scheduler *s, void* cxl): scheduler(s), execution_num(1), cxl_mapping(cxl), next_sequence_num(0), nodestack(new NodeStack), rollback_again(true) {}
+    Model(Scheduler *s, void* cxl): scheduler(s), execution_num(1), cxl_mapping(cxl), next_sequence_num(0), nodestack(new NodeStack), rollback_again(true),
+		execution_num_save(0), ns_save(nullptr) {}
     ~Model() { delete nodestack; }
 
     uint64_t action(ModelAction* action);
@@ -69,6 +73,13 @@ public:
     void terminate_early();
 
     void finish_execution();
+
+	void save_execution(int exec_num, char *filepath) {
+		execution_num_save = exec_num;
+		ns_save = filepath;
+	}
+
+	void load_nodestack(char *filepath);
 
     Scheduler *get_scheduler() { return scheduler; }
 

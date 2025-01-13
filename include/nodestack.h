@@ -4,6 +4,7 @@
 #include "allocators.h"
 #include "shared_ADT.h"
 #include <vector>
+#include <stdint.h>
 /**
  * @brief A single node in a NodeStack
  *
@@ -60,18 +61,17 @@ public:
 	void pop_restofstack(int numAhead);
 	void full_reset();
 	// void print() const;
-	void save_state() const;
+	void save_state(uint32_t exec_num, char *ns_save) const;
 	bool has_another_execution() {return last_backtrack != NULL;}
 	Node * create_node(uint numchoices);
 	Node * explore_next(uint numchoises);
-	void set_state(char *state);
+	uint32_t set_state(char *ns_load);
 
 	SHAREDALLOC
 private:
 	node_list_t node_list;
 	Node * last_backtrack;
 	Node * curr_backtrack;
-	char * save_state_path;
 	/**
 	 * @brief the index position of the current head Node
 	 *
