@@ -116,6 +116,9 @@ void Scheduler::process_crash() {
 	            printf("thread %d crashed\n", i);
 	        thread->cleanup();
 	        thread->set_state(THREAD_CRASHED);
+            for (Mutex *mutex: thread->get_owned_mutexes()) {
+                wake_all_threads_waiting_on(mutex);
+            }
 	    }
 	}
 }
