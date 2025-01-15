@@ -11,7 +11,6 @@
 #include "model.h"
 #include "scheduler.h"
 #include "executor.h"
-#include "futex.h"
 
 Model *model = nullptr;
 bool inside_model = false;
@@ -259,7 +258,6 @@ void Model::finish_execution() {
 				nodestack->save_state(num + 1, ns_save);
 		}
         execution_num.store(num+1);
-		fwake((uint32_t*)&execution_num);
     }
 }
 
@@ -270,8 +268,7 @@ bool Model::wait_for_next_execution(int num) {
 
 	int loaded;
     while ((loaded = execution_num.load()) < num) {
-		fwait((uint32_t*)&execution_num, loaded);
-        //real_sched_yield();
+        real_sched_yield();
     }
 
     return rollback_again;

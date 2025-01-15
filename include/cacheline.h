@@ -47,14 +47,21 @@ class CacheLineStore {
 		i++;
 		return (cacheline *)nullptr;
 	}
-public:
-	CacheLineStore() {
-		_store.push_back(shared::Pair{UINT_MAX, shared::hashmap<uintptr_t, cacheline>{}}); 
+
+	void ensure_init() {
+		if (_store.size() == 0)
+			_store.push_back(shared::Pair{UINT_MAX, shared::hashmap<uintptr_t, cacheline>{}}); 
 	}
+public:
+	CacheLineStore() = default;
+	//{
+	//	_store.push_back(shared::Pair{UINT_MAX, shared::hashmap<uintptr_t, cacheline>{}}); 
+	//}
 
 	CacheLineStore(const CacheLineStore &other) = default;
 
 	cacheline &get_cacheline(uintptr_t addr, modelclock_t crash_point=UINT_MAX) {
+		ensure_init();
 		int i = _store.size()-1;
 		//can use binary search to optimize
 		while (i!=0 &&_store[i].first != crash_point)
@@ -68,6 +75,7 @@ public:
 	}
 
 	cacheline &set_cacheline(uintptr_t addr, const cacheline &cl) {
+		ensure_init();
 		int i = 0;
 		//can use binary search to optimize
 		while (_store[i].first < cl.getBegin())
@@ -76,14 +84,18 @@ public:
 	}
 
 	void insert_crash(modelclock_t crash_point) {
+		ensure_init();
 		_store[_store.size()-1].first = crash_point;
 		_store.push_back(shared::Pair(UINT_MAX, shared::hashmap<uintptr_t, cacheline>{}));
 	}
 
 	void copy_at(const CacheLineStore &other, uintptr_t addr) {
 		const auto &other_store = other.get_store();
+		if (other_store.size() == 0)
+			return;
 		assert(other_store.size() >= _store.size());
 
+		ensure_init();
 		unsigned i = _store.size()-1;
 		_store[i].first = other_store[i].first;
 		for (i++;i < other_store.size(); i++)
@@ -103,7 +115,6 @@ public:
 
 	void clear() {
 		_store.clear();
-		_store.push_back(shared::Pair{UINT_MAX, shared::hashmap<uintptr_t, cacheline>{}}); 
 	}
 
 	void dump() {

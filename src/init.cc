@@ -135,7 +135,9 @@ int main(int argc, char* argv[]) {
             pid = fork();
             if (pid == 0) {
                 break;
-            }
+            } else {
+				std::cout << "spawn process " << id << " with system pid " << pid << "\n";
+			}
         }
  
         if (pid == 0) { 
@@ -144,11 +146,12 @@ int main(int argc, char* argv[]) {
             user_done();
         } else {
             int status;
-            while (waitpid(-1, &status, 0) != -1) {
+			pid_t child;
+            while ((child = waitpid(-1, &status, 0)) != -1) {
                 if(WIFSIGNALED(status))
-                    std::cerr << "child terminated by sig " << WTERMSIG(status) << std::endl;
+                    std::cerr << "process " << child << " terminated by sig " << WTERMSIG(status) << std::endl;
                 else if (WIFSTOPPED(status))
-                    std::cerr << "child stopped by sig " << WSTOPSIG(status) << std::endl;
+                    std::cerr << "process " << child << " stopped by sig " << WSTOPSIG(status) << std::endl;
             }
  
             munmap(cxl_mapping, CXL_MEM_SIZE); 
