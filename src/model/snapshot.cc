@@ -3,19 +3,19 @@
 #include "snapshot.h"
 
 bool is_fork = false;
-extern int process_id;
 
-void take_snapshot() {
+pid_t take_snapshot() {
     int execution_num = model->get_execution_num();
     while (true) {
+		std::cout << "-------------------------- execution "<< execution_num << "--------------------------\n";
+
 		pid_t forkedID;
 
 		forkedID = fork();
 
 		if (0 == forkedID) {
             is_fork = true;
-            srand(42 + process_id);
-            return;
+            return forkedID;
         }
             
         int status;
@@ -28,14 +28,13 @@ void take_snapshot() {
         }
 
         if(WIFSIGNALED(status)) {
-            std::cerr << "process " << process_id << " terminated by sig " << WTERMSIG(status) << std::endl;
+            std::cerr << "execution " << execution_num << " terminated by sig " << WTERMSIG(status) << std::endl;
             model->terminate_early();
         }
         
         if (!model->wait_for_next_execution(++execution_num)) {	
-            exit(EXIT_SUCCESS);
+            return forkedID;
 		}
 
-        std::cout << "restart process " << process_id << std::endl;
     }
 }

@@ -9,8 +9,6 @@
 
 #include "model.h"
 
-extern Model *model;
-
-void take_snapshot();
+pid_t take_snapshot();
 
 #endif

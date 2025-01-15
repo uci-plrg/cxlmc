@@ -9,6 +9,7 @@
 
 #include "scheduler.h"
 #include "model.h"
+#include "snapshot.h"
 #include "allocators.h"
 #include "config.h"
 
@@ -64,13 +65,8 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-	void *cxl_mapping = mmap(NULL, CXL_MEM_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);	
-	if (cxl_mapping == MAP_FAILED) {
-        perror("mmap");
-        return 1;
-    }
     Scheduler *scheduler = new ((char *)mapping + SHARED_MAP_SIZE) Scheduler(processes);
-	model = new((char*)mapping + SHARED_MAP_SIZE + sizeof(Scheduler)) Model(scheduler, cxl_mapping);
+	model = new((char*)mapping + SHARED_MAP_SIZE + sizeof(Scheduler)) Model(scheduler);
 
     if (ns_save != NULL) {
         model->save_execution(execution_num_save, ns_save);
@@ -124,33 +120,44 @@ int main(int argc, char* argv[]) {
         exit(1);
     }
     
-	pid_t pid;
-    int id;
-    for (id = 0; id < processes; id++) {
-        pid = fork();
-        if (pid == 0) {
-            break;
-        }
-    }
+	if (take_snapshot() == 0) {
 
-    if (pid == 0) { 
-        user_init(id, model, shared_space);
-        user_main(user_argc, user_argv);
-        user_done();
-    } else {
-        int status;
-        while (waitpid(-1, &status, 0) != -1) {
-            if(WIFSIGNALED(status))
-                std::cerr << "child terminated by sig " << WTERMSIG(status) << std::endl;
-            else if (WIFSTOPPED(status))
-                std::cerr << "child stopped by sig " << WSTOPSIG(status) << std::endl;
+        void *cxl_mapping = mmap(NULL, CXL_MEM_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+        if (cxl_mapping == MAP_FAILED) {
+            perror("mmap");
+            return 1;
         }
+        model->set_cxl_mapping(cxl_mapping);
         
+        pid_t pid;
+        int id;
+        for (id = 0; id < processes; id++) {
+            pid = fork();
+            if (pid == 0) {
+                break;
+            }
+        }
+ 
+        if (pid == 0) { 
+            user_init(id, model, shared_space);
+            user_main(user_argc, user_argv);
+            user_done();
+        } else {
+            int status;
+            while (waitpid(-1, &status, 0) != -1) {
+                if(WIFSIGNALED(status))
+                    std::cerr << "child terminated by sig " << WTERMSIG(status) << std::endl;
+                else if (WIFSTOPPED(status))
+                    std::cerr << "child stopped by sig " << WSTOPSIG(status) << std::endl;
+            }
+ 
+            munmap(cxl_mapping, CXL_MEM_SIZE); 
+        }
+	} else {
         free(user_argv);
         free(cur_prog_cpy);
         munmap(mapping, SHARED_MAP_SIZE + reserved);
-        munmap(cxl_mapping, CXL_MEM_SIZE);
-    }
+	}
 
     return 0;
 }

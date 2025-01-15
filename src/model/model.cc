@@ -3,7 +3,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/wait.h>
-#include <sys/mman.h>
 
 #include <atomic>
 #include <cstring>
@@ -258,7 +257,6 @@ void Model::finish_execution() {
             nodestack->reset_execution();
 			if (execution_num_save == num + 1)
 				nodestack->save_state(num + 1, ns_save);
-			printf("-------------------------- execution %d--------------------------\n", num+1);
 		}
         execution_num.store(num+1);
 		fwake((uint32_t*)&execution_num);
@@ -280,7 +278,6 @@ bool Model::wait_for_next_execution(int num) {
 }
 
 void Model::reset_execution_data() {
-		memset(cxl_mapping, 0, CXL_MEM_SIZE);	
 		next_sequence_num = 0;
 		for (auto& itr: obj_to_wr)
 			for (ModelAction* s: itr.second)
