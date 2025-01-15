@@ -62,7 +62,7 @@ public:
 		execution_num_save(0), ns_save(nullptr) {}
     ~Model() { delete nodestack; }
 
-    uint64_t action(ModelAction* action);
+    uint64_t action(ModelAction* action, bool yield=true);
     
     void evict_store(ModelAction* action);
     

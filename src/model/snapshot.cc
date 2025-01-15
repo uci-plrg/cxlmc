@@ -2,8 +2,6 @@
 
 #include "snapshot.h"
 
-bool is_fork = false;
-
 pid_t take_snapshot() {
     int execution_num = model->get_execution_num();
     while (true) {
@@ -14,7 +12,6 @@ pid_t take_snapshot() {
 		forkedID = fork();
 
 		if (0 == forkedID) {
-            is_fork = true;
             return forkedID;
         }
             

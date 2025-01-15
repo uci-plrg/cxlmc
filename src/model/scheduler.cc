@@ -98,8 +98,7 @@ void Scheduler::process_shutdown() {
 			if (!thread->is_completed()) {
                 if (VERBOSE > 0)
 				    printf("thread %d terminated\n", i);
-				if (is_fork)
-					thread->cleanup();
+				thread->cleanup();
 				thread->set_state(THREAD_COMPLETED);
 			}
 			thread->get_thread_memory()->empty_store_buffer();

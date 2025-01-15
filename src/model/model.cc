@@ -18,7 +18,7 @@ mspace shared_space = NULL;
 mspace snapshot_space = NULL;
 mspace cxl_space = NULL;
 
-uint64_t Model::action(ModelAction* action) {
+uint64_t Model::action(ModelAction* action, bool yield) {
     scheduler->assert_active();
 	if (is_crashed(process_id)) {
 		scheduler->process_crash();
@@ -27,7 +27,7 @@ uint64_t Model::action(ModelAction* action) {
 
     Thread* curr_thread = scheduler->current_thread();
     curr_thread->set_pending(action);
-	if (!action->is_second_part_of_rmw())
+	if (yield && !action->is_second_part_of_rmw())
 	    scheduler->yield();
 	if (action->is_read() || action->is_write())
 		ensureInitialValue(action);
@@ -82,10 +82,7 @@ Model::storeList &Model::get_storelist(void *addr)  {
 }
 
 void Model::evict_store(ModelAction* action) {
-    assert(action->get_type() == ATOMIC_INIT
-		|| action->get_type() == NONATOMIC_STORE
-		|| action->get_type() == ATOMIC_STORE
-		|| action->get_type() == ATOMIC_RMW);
+    assert(action->is_write());
 	action->set_seq_num(get_next_sequence_num());
     get_storelist(action->get_location()).push_back(action);
 }

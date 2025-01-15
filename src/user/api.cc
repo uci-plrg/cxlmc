@@ -11,7 +11,7 @@ memory_order orders[7] = {
 #define CXLMCLOAD(size) \
 	uint ## size ## _t cxlmc_load ## size (void* loc, const char* position) { \
 		if (mem_is_cxl(loc, size)) \
-			return (uint ## size ##_t) model->action(new ModelAction(NONATOMIC_LOAD, loc, VALUE_NONE, memory_order_relaxed, size >> 3, position)); \
+			return (uint ## size ##_t) model->action(new ModelAction(NONATOMIC_LOAD, loc, VALUE_NONE, memory_order_relaxed, size >> 3, position), false); \
 		return *(uint ## size ##_t*) loc; \
 	}
 
@@ -23,7 +23,7 @@ CXLMCLOAD(64)
 #define CXLMCSTORE(size) \
 	void cxlmc_store ## size (void* loc, uint ## size ## _t val, const char* position) { \
 	if (mem_is_cxl(loc, size)) \
-		model->action(new ModelAction(NONATOMIC_STORE, loc, val, memory_order_relaxed, size >> 3, position)); \
+		model->action(new ModelAction(NONATOMIC_STORE, loc, val, memory_order_relaxed, size >> 3, position), false); \
 	*((uint ## size ##_t *)loc) = val; \
 }
 
@@ -35,7 +35,7 @@ CXLMCSTORE(64)
 #define VOLATILELOAD(size) \
 	uint ## size ## _t cxlmc_volatile_load ## size (void* loc, const char *position) { \
 		if (mem_is_cxl(loc, size)) \
-			return (uint ## size ##_t) model->action(new ModelAction(ATOMIC_LOAD, loc, VALUE_NONE, memory_order_volatile_load, size >> 3, position)); \
+			return (uint ## size ##_t) model->action(new ModelAction(ATOMIC_LOAD, loc, VALUE_NONE, memory_order_volatile_load, size >> 3, position), false); \
 		return *(uint ## size ##_t*) loc; \
 	}
 
@@ -47,7 +47,7 @@ VOLATILELOAD(64)
 #define VOLATILESTORE(size) \
 	void cxlmc_volatile_store ## size (void* loc, uint ## size ## _t val, const char *position) { \
 	if (mem_is_cxl(loc, size)) \
-		model->action(new ModelAction(ATOMIC_STORE, loc, val, memory_order_seq_cst, size >> 3, position)); \
+		model->action(new ModelAction(ATOMIC_STORE, loc, val, memory_order_seq_cst, size >> 3, position), false); \
 	*((uint ## size ##_t *)loc) = val; \
 }
 
