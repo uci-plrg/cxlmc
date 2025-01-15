@@ -31,7 +31,7 @@ void Scheduler::wait() {
             Thread* prev = current_thread();
             thread_id = active;
             prev->swap(get_thread(active));
-        }
+        }	
         real_sched_yield();
     }
 }

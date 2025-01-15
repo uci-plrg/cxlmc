@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/wait.h>
+#include <sys/mman.h>
 
 #include <atomic>
 #include <cstring>
@@ -11,6 +12,7 @@
 #include "model.h"
 #include "scheduler.h"
 #include "executor.h"
+#include "futex.h"
 
 Model *model = nullptr;
 bool inside_model = false;
@@ -245,20 +247,21 @@ void Model::finish_execution() {
 		inside_model = true;
 		if (VERBOSE > 0)
 			print_execution_summary();
-        rollback_again = rollback_again && num+1 <= MAX_EXECUTION && nodestack->has_another_execution();
-        if (rollback_again)
-            nodestack->reset_execution();
 		reset_execution_data();
 		scheduler->reset();
 		printf("Shared Space Memory Usage:\n");
 		mspace_malloc_stats(shared_space);
 		inside_model = false;
-		if (rollback_again) {
-			printf("-------------------------- execution %d done--------------------------\n", num);
+
+        rollback_again = rollback_again && num+1 <= MAX_EXECUTION && nodestack->has_another_execution();
+        if (rollback_again) {
+            nodestack->reset_execution();
 			if (execution_num_save == num + 1)
 				nodestack->save_state(num + 1, ns_save);
+			printf("-------------------------- execution %d--------------------------\n", num+1);
 		}
         execution_num.store(num+1);
+		fwake((uint32_t*)&execution_num);
     }
 }
 
@@ -267,15 +270,17 @@ bool Model::wait_for_next_execution(int num) {
         return false;
     }
 
-    while (execution_num.load() < num) {
-        real_sched_yield();
+	int loaded;
+    while ((loaded = execution_num.load()) < num) {
+		fwait((uint32_t*)&execution_num, loaded);
+        //real_sched_yield();
     }
 
     return rollback_again;
 }
 
 void Model::reset_execution_data() {
-		memset(cxl_mapping, 0, CXL_MEM_SIZE);
+		memset(cxl_mapping, 0, CXL_MEM_SIZE);	
 		next_sequence_num = 0;
 		for (auto& itr: obj_to_wr)
 			for (ModelAction* s: itr.second)
