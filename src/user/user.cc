@@ -17,7 +17,7 @@ void user_init(process_id_t pid, Model *m, mspace ms) {
     model->get_scheduler()->process_init(pid);
     real_init_all();
     init_memory_ops();
-    take_snapshot();
+    srand(42 + pid);
     
     void* mapping = mmap(NULL, SNAPSHOT_PAGES * PAGE_SIZE, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     

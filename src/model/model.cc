@@ -11,6 +11,7 @@
 #include "model.h"
 #include "scheduler.h"
 #include "executor.h"
+#include "futex.h"
 
 Model *model = nullptr;
 bool inside_model = false;
@@ -18,7 +19,7 @@ mspace shared_space = NULL;
 mspace snapshot_space = NULL;
 mspace cxl_space = NULL;
 
-uint64_t Model::action(ModelAction* action) {
+uint64_t Model::action(ModelAction* action, bool yield) {
     scheduler->assert_active();
 	if (is_crashed(process_id)) {
 		scheduler->process_crash();
@@ -27,7 +28,7 @@ uint64_t Model::action(ModelAction* action) {
 
     Thread* curr_thread = scheduler->current_thread();
     curr_thread->set_pending(action);
-	if (!action->is_second_part_of_rmw())
+	if (yield && !action->is_second_part_of_rmw())
 	    scheduler->yield();
 	if (action->is_read() || action->is_write())
 		ensureInitialValue(action);
@@ -49,7 +50,6 @@ bool Model::is_crashed(process_id_t pid) {
 
 void Model::process_store_buffer() {
 	//placeholder store buffer policy, to be changed later
-	uint num_to_pop = rand()%EVICT_MAX;
 	uint thread_count = scheduler->get_thread_count();
 	uint thread_to_pop = rand()%thread_count;
 	for (uint i = 0; i < thread_count; i++) {
@@ -59,9 +59,15 @@ void Model::process_store_buffer() {
 	}
 	
 	ThreadMemory *mem = scheduler->get_thread(thread_to_pop)->get_thread_memory();
+
+	if (mem->get_store_buffer_size() == 0)
+		return;
+
+	uint num_to_pop = random()%EVICT_MAX;
+	if (num_to_pop >= mem->get_store_buffer_size())
+		num_to_pop = mem->get_store_buffer_size()-1;
 	for (uint j = 0; j < num_to_pop; j++) {
-		if (!mem->pop_from_store_buffer())
-			break;
+		mem->pop_from_store_buffer();
 	}
 }
 
@@ -82,10 +88,7 @@ Model::storeList &Model::get_storelist(void *addr)  {
 }
 
 void Model::evict_store(ModelAction* action) {
-    assert(action->get_type() == ATOMIC_INIT
-		|| action->get_type() == NONATOMIC_STORE
-		|| action->get_type() == ATOMIC_STORE
-		|| action->get_type() == ATOMIC_RMW);
+    assert(action->is_write());
 	action->set_seq_num(get_next_sequence_num());
     get_storelist(action->get_location()).push_back(action);
 }
@@ -245,20 +248,20 @@ void Model::finish_execution() {
 		inside_model = true;
 		if (VERBOSE > 0)
 			print_execution_summary();
-        rollback_again = rollback_again && num+1 <= MAX_EXECUTION && nodestack->has_another_execution();
-        if (rollback_again)
-            nodestack->reset_execution();
 		reset_execution_data();
 		scheduler->reset();
 		printf("Shared Space Memory Usage:\n");
 		mspace_malloc_stats(shared_space);
 		inside_model = false;
-		if (rollback_again) {
-			printf("-------------------------- execution %d done--------------------------\n", num);
+
+        rollback_again = rollback_again && num+1 <= MAX_EXECUTION && nodestack->has_another_execution();
+        if (rollback_again) {
+            nodestack->reset_execution();
 			if (execution_num_save == num + 1)
 				nodestack->save_state(num + 1, ns_save);
 		}
         execution_num.store(num+1);
+		fwake((uint32_t*)&execution_num);
     }
 }
 
@@ -267,15 +270,15 @@ bool Model::wait_for_next_execution(int num) {
         return false;
     }
 
-    while (execution_num.load() < num) {
-        real_sched_yield();
+	int loaded;
+    while ((loaded = execution_num.load()) < num) {
+		fwait((uint32_t*)&execution_num, loaded);
     }
 
     return rollback_again;
 }
 
 void Model::reset_execution_data() {
-		memset(cxl_mapping, 0, CXL_MEM_SIZE);
 		next_sequence_num = 0;
 		for (auto& itr: obj_to_wr)
 			for (ModelAction* s: itr.second)

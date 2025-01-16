@@ -27,6 +27,24 @@ int real_pthread_mutex_unlock (pthread_mutex_t *__mutex) {
 	return pthread_mutex_unlock_p(__mutex);
 }
 
+static int (*pthread_cond_init_p)(pthread_cond_t *__cond, const pthread_condattr_t *__condattr) = NULL;
+
+int real_pthread_cond_init(pthread_cond_t *__cond, const pthread_condattr_t *__condattr) {
+	return pthread_cond_init_p(__cond, __condattr);
+}
+
+static int (*pthread_cond_wait_p) (pthread_cond_t* __cond, pthread_mutex_t *__mutex) = NULL;
+
+int real_pthread_cond_wait (pthread_cond_t* __cond, pthread_mutex_t *__mutex) {
+	return pthread_cond_wait_p(__cond, __mutex);
+}
+
+static int (*pthread_cond_signal_p) (pthread_cond_t *__cond) = NULL;
+
+int real_pthread_cond_signal (pthread_cond_t *__cond) {
+	return pthread_cond_signal_p(__cond);
+}
+
 static int (*pthread_create_p) (pthread_t *__restrict, const pthread_attr_t *__restrict, void *(*)(void *), void * __restrict) = NULL;
 
 int real_pthread_create (pthread_t *__restrict __newthread, const pthread_attr_t *__restrict __attr, void *(*__start_routine)(void *), void *__restrict __arg) {
@@ -77,6 +95,27 @@ void real_init_all() {
 	}
 	if (!pthread_mutex_unlock_p) {
 		pthread_mutex_unlock_p = (int (*)(pthread_mutex_t *__mutex))dlsym(RTLD_NEXT, "pthread_mutex_unlock");
+		if ((error = dlerror()) != NULL) {
+			fputs(error, stderr);
+			exit(EXIT_FAILURE);
+		}
+	}
+	if (!pthread_cond_init_p) {
+		pthread_cond_init_p = (int (*)(pthread_cond_t *__cond, const pthread_condattr_t *__condattr))dlsym(RTLD_NEXT, "pthread_cond_init");
+		if ((error = dlerror()) != NULL) {
+			fputs(error, stderr);
+			exit(EXIT_FAILURE);
+		}
+	}
+	if (!pthread_cond_wait_p) {
+		pthread_cond_wait_p = (int (*)(pthread_cond_t *__cond, pthread_mutex_t *__mutex))dlsym(RTLD_NEXT, "pthread_cond_wait");
+		if ((error = dlerror()) != NULL) {
+			fputs(error, stderr);
+			exit(EXIT_FAILURE);
+		}
+	}
+	if (!pthread_cond_signal_p) {
+		pthread_cond_signal_p = (int (*)(pthread_cond_t *__cond))dlsym(RTLD_NEXT, "pthread_cond_signal");
 		if ((error = dlerror()) != NULL) {
 			fputs(error, stderr);
 			exit(EXIT_FAILURE);

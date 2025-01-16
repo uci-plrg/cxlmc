@@ -58,11 +58,11 @@ private:
 	void ensureInitialValue(ModelAction *action);
 
 public:
-    Model(Scheduler *s, void* cxl): scheduler(s), execution_num(1), cxl_mapping(cxl), next_sequence_num(0), nodestack(new NodeStack), rollback_again(true),
+    Model(Scheduler *s): scheduler(s), execution_num(1), cxl_mapping(NULL), next_sequence_num(0), nodestack(new NodeStack), rollback_again(true),
 		execution_num_save(0), ns_save(nullptr) {}
     ~Model() { delete nodestack; }
 
-    uint64_t action(ModelAction* action);
+    uint64_t action(ModelAction* action, bool yield=true);
     
     void evict_store(ModelAction* action);
     
@@ -97,6 +97,8 @@ public:
 	void *get_cxl_mapping() {
 		return cxl_mapping;
 	}
+
+	void set_cxl_mapping(void* mapping) { cxl_mapping = mapping; }
 
 	bool mem_is_cxl(const void *);
 

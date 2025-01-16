@@ -9,6 +9,7 @@
 
 #include "scheduler.h"
 #include "model.h"
+#include "snapshot.h"
 #include "allocators.h"
 #include "config.h"
 
@@ -50,9 +51,7 @@ int main(int argc, char* argv[]) {
     }
 
     int reserved = sizeof(Scheduler) + sizeof(Model);
-	size_t total_map_size = SHARED_MAP_SIZE + CXL_MEM_SIZE + reserved;
-    void* mapping = mmap(NULL, total_map_size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
-
+    void* mapping = mmap(NULL, SHARED_MAP_SIZE + reserved, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
     if (mapping == MAP_FAILED) {
         perror("mmap");
         return 1;
@@ -66,9 +65,8 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-	void *cxl_mapping = (char *)mapping + SHARED_MAP_SIZE;	
-    Scheduler *scheduler = new ((char *)mapping + SHARED_MAP_SIZE + CXL_MEM_SIZE) Scheduler(processes);
-	model = new((char*)mapping + SHARED_MAP_SIZE + CXL_MEM_SIZE + sizeof(Scheduler)) Model(scheduler, cxl_mapping);
+    Scheduler *scheduler = new ((char *)mapping + SHARED_MAP_SIZE) Scheduler(processes);
+	model = new((char*)mapping + SHARED_MAP_SIZE + sizeof(Scheduler)) Model(scheduler);
 
     if (ns_save != NULL) {
         model->save_execution(execution_num_save, ns_save);
@@ -77,77 +75,92 @@ int main(int argc, char* argv[]) {
     if (ns_load != NULL) {
         model->load_nodestack(ns_load);
     }
-
-    pid_t pid;
-    int id;
-    for (id = 0; id < processes; id++) {
-        pid = fork();
-        if (pid == 0) {
-            break;
+    
+	char* cur_prog = file_path;
+    char* cur_prog_cpy = (char*)malloc(sizeof(char) * (strlen(cur_prog) + 1));
+    strcpy(cur_prog_cpy, cur_prog);
+    char* save_ptr = cur_prog_cpy;
+    int user_argc = 0;
+    int argv_capacity = 5;
+    char** user_argv = (char**)malloc(sizeof(char*) * argv_capacity);
+    char* token;
+    while ((token = strtok_r(save_ptr, " ", &save_ptr)) != NULL) {
+        if (user_argc == argv_capacity) {
+            argv_capacity *= 2;
+            user_argv = (char**)realloc(user_argv, sizeof(char*) * argv_capacity);
         }
+        user_argv[user_argc++] = token;
+    }
+    if (user_argc == 0) {
+        std::cerr << "no program path" << std::endl;
+        exit(1);
     }
 
-    if (pid == 0) {
-        char* cur_prog = file_path;
-        char* cur_prog_cpy = (char*)malloc(sizeof(char) * (strlen(cur_prog) + 1));
-        strcpy(cur_prog_cpy, cur_prog);
-        char* save_ptr = cur_prog_cpy;
-        int user_argc = 0;
-        int argv_capacity = 5;
-        char** user_argv = (char**)malloc(sizeof(char*) * argv_capacity);
-        char* token;
-        while ((token = strtok_r(save_ptr, " ", &save_ptr)) != NULL) {
-            if (user_argc == argv_capacity) {
-                argv_capacity *= 2;
-                user_argv = (char**)realloc(user_argv, sizeof(char*) * argv_capacity);
-            }
-            user_argv[user_argc++] = token;
-        }
-        if (user_argc == 0) {
-            std::cerr << "no program path" << std::endl;
-            exit(1);
-        }
+    void* handle = dlopen(user_argv[0], RTLD_LAZY);
+    if (!handle) {
+        std::cerr << dlerror() << std::endl;
+        exit(1);
+    }
 
-        void* handle = dlopen(user_argv[0], RTLD_LAZY);
-        if (!handle) {
-            std::cerr << dlerror() << std::endl;
-            exit(1);
-        }
+    void(*user_init)(int pid, Model *m, mspace ms) = (void(*)(int pid, Model *m, mspace ms)) dlsym(handle, "user_init");
+    if (!user_init) {
+        std::cerr << dlerror() << std::endl;
+        exit(1);
+    }
 
-        void(*user_init)(int pid, Model *m, mspace ms) = (void(*)(int pid, Model *m, mspace ms)) dlsym(handle, "user_init");
-        if (!user_init) {
-            std::cerr << dlerror() << std::endl;
-            exit(1);
-        }
+    int(*user_main)(int, char**) = (int(*)(int, char**)) dlsym(handle, "main");
+    if (!user_main) {
+        std::cerr << dlerror() << std::endl;
+        exit(1);
+    }
 
-        int(*user_main)(int, char**) = (int(*)(int, char**)) dlsym(handle, "main");
-        if (!user_main) {
-            std::cerr << dlerror() << std::endl;
-            exit(1);
-        }
+    void(*user_done)() = (void(*)()) dlsym(handle, "user_done");
+    if (!user_done) {
+        std::cerr << dlerror() << std::endl;
+        exit(1);
+    }
+    
+	if (take_snapshot() == 0) {
 
-         void(*user_done)() = (void(*)()) dlsym(handle, "user_done");
-         if (!user_done) {
-             std::cerr << dlerror() << std::endl;
-             exit(1);
-         }
+        void *cxl_mapping = mmap(NULL, CXL_MEM_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+        if (cxl_mapping == MAP_FAILED) {
+            perror("mmap");
+            return 1;
+        }
+        model->set_cxl_mapping(cxl_mapping);
         
-        user_init(id, model, shared_space);
-        user_main(user_argc, user_argv);
-        user_done();
+        pid_t pid;
+        int id;
+        for (id = 0; id < processes; id++) {
+            pid = fork();
+            if (pid == 0) {
+                break;
+            } else {
+				std::cout << "spawn process " << id << " with system pid " << pid << "\n";
+			}
+        }
+ 
+        if (pid == 0) { 
+            user_init(id, model, shared_space);
+            user_main(user_argc, user_argv);
+            user_done();
+        } else {
+            int status;
+			pid_t child;
+            while ((child = waitpid(-1, &status, 0)) != -1) {
+                if(WIFSIGNALED(status))
+                    std::cerr << "process " << child << " terminated by sig " << WTERMSIG(status) << std::endl;
+                else if (WIFSTOPPED(status))
+                    std::cerr << "process " << child << " stopped by sig " << WSTOPSIG(status) << std::endl;
+            }
+ 
+            munmap(cxl_mapping, CXL_MEM_SIZE); 
+        }
+	} else {
         free(user_argv);
         free(cur_prog_cpy);
-    } else {
-        int status;
-        while (waitpid(-1, &status, 0) != -1) {
-            if(WIFSIGNALED(status))
-                std::cerr << "child terminated by sig " << WTERMSIG(status) << std::endl;
-            else if (WIFSTOPPED(status))
-                std::cerr << "child stopped by sig " << WSTOPSIG(status) << std::endl;
-        }
-        
-        munmap(mapping, total_map_size);
-    }
+        munmap(mapping, SHARED_MAP_SIZE + reserved);
+	}
 
     return 0;
 }

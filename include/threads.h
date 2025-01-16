@@ -41,6 +41,7 @@ public:
 	void* ret_val;
 	void* tls;
 	pthread_mutex_t mutex_tls;
+	pthread_cond_t cond_tls;
 	pthread_mutex_t mutex_finalize;
 	pthread_t pthread_id;
 
@@ -75,6 +76,9 @@ public:
 int real_pthread_mutex_init(pthread_mutex_t *__mutex, const pthread_mutexattr_t *__mutexattr);
 int real_pthread_mutex_lock (pthread_mutex_t *__mutex);
 int real_pthread_mutex_unlock (pthread_mutex_t *__mutex);
+int real_pthread_cond_init(pthread_cond_t *__cond, const pthread_condattr_t *__condattr);
+int real_pthread_cond_wait (pthread_cond_t* __cond, pthread_mutex_t *__mutex);
+int real_pthread_cond_signal (pthread_cond_t *__cond);
 int real_pthread_create (pthread_t *__restrict __newthread, const pthread_attr_t *__restrict __attr, void *(*__start_routine)(void *), void *__restrict __arg);
 int real_pthread_join (pthread_t __th, void ** __thread_return);
 void real_pthread_exit (void * value_ptr) __attribute__((noreturn));

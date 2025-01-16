@@ -23,6 +23,7 @@ void* helper_thread(void* arg) {
     real_pthread_mutex_lock(&thread->mutex_tls);
     thread->tls = (void*)get_tls_addr();
     real_pthread_mutex_unlock(&thread->mutex_tls);
+	real_pthread_cond_signal(&thread->cond_tls);
     real_pthread_mutex_lock(&thread->mutex_finalize);
     real_pthread_mutex_unlock(&thread->mutex_finalize);
     return nullptr;
@@ -49,19 +50,17 @@ int Thread::setup_context() {
     context.uc_stack.ss_flags = 0;
 
     real_pthread_mutex_init(&mutex_tls, nullptr);
+    real_pthread_cond_init(&cond_tls, nullptr);
 	real_pthread_mutex_init(&mutex_finalize, nullptr);
 	real_pthread_mutex_lock(&mutex_finalize);
 
     real_pthread_create(&pthread_id, nullptr, helper_thread, (void*)this);
 
-    bool notdone = true;
-	while(notdone) {
-		real_pthread_mutex_lock(&mutex_tls);
-		if (tls != nullptr)
-			notdone = false;
-		real_pthread_mutex_unlock(&mutex_tls);
-	}
-
+	real_pthread_mutex_lock(&mutex_tls);
+	while(tls == nullptr)
+		real_pthread_cond_wait(&cond_tls, &mutex_tls);
+	real_pthread_mutex_unlock(&mutex_tls);
+    
     makecontext(&context, thread_start, 0);
     return 0;
 }

@@ -13,8 +13,6 @@
 extern process_id_t process_id;
 extern thread_id_t thread_id;
 
-extern bool is_fork;
-
 class Scheduler {
     const process_id_t process_count;
     std::atomic<thread_id_t> active_thread;
@@ -61,7 +59,7 @@ public:
 
     void reset();
 
-    void assert_active() { assert(active_thread.load() == thread_id || !is_fork); }
+    void assert_active() { assert(active_thread.load() == thread_id); }
     
 };
 #endif

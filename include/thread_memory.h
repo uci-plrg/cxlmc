@@ -26,6 +26,9 @@ public:
 	bool pop_from_store_buffer();
     void empty_store_buffer();
     void empty_flush_buffer();
+	size_t get_store_buffer_size() {return storeBuffer.size(); }
+	size_t get_flush_buffer_size() {return flushBuffer.size(); }
+
 };
 
 #endif
