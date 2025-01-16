@@ -49,7 +49,6 @@ bool Model::is_crashed(process_id_t pid) {
 
 void Model::process_store_buffer() {
 	//placeholder store buffer policy, to be changed later
-	uint num_to_pop = rand()%EVICT_MAX;
 	uint thread_count = scheduler->get_thread_count();
 	uint thread_to_pop = rand()%thread_count;
 	for (uint i = 0; i < thread_count; i++) {
@@ -59,9 +58,15 @@ void Model::process_store_buffer() {
 	}
 	
 	ThreadMemory *mem = scheduler->get_thread(thread_to_pop)->get_thread_memory();
+
+	if (mem->get_store_buffer_size() == 0)
+		return;
+
+	uint num_to_pop = random()%EVICT_MAX;
+	if (num_to_pop >= mem->get_store_buffer_size())
+		num_to_pop = mem->get_store_buffer_size()-1;
 	for (uint j = 0; j < num_to_pop; j++) {
-		if (!mem->pop_from_store_buffer())
-			break;
+		mem->pop_from_store_buffer();
 	}
 }
 

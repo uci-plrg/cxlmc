@@ -47,7 +47,7 @@ VOLATILELOAD(64)
 #define VOLATILESTORE(size) \
 	void cxlmc_volatile_store ## size (void* loc, uint ## size ## _t val, const char *position) { \
 	if (mem_is_cxl(loc, size)) \
-		model->action(new ModelAction(ATOMIC_STORE, loc, val, memory_order_seq_cst, size >> 3, position), false); \
+		model->action(new ModelAction(ATOMIC_STORE, loc, val, memory_order_volatile_store, size >> 3, position), false); \
 	*((uint ## size ##_t *)loc) = val; \
 }
 
