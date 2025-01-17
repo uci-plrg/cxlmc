@@ -10,7 +10,7 @@ memory_order orders[7] = {
 
 #define CXLMCLOAD(size) \
 	uint ## size ## _t cxlmc_load ## size (void* loc, const char* position) { \
-		if (mem_is_cxl(loc, size)) \
+		if (mem_is_cxl(loc)) \
 			return (uint ## size ##_t) model->action(new ModelAction(NONATOMIC_LOAD, loc, VALUE_NONE, memory_order_relaxed, size >> 3, position), false); \
 		return *(uint ## size ##_t*) loc; \
 	}
@@ -22,7 +22,7 @@ CXLMCLOAD(64)
 
 #define CXLMCSTORE(size) \
 	void cxlmc_store ## size (void* loc, uint ## size ## _t val, const char* position) { \
-	if (mem_is_cxl(loc, size)) \
+	if (mem_is_cxl(loc)) \
 		model->action(new ModelAction(NONATOMIC_STORE, loc, val, memory_order_relaxed, size >> 3, position), false); \
 	*((uint ## size ##_t *)loc) = val; \
 }
@@ -34,7 +34,7 @@ CXLMCSTORE(64)
 
 #define VOLATILELOAD(size) \
 	uint ## size ## _t cxlmc_volatile_load ## size (void* loc, const char *position) { \
-		if (mem_is_cxl(loc, size)) \
+		if (mem_is_cxl(loc)) \
 			return (uint ## size ##_t) model->action(new ModelAction(ATOMIC_LOAD, loc, VALUE_NONE, memory_order_volatile_load, size >> 3, position), false); \
 		return *(uint ## size ##_t*) loc; \
 	}
@@ -46,7 +46,7 @@ VOLATILELOAD(64)
 
 #define VOLATILESTORE(size) \
 	void cxlmc_volatile_store ## size (void* loc, uint ## size ## _t val, const char *position) { \
-	if (mem_is_cxl(loc, size)) \
+	if (mem_is_cxl(loc)) \
 		model->action(new ModelAction(ATOMIC_STORE, loc, val, memory_order_volatile_store, size >> 3, position), false); \
 	*((uint ## size ##_t *)loc) = val; \
 }
@@ -58,7 +58,7 @@ VOLATILESTORE(64)
 
 #define CXLMCATOMICINT(size)                                              \
 	void cxlmc_atomic_init ## size (void* loc, uint ## size ## _t val, const char * position) { \
-		if (mem_is_cxl(loc, size)) \
+		if (mem_is_cxl(loc)) \
 			model->action(new ModelAction(ATOMIC_INIT, loc, val, memory_order_relaxed, size>>3, position)); \
 		*((uint ## size ## _t *)loc) = val; \
     }
@@ -70,7 +70,7 @@ CXLMCATOMICINT(64)
 
 #define ATOMICLOAD(size) \
 	uint ## size ## _t cxlmc_atomic_load ## size (void* loc, int atomic_index, const char *position) { \
-		if (mem_is_cxl(loc, size)) \
+		if (mem_is_cxl(loc)) \
 			return (uint ## size ##_t) model->action(new ModelAction(ATOMIC_LOAD, loc, VALUE_NONE, orders[atomic_index], size >> 3, position)); \
 		return *(uint ## size ##_t*) loc; \
 	}
@@ -82,7 +82,7 @@ ATOMICLOAD(64)
 
 #define ATOMICSTORE(size) \
 	void cxlmc_atomic_store ## size (void* loc, uint ## size ## _t val, int atomic_index, const char *position) { \
-	if (mem_is_cxl(loc, size)) \
+	if (mem_is_cxl(loc)) \
 		model->action(new ModelAction(ATOMIC_STORE, loc, val, orders[atomic_index], size >> 3, position)); \
 	*((uint ## size ##_t *)loc) = val; \
 }
@@ -104,14 +104,14 @@ void model_rmw_action(void *addrs, uint64_t val, int atomic_index, const char * 
 #define _ATOMIC_RMW_(__op__, size, addr, val, atomic_index, position) \
 	{ \
 		uint ## size ## _t _old; \
-		if (mem_is_cxl(addr, size)) \
+		if (mem_is_cxl(addr)) \
 			_old = model_rmw_read_action(addr, atomic_index, position, size>>3); \
 		else \
 			_old = *(uint ## size ## _t *) addr; \
 		uint ## size ## _t _copy = _old; \
 		uint ## size ## _t _val = val; \
 		_copy __op__ _val; \
-		if (mem_is_cxl(addr, size)) \
+		if (mem_is_cxl(addr)) \
 			model_rmw_action(addr, (uint64_t) _copy, atomic_index, position, size>>3); \
 		return _old; \
 	}
@@ -196,7 +196,7 @@ void model_rmw_cas_fail_action(void *addrs, int atomic_index, const char *positi
 		uint ## size ## _t _desired = desired; \
 		uint ## size ## _t _expected = expected; \
 		uint ## size ## _t _old; \
-		bool is_cxl = mem_is_cxl(addr, size); \
+		bool is_cxl = mem_is_cxl(addr); \
 		if (is_cxl) \
 			_old = model_rmw_read_action(addr, atomic_index_succ, position, size>>3); \
 		else \
@@ -266,7 +266,7 @@ void* get_cxl_mapping() {
 	return model->get_cxl_mapping();
 }
 
-bool mem_is_cxl(const void *address, size_t size) {
+bool mem_is_cxl(const void *address) {
 	if (!model)
 		return false;
 	return model->mem_is_cxl(address);  

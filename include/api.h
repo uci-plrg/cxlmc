@@ -95,7 +95,7 @@ void cxlmc_clflushopt(void* loc);
 void cxlmc_clwb(void* loc);
 
 void* get_cxl_mapping();
-bool mem_is_cxl(const void *address, size_t size);
+bool mem_is_cxl(const void *address);
 void init_cxl_space(size_t offset, size_t size);
 int get_process_count();
 int get_process_id();
