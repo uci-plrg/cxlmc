@@ -317,6 +317,7 @@ public:
 		}
 	private:
 		BaseIterator _base;
+		friend class HashSet;
 	};
 
 	HashSet(size_t initial_buckets = 16, double factor = 0.75) :
@@ -343,7 +344,7 @@ public:
 	}
 
 	iterator erase(iterator iter) {
-		return iterator(base.erase(iter.base));
+		return iterator(base.erase(iter._base));
 	}
 
 	TEMPLATEALLOC;

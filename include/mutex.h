@@ -16,7 +16,10 @@ public:
 
     void unlock();
 
-    void set_owner(Thread* thr) { owner = thr; }
+    void set_owner(Thread* thr);
+
+    void owner_crashed() { owner = nullptr; recursive_lock_count = 0; }
+    
     Thread* get_owner() { return owner; }
 
     int get_mutex_type() { return mutex_type; }

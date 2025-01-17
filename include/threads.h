@@ -31,6 +31,7 @@ class Thread {
 	bool is_main;
 	ModelAction* pending;
     ThreadMemory thread_memory;
+	shared::hashset<Mutex*> owned_mutexes;
 
     // process local
     void* stack;
@@ -54,6 +55,7 @@ public:
 
 	ucontext_t* get_context() { return &context; }
 	ThreadMemory* get_thread_memory() { return &thread_memory; }
+	shared::hashset<Mutex*>& get_owned_mutexes() { return owned_mutexes; }
 	void cleanup();
 	void finalize();
 

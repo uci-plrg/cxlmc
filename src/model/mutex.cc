@@ -11,3 +11,19 @@ bool Mutex::try_lock() {
 void Mutex::unlock() {
     model->action(new ModelAction(ATOMIC_UNLOCK, this));
 }
+
+void Mutex::set_owner(Thread* thr) {
+    if (owner != nullptr) {
+        auto& mutex_set = owner->get_owned_mutexes();
+        auto iter = mutex_set.find(this);
+        assert(iter != mutex_set.end());
+        mutex_set.erase(iter);
+    }
+    if (thr != nullptr) {
+        auto& mutex_set = thr->get_owned_mutexes();
+        auto pair = mutex_set.insert(this);
+        assert(pair.second);
+    }
+    owner = thr;
+    recursive_lock_count = 0;
+}
