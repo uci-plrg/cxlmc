@@ -108,16 +108,16 @@ void Model::build_may_read_from(ModelAction *read, shared::vector<rfEntry *> &rf
 	uintptr_t addr = getCacheID(read->get_location());
 	uint numslotsleft = read->get_size();
 	//optimize: store delta to data in rfEntry
-	rfEntry *entry = new rfEntry{addr, obj_to_cl, crashes, numslotsleft};
+	rfEntry *entry = new rfEntry{new shared::vector<ModelAction *>(numslotsleft), addr, obj_to_cl, crashes};
 
-	if(scheduler->get_thread(read->get_thread_id())->get_thread_memory()->get_last_write(read, *entry)) {
+	if(scheduler->get_thread(read->get_thread_id())->get_thread_memory()->get_lastest_writes(read, *entry, numslotsleft)) {
 		rfset.push_back(entry);
 		return;
 	}
 
 	storeList &stores = get_storelist(read->get_location());
-	shared::vector<rfEntry*> seedWrites;
-	seedWrites.push_back(entry);
+	shared::vector<shared::Pair<rfEntry*, uint>> seedWrites;
+	seedWrites.push_back({entry, numslotsleft});
 	process_id_t rpid = get_process_id(read);
 	unsigned p_count = scheduler->get_process_count();
 		
@@ -128,62 +128,60 @@ void Model::build_may_read_from(ModelAction *read, shared::vector<rfEntry *> &rf
 			break;
 
 		for (uint i=0; i<seedWrites.size(); i++) {
-			auto w = seedWrites[i];
+			auto w = seedWrites[i].first;
+			uint old_slotsleft = seedWrites[i].second;
+			uint &curr_slotsleft = seedWrites[i].second;
 			auto citr = w->crashes.find(wpid);
 
 			//running processes
 			if (citr == w->crashes.end()) {
-				rfEntry *copy = new rfEntry(*w);
-				bool added = false;
-				if (w->get_overlaps(store, read)) {
+				if (auto old_ov = w->get_overlaps_save_old(store, read, curr_slotsleft)) {
 					if (store->get_type() != ATOMIC_INIT && wpid != rpid) {
 						cacheline cl = w->cl_store.get_cacheline(addr);
 						w->cl_store.set_cacheline(addr, cacheline{next_sequence_num, cl.getEnd()});
 				
 						//consider crashing the writing process before the read
 						if (!scheduler->get_thread(store->get_thread_id())->is_completed() && 
-								copy->crashes.size() < MAX_CRASHES_PER_EXECUTION &&
-								copy->crashes.size() + 1 < p_count) {
+								w->crashes.size() < MAX_CRASHES_PER_EXECUTION &&
+								w->crashes.size() + 1 < p_count) {
+							rfEntry *copy = new rfEntry(old_ov, w->addr, w->cl_store, w->crashes);
 							copy->crashes.emplace(wpid, next_sequence_num);
 							copy->cl_store.insert_crash(next_sequence_num);
-							seedWrites.push_back(copy);
-							added = true;
-						}
-					}
+							seedWrites.push_back({copy, old_slotsleft});
+						} else
+							delete old_ov;
+					} else
+						delete old_ov;
 				}
-				if (!added)
-					delete copy;
 			} else { //crashed processes
 				modelclock_t crash_clock = citr->second;
 				cacheline &cl = w->cl_store.get_cacheline(addr, crash_clock);
 				if (store->get_seq_num() <= cl.getBegin()) { //must have persisted
-					if (w->get_overlaps(store, read)) {
+					if (w->get_overlaps(store, read, curr_slotsleft)) {
 						read_crashed_set_cacheline_end(stores, itr, cl);
 					}
 				} else if (cl.getEnd() == 0 || store->get_seq_num() <= cl.getEnd()) { //may have persisted
-					rfEntry *copy = new rfEntry(*w);
-					if (copy->get_overlaps(store, read)) {
-						cacheline &new_cl = copy->cl_store.set_cacheline(addr, cacheline{store->get_seq_num(), cl.getEnd()});
+					if (auto old_ov = w->get_overlaps_save_old(store, read, curr_slotsleft)) {
+						rfEntry *copy = new rfEntry(old_ov, w->addr, w->cl_store, w->crashes);
+						seedWrites.push_back({copy, old_slotsleft});
+						cacheline &new_cl = w->cl_store.set_cacheline(addr, cacheline{store->get_seq_num(), cl.getEnd()});
 						read_crashed_set_cacheline_end(stores, itr, new_cl);
-						seedWrites.push_back(copy);
-					} else
-						delete copy;
+					}
 				}
 			}
 		}
 
 		//move full seedWrites to rfset
 		for (uint i = 0; i < seedWrites.size(); i++) {
-			auto w = seedWrites[i];
-			if (w->numslotsleft == 0) {
-				rfset.push_back(w);
+			if (seedWrites[i].second == 0) {
+				rfset.push_back(seedWrites[i].first);
 				seedWrites[i] = seedWrites.back();
 				seedWrites.pop_back();
 			}
 		}
 	}
-	for (auto w: seedWrites)
-		rfset.push_back(w);
+	for (auto pair: seedWrites)
+		rfset.push_back(pair.first);
 }
 
 //inline?

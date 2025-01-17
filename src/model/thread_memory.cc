@@ -16,12 +16,12 @@ void ThreadMemory::add_to_store_buffer(ModelAction *action) {
     storeBuffer.push_back(action);
 }
 
-bool ThreadMemory::get_last_write(ModelAction* read, rfEntry &entry) {
+bool ThreadMemory::get_lastest_writes(ModelAction* read, rfEntry &entry, uint &numslotsleft) {
      for (auto iter = storeBuffer.rbegin(); iter != storeBuffer.rend(); iter++) {
          ModelAction* write = *iter;
          if (write->get_type() == NONATOMIC_STORE) {
-			 entry.get_overlaps(write, read);
-			 if (entry.numslotsleft == 0)
+			 entry.get_overlaps(write, read, numslotsleft);
+			 if (numslotsleft == 0)
 				return true;
          }
      }

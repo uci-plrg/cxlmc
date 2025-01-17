@@ -21,8 +21,7 @@ public:
     }
 
     void add_to_store_buffer(ModelAction *action);
-	bool get_last_write(ModelAction* read, rfEntry &entry);
-	ModelAction *get_last_write(ModelAction* act);
+	bool get_lastest_writes(ModelAction* read, rfEntry &entry, uint &numslotsleft);
 	bool pop_from_store_buffer();
     void empty_store_buffer();
     void empty_flush_buffer();

@@ -13,8 +13,8 @@ void rfEntry::dump() {
 	printf("}, ");
 
 	printf("writes: [");
-	for (uint i = 0; i < overlaps.size(); i++) {
-		auto write = overlaps[i];
+	for (uint i = 0; i < overlaps->size(); i++) {
+		auto write = (*overlaps)[i];
 		if (!write)
 			continue;
 		printf("(+%u, val=%lx, seq=%u, tid=%u, type=%s), ", i<<3, write->get_value(), write->get_seq_num(), write->get_thread_id(),
@@ -25,9 +25,9 @@ void rfEntry::dump() {
 
 uint64_t rfEntry::get_read_value(void *read_location) {
 	uint64_t value = 0;
-	for (int i= (int)overlaps.size()-1; i >= 0; i--) {
+	for (int i= (int)overlaps->size()-1; i >= 0; i--) {
 		value = value << 8;
-		auto write = overlaps[i];
+		auto write = (*overlaps)[i];
 		if (!write)
 			continue;
 		int offset = i + (char *)read_location - (char *)write->get_location();
