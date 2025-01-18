@@ -95,11 +95,13 @@ void Model::evict_store(ModelAction* action) {
 
 void Model::evict_clflush(ModelAction* action) {
     assert(action->get_type() == CACHE_CLFLUSH || action->get_type() == CACHE_CLFLUSHOPT);
-    insert_crash();
+								
 	modelclock_t seq_num = get_next_sequence_num();
 	action->set_seq_num(seq_num);
 	uintptr_t addr = getCacheID(action->get_location());
 	cacheline cl = obj_to_cl.get_cacheline(addr);
+	if (!empty_flush(get_storelist(action->get_location()), cl.getBegin()))
+		insert_crash();
 	obj_to_cl.set_cacheline(addr, cacheline{seq_num, cl.getEnd()});
 	delete action;
 }
@@ -143,7 +145,8 @@ void Model::build_may_read_from(ModelAction *read, shared::vector<rfEntry *> &rf
 						//consider crashing the writing process before the read
 						if (!scheduler->get_thread(store->get_thread_id())->is_completed() && 
 								w->crashes.size() < MAX_CRASHES_PER_EXECUTION &&
-								w->crashes.size() + 1 < p_count) {
+								w->crashes.size() + 1 < p_count &&
+								!empty_flush(stores, cl.getBegin())) {
 							rfEntry *copy = new rfEntry(old_ov, w->addr, w->cl_store, w->crashes);
 							copy->crashes.emplace(wpid, next_sequence_num);
 							copy->cl_store.insert_crash(next_sequence_num);
@@ -194,14 +197,12 @@ void Model::read_crashed_set_cacheline_end(const storeList &stores, storeList::r
 	for (; fitr != stores.end(); fitr++) {
 		uintptr_t wbot2 = (uintptr_t) (*fitr)->get_location();
 		uintptr_t wtop2 = wbot2 + (*fitr)->get_size();
-		if (wtop > wbot2 && wbot < wtop2)
+		if (wtop > wbot2 && wbot < wtop2) {
+			modelclock_t next_write_seq = (*fitr)->get_seq_num();
+			if (cl.getEnd() == 0 || cl.getEnd() >= next_write_seq)
+				cl.setEnd(next_write_seq);
 			break;
-	}
-
-	if (fitr != stores.end()) {
-		modelclock_t next_write_seq = (*fitr)->get_seq_num();
-		if (cl.getEnd() == 0 || cl.getEnd() >= next_write_seq)
-			cl.setEnd(next_write_seq);
+		}
 	}
 }
 

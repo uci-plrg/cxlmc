@@ -222,7 +222,7 @@ public:
 	_Tp back() {
 		return tail->val;
 	}
-	uint size() {
+	uint size() const {
 		return _size;
 	}
 	bool empty() {
