@@ -57,6 +57,18 @@ public:
 		return *this;
 	}
 
+	void swap(Vector &other) {
+		uint temp_size = other._size;
+		uint temp_capacity = other.capacity;
+		type *temp_array = other.array;
+		other._size = _size;
+		other.capacity = capacity;
+		other.array = array;
+		_size = temp_size;
+		capacity = temp_capacity;
+		array = temp_array;
+	}
+
 	void pop_back() {
 		array[_size-1].~type();
 		_size--;

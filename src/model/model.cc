@@ -116,7 +116,7 @@ void Model::build_may_read_from(ModelAction *read, shared::vector<rfEntry *> &rf
 	}
 
 	storeList &stores = get_storelist(read->get_location());
-	shared::vector<shared::Pair<rfEntry*, uint>> seedWrites;
+	shared::vector<shared::Pair<rfEntry*, uint>> seedWrites, nextSeedWrites;
 	seedWrites.push_back({entry, numslotsleft});
 	process_id_t rpid = get_process_id(read);
 	unsigned p_count = scheduler->get_process_count();
@@ -166,28 +166,19 @@ void Model::build_may_read_from(ModelAction *read, shared::vector<rfEntry *> &rf
 						read_crashed_set_cacheline_end(stores, itr, new_cl);
 
 						rfEntry *copy = new rfEntry(old_ov, w->addr, w->cl_store, w->crashes);
-						if (i+1== seedWrites.size())
-							seedWrites.push_back({copy, old_slotsleft});
-						else { 
-							seedWrites.push_back(seedWrites[i+1]);
-							seedWrites[i+1] = {copy, old_slotsleft};
-						}
-						//skip over copy
-						i++;
+						nextSeedWrites.push_back({copy, old_slotsleft});	
 					}
 				}
 			}
+			
+			if (curr_slotsleft == 0) 
+				rfset.push_back(w);
+			else
+				nextSeedWrites.push_back({w, curr_slotsleft});
 		}
-
-		//move full seedWrites to rfset
-		for (uint i = 0; i < seedWrites.size();) {
-			if (seedWrites[i].second == 0) {
-				rfset.push_back(seedWrites[i].first);
-				seedWrites[i] = seedWrites.back();
-				seedWrites.pop_back();
-			} else 
-				i++;
-		}
+		
+		seedWrites.swap(nextSeedWrites);
+		nextSeedWrites.clear();
 	}
 	for (auto pair: seedWrites)
 		rfset.push_back(pair.first);
