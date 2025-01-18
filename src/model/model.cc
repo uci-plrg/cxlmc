@@ -162,22 +162,31 @@ void Model::build_may_read_from(ModelAction *read, shared::vector<rfEntry *> &rf
 					}
 				} else if (cl.getEnd() == 0 || store->get_seq_num() <= cl.getEnd()) { //may have persisted
 					if (auto old_ov = w->get_overlaps_save_old(store, read, curr_slotsleft)) {
-						rfEntry *copy = new rfEntry(old_ov, w->addr, w->cl_store, w->crashes);
-						seedWrites.push_back({copy, old_slotsleft});
 						cacheline &new_cl = w->cl_store.set_cacheline(addr, cacheline{store->get_seq_num(), cl.getEnd()});
 						read_crashed_set_cacheline_end(stores, itr, new_cl);
+
+						rfEntry *copy = new rfEntry(old_ov, w->addr, w->cl_store, w->crashes);
+						if (i+1== seedWrites.size())
+							seedWrites.push_back({copy, old_slotsleft});
+						else { 
+							seedWrites.push_back(seedWrites[i+1]);
+							seedWrites[i+1] = {copy, old_slotsleft};
+						}
+						//skip over copy
+						i++;
 					}
 				}
 			}
 		}
 
 		//move full seedWrites to rfset
-		for (uint i = 0; i < seedWrites.size(); i++) {
+		for (uint i = 0; i < seedWrites.size();) {
 			if (seedWrites[i].second == 0) {
 				rfset.push_back(seedWrites[i].first);
 				seedWrites[i] = seedWrites.back();
 				seedWrites.pop_back();
-			}
+			} else 
+				i++;
 		}
 	}
 	for (auto pair: seedWrites)
