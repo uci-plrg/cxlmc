@@ -66,7 +66,7 @@ void execute(ModelAction* action) {
         Mutex* mutex = action->get_mutex();
         Thread* owner = mutex->get_owner();
 
-        if (!owner) {
+        if (!owner || owner->get_state() == THREAD_CRASHED) {
             mutex->set_owner(curr_thread);
             action->set_value(true);
             break;

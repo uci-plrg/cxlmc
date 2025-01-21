@@ -13,7 +13,7 @@ void Mutex::unlock() {
 }
 
 void Mutex::set_owner(Thread* thr) {
-    if (owner != nullptr) {
+    if (owner != nullptr && owner->get_state() != THREAD_CRASHED) {
         auto& mutex_set = owner->get_owned_mutexes();
         auto iter = mutex_set.find(this);
         assert(iter != mutex_set.end());
