@@ -163,7 +163,7 @@ void Model::build_may_read_from(ModelAction *read, shared::vector<rfEntry *> &rf
 					if (w->get_overlaps(store, read, curr_slotsleft)) {
 						read_crashed_set_cacheline_end(stores, itr, cl);
 					}
-				} else if (cl.getEnd() == 0 || store->get_seq_num() <= cl.getEnd()) { //may have persisted
+				} else if (cl.getEnd() == 0 || store->get_seq_num() < cl.getEnd()) { //may have persisted
 					if (auto old_ov = w->get_overlaps_save_old(store, read, curr_slotsleft)) {
 						cacheline &new_cl = w->cl_store.set_cacheline(addr, cacheline{store->get_seq_num(), cl.getEnd()});
 						read_crashed_set_cacheline_end(stores, itr, new_cl);

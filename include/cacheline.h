@@ -22,7 +22,7 @@ public:
 
 	SHAREDALLOC;
 private:
-	//both begin and end are inclusive
+	//begin is inclusive and end is exclusive
 	modelclock_t begin;
 	modelclock_t end;
 };
