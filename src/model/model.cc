@@ -112,7 +112,7 @@ void Model::build_may_read_from(ModelAction *read, shared::vector<rfEntry *> &rf
 	//optimize: store delta to data in rfEntry
 	rfEntry *entry = new rfEntry{new shared::vector<ModelAction *>(numslotsleft), addr, obj_to_cl, crashes};
 
-	if(scheduler->get_thread(read->get_thread_id())->get_thread_memory()->get_lastest_writes(read, *entry, numslotsleft)) {
+	if(scheduler->get_thread(read->get_thread_id())->get_thread_memory()->get_latest_writes(read, *entry, numslotsleft)) {
 		rfset.push_back(entry);
 		return;
 	}
@@ -185,6 +185,88 @@ void Model::build_may_read_from(ModelAction *read, shared::vector<rfEntry *> &rf
 	}
 	for (auto pair: seedWrites)
 		rfset.push_back(pair.first);
+}
+
+uint64_t Model::build_read_from(ModelAction *read) {	
+	uintptr_t addr = getCacheID(read->get_location());
+	uint numslotsleft = read->get_size();
+	//optimize: store delta to data in rfEntry
+	auto rf = new shared::vector<ModelAction *>(numslotsleft);
+
+	if(scheduler->get_thread(read->get_thread_id())->get_thread_memory()->get_latest_writes2(read, *rf, numslotsleft)) {
+		uint64_t ret = get_read_value(read->get_location(), *rf);
+		delete rf;
+		return ret;
+	}
+
+	storeList &stores = get_storelist(read->get_location());
+	process_id_t rpid = get_process_id(read);
+	unsigned p_count = scheduler->get_process_count();
+		
+	for (auto itr = stores.rbegin(); itr != stores.rend(); itr++) {
+		ModelAction *store = *itr;
+		process_id_t wpid = get_process_id(store);
+		uint slotsleft_copy = numslotsleft;
+		auto citr = crashes.find(wpid);
+
+		//running processes
+		if (citr == crashes.end()) {
+			if (auto old = get_overlaps_save_old2(store, read, *rf, numslotsleft)) {
+				if (store->get_type() != ATOMIC_INIT && wpid != rpid) {	
+					//consider crashing the writing process before the read
+					cacheline cl = obj_to_cl.get_cacheline(addr);
+					if (!scheduler->get_thread(store->get_thread_id())->is_completed() && 
+							crashes.size() < MAX_CRASHES_PER_EXECUTION &&
+							crashes.size() + 1 < p_count &&
+							!empty_flush(stores, cl.getBegin()) &&
+							decision_point(2, read->get_position()) == 0) {
+						crashes.emplace(wpid, next_sequence_num);
+						obj_to_cl.insert_crash(next_sequence_num);
+						delete rf;
+						rf = old;
+						numslotsleft = slotsleft_copy;
+					} else {
+						delete old;
+						obj_to_cl.set_cacheline(addr, cacheline{next_sequence_num, cl.getEnd()});
+					}
+				} else
+					delete old;
+			}
+		} 
+		citr = crashes.find(wpid);
+		if(citr != crashes.end()) { //crashed processes
+			modelclock_t crash_clock = citr->second;
+			cacheline &cl = obj_to_cl.get_cacheline(addr, crash_clock);
+			if (store->get_seq_num() <= cl.getBegin()) { //must have persisted
+				if (get_overlaps2(store, read, *rf, numslotsleft)) {
+					read_crashed_set_cacheline_end(stores, itr, cl);
+				}
+			} else if (cl.getEnd() == 0 || store->get_seq_num() < cl.getEnd()) { //may have persisted
+				if (auto old = get_overlaps_save_old2(store, read, *rf, numslotsleft)) {
+					//not persisted
+					if (decision_point(2, read->get_position()) == 0) {
+						delete rf;
+						rf = old;
+						numslotsleft = slotsleft_copy;
+					} else {
+						delete old;
+						cacheline &new_cl = obj_to_cl.set_cacheline(addr, cacheline{store->get_seq_num(), cl.getEnd()});
+						read_crashed_set_cacheline_end(stores, itr, new_cl);
+					}
+				}
+			}
+		}
+		
+		if (numslotsleft == 0) {
+			uint64_t ret = get_read_value(read->get_location(), *rf);
+			delete rf;
+			return ret;
+		}
+	}
+	
+	uint64_t ret = get_read_value(read->get_location(), *rf);
+	delete rf;
+	return ret;
 }
 
 //inline?
@@ -293,6 +375,11 @@ void Model::reset_execution_data() {
 		cond_map.clear();
 }
 
+int Model::decision_point(int numchoices, const char *pos) {
+	if (VERBOSE > 0 && pos && nodestack->next_is_curr_backtrack())
+		printf("backtrack to %s\n", pos);
+	return nodestack->explore_next(numchoices)->get_choice(); 
+}
 bool Model::should_crash() {
     if (crashes.size() < MAX_CRASHES_PER_EXECUTION && (process_id_t) crashes.size() + 1 < scheduler->get_process_count() && decision_point(2) == 0) {
         return true;

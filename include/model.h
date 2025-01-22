@@ -73,6 +73,8 @@ public:
     
 	void build_may_read_from(ModelAction *read, shared::vector<rfEntry*> &rfset);
 
+	uint64_t build_read_from(ModelAction *read);	
+
     void terminate_early();
 
     void finish_execution();
@@ -109,7 +111,7 @@ public:
 	
 	void do_read(rfEntry &e);
 
-    int decision_point(int numchoices) { return nodestack->explore_next(numchoices)->get_choice(); }
+    int decision_point(int numchoices, const char *pos=NULL);
 
     void insert_crash();
 

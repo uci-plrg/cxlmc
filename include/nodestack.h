@@ -63,6 +63,7 @@ public:
 	// void print() const;
 	void save_state(uint32_t exec_num, char *ns_save) const;
 	bool has_another_execution() {return last_backtrack != NULL;}
+	bool next_is_curr_backtrack() const { return (uint)(head_idx+1) < node_list.size() && node_list[head_idx+1] == curr_backtrack; }
 	Node * create_node(uint numchoices);
 	Node * explore_next(uint numchoises);
 	uint32_t set_state(char *ns_load);
