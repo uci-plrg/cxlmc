@@ -2,6 +2,7 @@
 #define _VECTOR_H
 
 #include <string.h>
+#include <new>
 #include "allocators.h"
 #include "mspace_malloc.h"
 

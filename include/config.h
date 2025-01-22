@@ -12,6 +12,9 @@
 #define MAX_CRASHES_PER_EXECUTION 1
 #define SNAPSHOT_PAGES 10000
 #define VALUE_NONE 0xdeadbeef
+
+/** Store buffer evict options */
+#define RANDOM_SEED 42
 #define EVICT_MAX 100;
 
 

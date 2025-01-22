@@ -3,9 +3,8 @@
 
 #include "shared_ADT.h"
 #include "action.h"
-#include "rfentry.h"
 
-inline bool get_overlaps2(ModelAction *write, ModelAction *read, shared::vector<ModelAction *> &rf, uint &numslotsleft) {
+inline bool get_overlaps(ModelAction *write, ModelAction *read, shared::vector<ModelAction *> &rf, uint &numslotsleft) {
 	uintptr_t wbot = (uintptr_t) write->get_location();
 	uint wsize = write->get_size();
 	uintptr_t wtop = wbot + wsize;
@@ -32,7 +31,7 @@ inline bool get_overlaps2(ModelAction *write, ModelAction *read, shared::vector<
 	return ret;
 }
 
-inline shared::vector<ModelAction *> * get_overlaps_save_old2(ModelAction *write, ModelAction *read, shared::vector<ModelAction *> &rf, uint &numslotsleft) {
+inline shared::vector<ModelAction *> * get_overlaps_save_old(ModelAction *write, ModelAction *read, shared::vector<ModelAction *> &rf, uint &numslotsleft) {
 	uintptr_t wbot = (uintptr_t) write->get_location();
 	uint wsize = write->get_size();
 	uintptr_t wtop = wbot + wsize;
@@ -90,8 +89,7 @@ public:
     }
 
     void add_to_store_buffer(ModelAction *action);
-	bool get_latest_writes(ModelAction* read, rfEntry &entry, uint &numslotsleft);
-	bool get_latest_writes2(ModelAction* read, shared::vector<ModelAction *> &rf, uint &numslotsleft);
+	bool get_latest_writes(ModelAction* read, shared::vector<ModelAction *> &rf, uint &numslotsleft);
 	bool pop_from_store_buffer();
     void empty_store_buffer();
     void empty_flush_buffer();

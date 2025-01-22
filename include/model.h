@@ -5,7 +5,6 @@
 #include <string>
 
 #include "cacheline.h"
-#include "rfentry.h"
 #include "scheduler.h"
 #include "shared_ADT.h"
 #include "action.h"
@@ -71,8 +70,6 @@ public:
     
 	void evict_clflush(ModelAction* action);
     
-	void build_may_read_from(ModelAction *read, shared::vector<rfEntry*> &rfset);
-
 	uint64_t build_read_from(ModelAction *read);	
 
     void terminate_early();
@@ -108,8 +105,6 @@ public:
 	bool mem_is_cxl(const void *);
 
 	bool is_crashed(process_id_t pid);
-	
-	void do_read(rfEntry &e);
 
     int decision_point(int numchoices, const char *pos=NULL);
 

@@ -3,7 +3,6 @@
 
 #include <cstdint>
 #include <climits>
-#include <map>
 #include "assert.h"
 
 #include "types.h"

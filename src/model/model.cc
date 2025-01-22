@@ -75,13 +75,6 @@ process_id_t Model::get_process_id(ModelAction *action) {
 	return scheduler->get_thread(action->get_thread_id())->get_process_id(); 
 }
 
-void Model::do_read(rfEntry &e) {
-	for (auto &pair: e.crashes)
-		crashes.emplace(pair.first, pair.second);
-
-	obj_to_cl.copy_at(e.cl_store, e.addr);
-}
-
 Model::storeList &Model::get_storelist(void *addr)  { 
 	void *aligned = alignAddress(addr);
 	return obj_to_wr[aligned];
@@ -106,94 +99,13 @@ void Model::evict_clflush(ModelAction* action) {
 	delete action;
 }
 
-void Model::build_may_read_from(ModelAction *read, shared::vector<rfEntry *> &rfset) {	
-	uintptr_t addr = getCacheID(read->get_location());
-	uint numslotsleft = read->get_size();
-	//optimize: store delta to data in rfEntry
-	rfEntry *entry = new rfEntry{new shared::vector<ModelAction *>(numslotsleft), addr, obj_to_cl, crashes};
-
-	if(scheduler->get_thread(read->get_thread_id())->get_thread_memory()->get_latest_writes(read, *entry, numslotsleft)) {
-		rfset.push_back(entry);
-		return;
-	}
-
-	storeList &stores = get_storelist(read->get_location());
-	shared::vector<shared::Pair<rfEntry*, uint>> seedWrites, nextSeedWrites;
-	seedWrites.push_back({entry, numslotsleft});
-	process_id_t rpid = get_process_id(read);
-	unsigned p_count = scheduler->get_process_count();
-		
-	for (auto itr = stores.rbegin(); itr != stores.rend(); itr++) {
-		ModelAction *store = *itr;
-		process_id_t wpid = get_process_id(store);
-		if (seedWrites.empty())
-			break;
-
-		for (uint i=0; i<seedWrites.size(); i++) {
-			auto w = seedWrites[i].first;
-			uint old_slotsleft = seedWrites[i].second;
-			uint &curr_slotsleft = seedWrites[i].second;
-			auto citr = w->crashes.find(wpid);
-
-			//running processes
-			if (citr == w->crashes.end()) {
-				if (auto old_ov = w->get_overlaps_save_old(store, read, curr_slotsleft)) {
-					if (store->get_type() != ATOMIC_INIT && wpid != rpid) {
-						cacheline cl = w->cl_store.get_cacheline(addr);
-						w->cl_store.set_cacheline(addr, cacheline{next_sequence_num, cl.getEnd()});
-				
-						//consider crashing the writing process before the read
-						if (!scheduler->get_thread(store->get_thread_id())->is_completed() && 
-								w->crashes.size() < MAX_CRASHES_PER_EXECUTION &&
-								w->crashes.size() + 1 < p_count &&
-								!empty_flush(stores, cl.getBegin())) {
-							rfEntry *copy = new rfEntry(old_ov, w->addr, w->cl_store, w->crashes);
-							copy->crashes.emplace(wpid, next_sequence_num);
-							copy->cl_store.insert_crash(next_sequence_num);
-							seedWrites.push_back({copy, old_slotsleft});
-						} else
-							delete old_ov;
-					} else
-						delete old_ov;
-				}
-			} else { //crashed processes
-				modelclock_t crash_clock = citr->second;
-				cacheline &cl = w->cl_store.get_cacheline(addr, crash_clock);
-				if (store->get_seq_num() <= cl.getBegin()) { //must have persisted
-					if (w->get_overlaps(store, read, curr_slotsleft)) {
-						read_crashed_set_cacheline_end(stores, itr, cl);
-					}
-				} else if (cl.getEnd() == 0 || store->get_seq_num() < cl.getEnd()) { //may have persisted
-					if (auto old_ov = w->get_overlaps_save_old(store, read, curr_slotsleft)) {
-						cacheline &new_cl = w->cl_store.set_cacheline(addr, cacheline{store->get_seq_num(), cl.getEnd()});
-						read_crashed_set_cacheline_end(stores, itr, new_cl);
-
-						rfEntry *copy = new rfEntry(old_ov, w->addr, w->cl_store, w->crashes);
-						nextSeedWrites.push_back({copy, old_slotsleft});	
-					}
-				}
-			}
-			
-			if (curr_slotsleft == 0) 
-				rfset.push_back(w);
-			else
-				nextSeedWrites.push_back({w, curr_slotsleft});
-		}
-		
-		seedWrites.swap(nextSeedWrites);
-		nextSeedWrites.clear();
-	}
-	for (auto pair: seedWrites)
-		rfset.push_back(pair.first);
-}
-
 uint64_t Model::build_read_from(ModelAction *read) {	
 	uintptr_t addr = getCacheID(read->get_location());
 	uint numslotsleft = read->get_size();
 	//optimize: store delta to data in rfEntry
 	auto rf = new shared::vector<ModelAction *>(numslotsleft);
 
-	if(scheduler->get_thread(read->get_thread_id())->get_thread_memory()->get_latest_writes2(read, *rf, numslotsleft)) {
+	if(scheduler->get_thread(read->get_thread_id())->get_thread_memory()->get_latest_writes(read, *rf, numslotsleft)) {
 		uint64_t ret = get_read_value(read->get_location(), *rf);
 		delete rf;
 		return ret;
@@ -211,7 +123,7 @@ uint64_t Model::build_read_from(ModelAction *read) {
 
 		//running processes
 		if (citr == crashes.end()) {
-			if (auto old = get_overlaps_save_old2(store, read, *rf, numslotsleft)) {
+			if (auto old = get_overlaps_save_old(store, read, *rf, numslotsleft)) {
 				if (store->get_type() != ATOMIC_INIT && wpid != rpid) {	
 					//consider crashing the writing process before the read
 					cacheline cl = obj_to_cl.get_cacheline(addr);
@@ -238,13 +150,13 @@ uint64_t Model::build_read_from(ModelAction *read) {
 			modelclock_t crash_clock = citr->second;
 			cacheline &cl = obj_to_cl.get_cacheline(addr, crash_clock);
 			if (store->get_seq_num() <= cl.getBegin()) { //must have persisted
-				if (get_overlaps2(store, read, *rf, numslotsleft)) {
+				if (get_overlaps(store, read, *rf, numslotsleft)) {
 					read_crashed_set_cacheline_end(stores, itr, cl);
 				}
 			} else if (cl.getEnd() == 0 || store->get_seq_num() < cl.getEnd()) { //may have persisted
-				if (auto old = get_overlaps_save_old2(store, read, *rf, numslotsleft)) {
+				if (auto old = get_overlaps_save_old(store, read, *rf, numslotsleft)) {
 					//not persisted
-					if (decision_point(2, read->get_position()) == 0) {
+					if (store->get_type() != ATOMIC_INIT && decision_point(2, read->get_position()) == 0) {
 						delete rf;
 						rf = old;
 						numslotsleft = slotsleft_copy;
@@ -263,10 +175,9 @@ uint64_t Model::build_read_from(ModelAction *read) {
 			return ret;
 		}
 	}
-	
-	uint64_t ret = get_read_value(read->get_location(), *rf);
-	delete rf;
-	return ret;
+
+	assert(false);
+	return 0;
 }
 
 //inline?
@@ -377,7 +288,7 @@ void Model::reset_execution_data() {
 
 int Model::decision_point(int numchoices, const char *pos) {
 	if (VERBOSE > 0 && pos && nodestack->next_is_curr_backtrack())
-		printf("backtrack to %s\n", pos);
+		printf("backtrack to %s of process %d\n", pos, process_id);
 	return nodestack->explore_next(numchoices)->get_choice(); 
 }
 bool Model::should_crash() {
