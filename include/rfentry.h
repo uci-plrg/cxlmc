@@ -32,9 +32,10 @@ struct rfEntry {
 		if ((wbot >= rtop) || (rbot >= wtop))
 			return ret;
 	
-		uintptr_t woffset = (wbot > rbot) ? (wbot - rbot) : 0;
-		//the ith byte of read will be the (i - woffset)th byte of write
-		for(uint i = woffset ; i < woffset + wsize && i < rsize; i++) {
+		//offset at beginning of read
+		uintptr_t offset = (wbot > rbot) ? (wbot - rbot) : 0;
+		//the ith byte of read will be the (i - offset)th byte of write
+		for(uint i = offset ; i < offset + wsize && i < rsize; i++) {
 			if ((*overlaps)[i] == NULL) {
 				ret = true;
 				(*overlaps)[i] = write;
@@ -58,9 +59,10 @@ struct rfEntry {
 		if ((wbot >= rtop) || (rbot >= wtop))
 			return ret;
 	
-		uintptr_t woffset = (wbot > rbot) ? (wbot - rbot) : 0;
+		//offset at beginning of read
+		uintptr_t offset = (wbot > rbot) ? (wbot - rbot) : 0;
 		//the ith byte of read will be the (i - woffset)th byte of write
-		for(uint i = woffset ; i < woffset + wsize && i < rsize; i++) {
+		for(uint i = offset ; i < offset + wsize && i < rsize; i++) {
 			if ((*overlaps)[i] == NULL) {
 				if (ret == NULL)
 					ret = new shared::vector<ModelAction *>(*overlaps);

@@ -11,13 +11,12 @@ void user_exit() {
 }
 
 void user_init(process_id_t pid, Model *m, mspace ms) {
-	srand(42 + pid);
     model = m;
     shared_space = ms;
     model->get_scheduler()->process_init(pid);
     real_init_all();
     init_memory_ops();
-    srand(42 + pid);
+    srand(RANDOM_SEED + pid);
     
     void* mapping = mmap(NULL, SNAPSHOT_PAGES * PAGE_SIZE, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     

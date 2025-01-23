@@ -93,39 +93,40 @@ int main(int argc, char* argv[]) {
     }
     if (user_argc == 0) {
         std::cerr << "no program path" << std::endl;
-        exit(1);
+        exit(EXIT_FAILURE);
     }
 
     void* handle = dlopen(user_argv[0], RTLD_LAZY);
     if (!handle) {
         std::cerr << dlerror() << std::endl;
-        exit(1);
+        exit(EXIT_FAILURE);
     }
 
     void(*user_init)(int pid, Model *m, mspace ms) = (void(*)(int pid, Model *m, mspace ms)) dlsym(handle, "user_init");
     if (!user_init) {
         std::cerr << dlerror() << std::endl;
-        exit(1);
+        exit(EXIT_FAILURE);
     }
 
     int(*user_main)(int, char**) = (int(*)(int, char**)) dlsym(handle, "main");
     if (!user_main) {
         std::cerr << dlerror() << std::endl;
-        exit(1);
+        exit(EXIT_FAILURE);
     }
 
     void(*user_done)() = (void(*)()) dlsym(handle, "user_done");
     if (!user_done) {
         std::cerr << dlerror() << std::endl;
-        exit(1);
+        exit(EXIT_FAILURE);
     }
     
 	if (take_snapshot() == 0) {
 
         void *cxl_mapping = mmap(NULL, CXL_MEM_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+
         if (cxl_mapping == MAP_FAILED) {
             perror("mmap");
-            return 1;
+            exit(EXIT_FAILURE);
         }
         model->set_cxl_mapping(cxl_mapping);
         

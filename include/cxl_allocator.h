@@ -11,25 +11,15 @@ extern mspace cxl_space;
 extern "C" {
 #endif
 
-inline void * cxl_malloc(size_t bytes) {
-	return mspace_malloc(cxl_space, bytes);
-}
+void * cxl_malloc(size_t bytes);
 
-inline void cxl_free(void* mem) {
-	mspace_free(cxl_space, mem);
-}
+void cxl_free(void* mem);
 
-inline void * cxl_realloc(void* mem, size_t newsize) {
-	return mspace_realloc(cxl_space, mem, newsize);
-}
+void * cxl_realloc(void* mem, size_t newsize);
 
-inline void * cxl_calloc(size_t n_elements, size_t elem_size) {
-	return mspace_calloc(cxl_space, n_elements, elem_size);
-}
+void * cxl_calloc(size_t n_elements, size_t elem_size);
 
-inline void * cxl_memalign(size_t alignment, size_t bytes) {
-	return mspace_memalign(cxl_space, alignment, bytes);
-}
+void * cxl_memalign(size_t alignment, size_t bytes);
 
 #if __cplusplus
 }
@@ -38,25 +28,25 @@ inline void * cxl_memalign(size_t alignment, size_t bytes) {
 #if __cplusplus
 #define CXLALLOC \
 	void * operator new(size_t size, std::align_val_t al) { \
-				return mspace_memalign(cxl_space, (size_t)al, size); \
+				return cxl_memalign((size_t)al, size); \
 			} \
 	void * operator new(size_t size) { \
-				void* addr = mspace_malloc(cxl_space, size); \
+				void* addr = cxl_malloc(size); \
 				if (!addr) \
 					assert(false && "bad alloc"); \
 				return addr; \
 			} \
 	void operator delete(void *p, __attribute__((unused)) size_t size) { \
-				mspace_free(cxl_space, p); \
+				cxl_free(p); \
 			} \
 	void * operator new[](size_t size) { \
-				void* addr = mspace_malloc(cxl_space, size); \
+				void* addr = cxl_malloc(size); \
 				if (!addr) \
 					assert(false && "bad alloc"); \
 				return addr; \
 			} \
 	void operator delete[](void *p, __attribute__((unused)) size_t size) { \
-				mspace_free(cxl_space, p); \
+				cxl_free(p); \
 			} \
 	void * operator new(__attribute__((unused)) size_t size, void *p) {	/* placement new */ \
 				return p; \
@@ -103,7 +93,7 @@ public:// type definitions
 	// Allocate memory for n objects of type T 
     pointer allocate(size_t n) {
         //mspace_malloc_stats(cxl_space);
-        void *addr = mspace_malloc(cxl_space, n * sizeof(T));
+        void *addr = cxl_malloc(n * sizeof(T));
         if (!addr) {
             assert(false && "bad alloc");
         }
@@ -124,7 +114,7 @@ public:// type definitions
 	}
     // Deallocate memory 
     void deallocate(pointer p, __attribute__((unused)) size_t n) {
-        mspace_free(cxl_space, p);
+        cxl_free(p);
     }
 };
 #endif
