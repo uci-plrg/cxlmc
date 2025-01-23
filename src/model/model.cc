@@ -291,6 +291,7 @@ int Model::decision_point(int numchoices, const char *pos) {
 		printf("backtrack to %s of process %d\n", pos, process_id);
 	return nodestack->explore_next(numchoices)->get_choice(); 
 }
+
 bool Model::should_crash() {
     if (crashes.size() < MAX_CRASHES_PER_EXECUTION && (process_id_t) crashes.size() + 1 < scheduler->get_process_count() && decision_point(2) == 0) {
         return true;

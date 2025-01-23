@@ -122,7 +122,7 @@ void *cxlmc_memset(void *dst, int c, size_t n) {
 }
 
 void * memcpy(void * dst, const void * src, size_t n) {
-	if ((mem_is_cxl(dst) || mem_is_cxl(src)) && !inside_model) {
+	if ( !inside_model && (mem_is_cxl(dst) || mem_is_cxl(src))) {
 		return cxlmc_memcpy(dst, src, n);
 	} else {
 		if (((uintptr_t)memcpy_real) < 2) {
@@ -136,7 +136,7 @@ void * memcpy(void * dst, const void * src, size_t n) {
 }
 
 void * memmove(void *dst, const void *src, size_t n) {
-	if ((mem_is_cxl(dst) || mem_is_cxl(src)) && !inside_model) {
+	if (!inside_model && (mem_is_cxl(dst) || mem_is_cxl(src))) {
 		return cxlmc_memmove(dst, src, n);
 	} else {
 		if (((uintptr_t)memmove_real) < 2) {
@@ -167,7 +167,7 @@ void * realmemset(void *dst, int c, size_t n) {
 }
 
 void * memset(void *dst, int c, size_t n) {
-	if (mem_is_cxl(dst) && !inside_model) {
+	if (!inside_model && mem_is_cxl(dst)) {
 		return cxlmc_memset(dst, c, n);
 	} else {
 		return realmemset(dst, c, n);
@@ -177,7 +177,7 @@ void * memset(void *dst, int c, size_t n) {
 
 const char * bzerostring = "bzero";
 void bzero(void *dst, size_t n) {
-	if (mem_is_cxl(dst) && !inside_model) {
+	if (!inside_model && mem_is_cxl(dst)) {
 		for(unsigned i=0;i<n;) {
 			if ((((uintptr_t)dst+i)&7)==0 && (i + 8) <= n) {
 				cxlmc_store64(((char *) dst)+i, 0, bzerostring);
