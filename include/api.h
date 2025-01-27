@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <stddef.h>
+#include <pthread.h>
 #include "config.h"
 
 #if __cplusplus
@@ -100,6 +101,8 @@ void init_cxl_space(size_t offset, size_t size);
 int get_process_count();
 int get_process_id();
 int get_crashed_process_count();
+bool is_process_crashed(int process_id);
+int mutex_lock_crashed(pthread_mutex_t *p_mutex);
 
 #if __cplusplus
 }

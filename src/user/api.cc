@@ -288,3 +288,27 @@ process_id_t get_process_id() {
 process_id_t get_crashed_process_count() {
 	return model->get_crashed_process_count();
 }
+
+bool is_process_crashed(process_id_t process_id) {
+	return model->is_crashed(process_id);
+}
+
+inline ExtPtr make_ext_ptr(void *ptr) {
+	return ExtPtr{ptr, model->mem_is_cxl(ptr) ? -1: process_id};
+}
+
+int mutex_lock_crashed(pthread_mutex_t *p_mutex) {
+	ExtPtr ep = make_ext_ptr(p_mutex);
+    auto mutex_map = model->get_mutex_map();
+	if (mutex_map->find(ep) == mutex_map->end()) {
+		pthread_mutex_init(p_mutex, NULL);
+	}
+
+	Mutex* m = mutex_map->at(ep);
+
+	if (m != NULL) {
+		return m->lock() + 1;
+	} else {
+		return 0;
+	}
+}
