@@ -66,9 +66,10 @@ void execute(ModelAction* action) {
         Mutex* mutex = action->get_mutex();
         Thread* owner = mutex->get_owner();
 
-        if (!owner || owner->get_state() == THREAD_CRASHED) {
+        bool thread_crashed = false;
+        if (!owner || (thread_crashed = owner->get_state() == THREAD_CRASHED)) {
             mutex->set_owner(curr_thread);
-            action->set_value(true);
+            action->set_value(true + thread_crashed);
             break;
         }
 
@@ -97,11 +98,13 @@ void execute(ModelAction* action) {
             break;
         }
 
-        while (mutex->get_owner() && mutex->get_owner()->get_state() != THREAD_CRASHED)
+        bool thread_crashed = false;
+        while (mutex->get_owner() && (thread_crashed = mutex->get_owner()->get_state() != THREAD_CRASHED))
             thread_wait(curr_thread);
 
         assert(!mutex->get_owner() || mutex->get_owner()->get_state() == THREAD_CRASHED);
         mutex->set_owner(curr_thread);
+        action->set_value(thread_crashed);
         break;
     }
     case ATOMIC_WAIT:

@@ -10,7 +10,7 @@ class Mutex {
 public:
     Mutex(int type) : mutex_type(type), owner(nullptr), recursive_lock_count(0) {}
 
-    void lock();
+    bool lock();
 
     bool try_lock();
 
