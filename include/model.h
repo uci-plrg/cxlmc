@@ -49,7 +49,7 @@ private:
 
 	inline bool empty_flush(const storeList &stores, modelclock_t old_begin) { return stores.size() != 0 && (*stores.rbegin())->get_seq_num() < old_begin; }
 	
-	void read_crashed_set_cacheline_end(const storeList &stores, storeList::reverse_iterator itr, Range &r);
+	void set_new_cl_end(const storeList &stores, storeList::reverse_iterator itr, Range &r);
 
 	bool has_unflushed_write(void *addr, process_id_t pid);
 

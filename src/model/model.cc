@@ -124,25 +124,26 @@ uint64_t Model::build_read_from(ModelAction *read) {
 		//running processes
 		if (citr == crashes.end()) {
 			if (auto old = get_overlaps_save_old(store, read, *rf, numslotsleft)) {
-				if (store->get_type() != ATOMIC_INIT && wpid != rpid) {	
-					//consider crashing the writing process before the read
-					cacheline cl = obj_to_cl.get_cacheline(addr);
-					if (!scheduler->get_thread(store->get_thread_id())->is_completed() && 
-							crashes.size() < MAX_CRASHES_PER_EXECUTION &&
-							crashes.size() + 1 < p_count &&
-							!empty_flush(stores, cl.getBegin()) &&
-							decision_point(2, read->get_position()) == 0) {
-						crashes.emplace(wpid, next_sequence_num);
-						obj_to_cl.insert_crash(next_sequence_num);
-						delete rf;
-						rf = old;
-						numslotsleft = slotsleft_copy;
-					} else {
-						delete old;
-						obj_to_cl.set_cacheline(addr, cacheline{next_sequence_num, cl.getEnd()});
-					}
-				} else
+				cacheline cl = obj_to_cl.get_cacheline(addr);
+				//consider crashing the writing process before the read
+				if (store->get_type() != ATOMIC_INIT && 
+						wpid != rpid &&	
+						!scheduler->get_thread(store->get_thread_id())->is_completed() && 
+						crashes.size() < MAX_CRASHES_PER_EXECUTION &&
+						crashes.size() + 1 < p_count &&
+						!empty_flush(stores, cl.getBegin()) &&
+						decision_point(2, read->get_position()) == 0) 
+				{
+					crashes.emplace(wpid, next_sequence_num);
+					obj_to_cl.insert_crash(next_sequence_num);
+					delete rf;
+					rf = old;
+					numslotsleft = slotsleft_copy;
+				} else {
 					delete old;
+					cacheline &new_cl = obj_to_cl.set_cacheline(addr, cacheline{next_sequence_num, cl.getEnd()});
+					set_new_cl_end(stores, itr, new_cl);
+				}
 			}
 		} 
 		citr = crashes.find(wpid);
@@ -151,7 +152,7 @@ uint64_t Model::build_read_from(ModelAction *read) {
 			cacheline &cl = obj_to_cl.get_cacheline(addr, crash_clock);
 			if (store->get_seq_num() <= cl.getBegin()) { //must have persisted
 				if (get_overlaps(store, read, *rf, numslotsleft)) {
-					read_crashed_set_cacheline_end(stores, itr, cl);
+					set_new_cl_end(stores, itr, cl);
 				}
 			} else if (cl.getEnd() == 0 || store->get_seq_num() < cl.getEnd()) { //may have persisted
 				if (auto old = get_overlaps_save_old(store, read, *rf, numslotsleft)) {
@@ -160,10 +161,11 @@ uint64_t Model::build_read_from(ModelAction *read) {
 						delete rf;
 						rf = old;
 						numslotsleft = slotsleft_copy;
+					//persisted
 					} else {
 						delete old;
 						cacheline &new_cl = obj_to_cl.set_cacheline(addr, cacheline{store->get_seq_num(), cl.getEnd()});
-						read_crashed_set_cacheline_end(stores, itr, new_cl);
+						set_new_cl_end(stores, itr, new_cl);
 					}
 				}
 			}
@@ -181,7 +183,7 @@ uint64_t Model::build_read_from(ModelAction *read) {
 }
 
 //inline?
-void Model::read_crashed_set_cacheline_end(const storeList &stores, storeList::reverse_iterator itr, cacheline &cl) {
+void Model::set_new_cl_end(const storeList &stores, storeList::reverse_iterator itr, cacheline &cl) {
 	ModelAction *write = *itr;
 	auto fitr = itr.base();
 	uintptr_t wbot = (uintptr_t) write->get_location();
@@ -192,7 +194,7 @@ void Model::read_crashed_set_cacheline_end(const storeList &stores, storeList::r
 		uintptr_t wtop2 = wbot2 + (*fitr)->get_size();
 		if (wtop > wbot2 && wbot < wtop2) {
 			modelclock_t next_write_seq = (*fitr)->get_seq_num();
-			if (cl.getEnd() == 0 || cl.getEnd() >= next_write_seq)
+			if (cl.getEnd() == 0 || cl.getEnd() > next_write_seq)
 				cl.setEnd(next_write_seq);
 			break;
 		}
@@ -287,7 +289,7 @@ void Model::reset_execution_data() {
 }
 
 int Model::decision_point(int numchoices, const char *pos) {
-	if (VERBOSE > 0 && pos && nodestack->next_is_curr_backtrack())
+	if (DEBUG_LEVEL > 0 && pos && nodestack->next_is_curr_backtrack())
 		printf("backtrack to %s of process %d\n", pos, process_id);
 	return nodestack->explore_next(numchoices)->get_choice(); 
 }

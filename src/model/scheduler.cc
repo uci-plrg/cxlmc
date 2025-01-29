@@ -47,7 +47,7 @@ void Scheduler::yield() {
         thread_id_t tid = (active + i) % tc;
         if (threads[tid]->get_state() == THREAD_RUNNING) {
             active_thread.store(tid);
-			fwake((uint32_t*)&active_thread);
+            fwake((uint32_t*)&active_thread);
             wait();
             return;
         }

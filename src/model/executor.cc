@@ -99,7 +99,7 @@ void execute(ModelAction* action) {
         }
 
         bool thread_crashed = false;
-        while (mutex->get_owner() && (thread_crashed = mutex->get_owner()->get_state() != THREAD_CRASHED))
+        while (mutex->get_owner() && !(thread_crashed = mutex->get_owner()->get_state() == THREAD_CRASHED))
             thread_wait(curr_thread);
 
         assert(!mutex->get_owner() || mutex->get_owner()->get_state() == THREAD_CRASHED);
