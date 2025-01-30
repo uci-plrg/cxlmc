@@ -124,26 +124,26 @@ uint64_t Model::build_read_from(ModelAction *read) {
 		//running processes
 		if (citr == crashes.end()) {
 			if (auto old = get_overlaps_save_old(store, read, *rf, numslotsleft)) {
-				cacheline cl = obj_to_cl.get_cacheline(addr);
 				//consider crashing the writing process before the read
-				if (store->get_type() != ATOMIC_INIT && 
-						wpid != rpid &&	
-						!scheduler->get_thread(store->get_thread_id())->is_completed() && 
+				if (store->get_type() != ATOMIC_INIT && wpid != rpid) {
+					cacheline cl = obj_to_cl.get_cacheline(addr);
+					if (!scheduler->get_thread(store->get_thread_id())->is_completed() && 
 						crashes.size() < MAX_CRASHES_PER_EXECUTION &&
 						crashes.size() + 1 < p_count &&
 						!empty_flush(stores, cl.getBegin()) &&
 						decision_point(2, read->get_position()) == 0) 
-				{
-					crashes.emplace(wpid, next_sequence_num);
-					obj_to_cl.insert_crash(next_sequence_num);
-					delete rf;
-					rf = old;
-					numslotsleft = slotsleft_copy;
-				} else {
+					{
+						crashes.emplace(wpid, next_sequence_num);
+						obj_to_cl.insert_crash(next_sequence_num);
+						delete rf;
+						rf = old;
+						numslotsleft = slotsleft_copy;
+					} else {
+						delete old;
+						obj_to_cl.set_cacheline(addr, cacheline{next_sequence_num, cl.getEnd()});
+					}
+				} else
 					delete old;
-					cacheline &new_cl = obj_to_cl.set_cacheline(addr, cacheline{next_sequence_num, cl.getEnd()});
-					set_new_cl_end(stores, itr, new_cl);
-				}
 			}
 		} 
 		citr = crashes.find(wpid);
@@ -151,9 +151,7 @@ uint64_t Model::build_read_from(ModelAction *read) {
 			modelclock_t crash_clock = citr->second;
 			cacheline &cl = obj_to_cl.get_cacheline(addr, crash_clock);
 			if (store->get_seq_num() <= cl.getBegin()) { //must have persisted
-				if (get_overlaps(store, read, *rf, numslotsleft)) {
-					set_new_cl_end(stores, itr, cl);
-				}
+				get_overlaps(store, read, *rf, numslotsleft);
 			} else if (cl.getEnd() == 0 || store->get_seq_num() < cl.getEnd()) { //may have persisted
 				if (auto old = get_overlaps_save_old(store, read, *rf, numslotsleft)) {
 					//not persisted
@@ -161,11 +159,11 @@ uint64_t Model::build_read_from(ModelAction *read) {
 						delete rf;
 						rf = old;
 						numslotsleft = slotsleft_copy;
+						cl.setEnd(store->get_seq_num());
 					//persisted
 					} else {
 						delete old;
-						cacheline &new_cl = obj_to_cl.set_cacheline(addr, cacheline{store->get_seq_num(), cl.getEnd()});
-						set_new_cl_end(stores, itr, new_cl);
+						obj_to_cl.set_cacheline(addr, cacheline{store->get_seq_num(), cl.getEnd()});
 					}
 				}
 			}
@@ -179,26 +177,7 @@ uint64_t Model::build_read_from(ModelAction *read) {
 	}
 
 	assert(false);
-	return 0;
-}
-
-//inline?
-void Model::set_new_cl_end(const storeList &stores, storeList::reverse_iterator itr, cacheline &cl) {
-	ModelAction *write = *itr;
-	auto fitr = itr.base();
-	uintptr_t wbot = (uintptr_t) write->get_location();
-	uintptr_t wtop = wbot + write->get_size();
-	//find next overlapping write
-	for (; fitr != stores.end(); fitr++) {
-		uintptr_t wbot2 = (uintptr_t) (*fitr)->get_location();
-		uintptr_t wtop2 = wbot2 + (*fitr)->get_size();
-		if (wtop > wbot2 && wbot < wtop2) {
-			modelclock_t next_write_seq = (*fitr)->get_seq_num();
-			if (cl.getEnd() == 0 || cl.getEnd() > next_write_seq)
-				cl.setEnd(next_write_seq);
-			break;
-		}
-	}
+	return VALUE_NONE;
 }
 
 void Model::print_execution_summary() {
