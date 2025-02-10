@@ -113,6 +113,8 @@ void model_rmw_action(void *addrs, uint64_t val, int atomic_index, const char * 
 		_copy __op__ _val; \
 		if (mem_is_cxl(addr)) \
 			model_rmw_action(addr, (uint64_t) _copy, atomic_index, position, size>>3); \
+		else \
+			*(uint ## size ## _t *) addr = _copy; \
 		return _old; \
 	}
 
