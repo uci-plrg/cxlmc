@@ -27,9 +27,6 @@ void * cxl_memalign(size_t alignment, size_t bytes);
 
 #if __cplusplus
 #define CXLALLOC \
-	void * operator new(size_t size, std::align_val_t al) { \
-				return cxl_memalign((size_t)al, size); \
-			} \
 	void * operator new(size_t size) { \
 				void* addr = cxl_malloc(size); \
 				if (!addr) \
