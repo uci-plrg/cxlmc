@@ -32,6 +32,8 @@ uint64_t Model::action(ModelAction* action, bool yield) {
 	    scheduler->yield();
 	if (action->is_read() || action->is_write())
 		ensureInitialValue(action);
+	if (action->get_type() == CACHE_CLFLUSHOPT)
+		action->set_earliest_effect(next_sequence_num);
 	inside_model = true;
     execute(action);
     curr_thread->set_pending(nullptr);
@@ -89,14 +91,18 @@ void Model::evict_store(ModelAction* action) {
 void Model::evict_clflush(ModelAction* action) {
     assert(action->get_type() == CACHE_CLFLUSH || action->get_type() == CACHE_CLFLUSHOPT);
 								
-	modelclock_t seq_num = get_next_sequence_num();
-	action->set_seq_num(seq_num);
+	modelclock_t seq_num;
+	if (action->get_type() == CACHE_CLFLUSH) {
+		seq_num = get_next_sequence_num();
+		action->set_seq_num(seq_num);
+	} else
+		seq_num = action->get_earliest_effect();
 	uintptr_t addr = getCacheID(action->get_location());
 	cacheline cl = obj_to_cl.get_cacheline(addr);
 	if (!empty_flush(get_storelist(action->get_location()), cl.getBegin()))
 		insert_crash();
-	obj_to_cl.set_cacheline(addr, cacheline{seq_num, cl.getEnd()});
-	delete action;
+	if (seq_num > cl.getBegin())
+		obj_to_cl.set_cacheline(addr, cacheline{seq_num, cl.getEnd()});
 }
 
 uint64_t Model::build_read_from(ModelAction *read) {	
@@ -105,7 +111,7 @@ uint64_t Model::build_read_from(ModelAction *read) {
 	//optimize: store delta to data in rfEntry
 	auto rf = new shared::vector<ModelAction *>(numslotsleft);
 
-	if(scheduler->get_thread(read->get_thread_id())->get_thread_memory()->get_latest_writes(read, *rf, numslotsleft)) {
+	if(scheduler->get_thread(read->get_thread_id())->get_thread_memory()->local_bypassing(read, *rf, numslotsleft)) {
 		uint64_t ret = get_read_value(read->get_location(), *rf);
 		delete rf;
 		return ret;

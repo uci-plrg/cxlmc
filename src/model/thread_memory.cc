@@ -16,7 +16,7 @@ void ThreadMemory::add_to_store_buffer(ModelAction *action) {
     storeBuffer.push_back(action);
 }
 
-bool ThreadMemory::get_latest_writes(ModelAction* read, shared::vector<ModelAction *> &rf, uint &numslotsleft) {
+bool ThreadMemory::local_bypassing(ModelAction* read, shared::vector<ModelAction *> &rf, uint &numslotsleft) {
      for (auto iter = storeBuffer.rbegin(); iter != storeBuffer.rend(); iter++) {
          ModelAction* write = *iter;
          if (write->get_type() == NONATOMIC_STORE) {
@@ -43,22 +43,28 @@ bool ThreadMemory::pop_from_store_buffer() {
     case NONATOMIC_STORE:
     case ATOMIC_RMW: {
 		model->evict_store(action);
+		obj_to_last_wr_or_clf[getCacheID(action->get_location())] = action->get_seq_num();
 		break;
 	}
 	case CACHE_CLFLUSH: {
 		model->evict_clflush(action);
+		obj_to_last_wr_or_clf[getCacheID(action->get_location())] = action->get_seq_num();
+		delete action;
 		break;
 	}
 	case CACHE_CLFLUSHOPT: {
-        if (last_sfence != nullptr) {
-            action->set_last_clflush(last_sfence->get_seq_num());
-        }
+		if (last_sfence > action->get_earliest_effect())
+			action->set_earliest_effect(last_sfence);
+		auto itr = obj_to_last_wr_or_clf.find(getCacheID(action->get_location()));
+		if (itr != obj_to_last_wr_or_clf.end() && itr->second > action->get_earliest_effect())
+			action->set_earliest_effect(itr->second);
 		flushBuffer.push_back(action);
 		break;
 	}
     case CACHE_SFENCE: {
         empty_flush_buffer();
-        last_sfence = action;
+        last_sfence = action->get_seq_num();
+        delete action;
         break;
     }
 	default:
@@ -79,5 +85,6 @@ void ThreadMemory::empty_flush_buffer() {
         flushBuffer.pop_front();
         assert(action->get_type() == CACHE_CLFLUSHOPT);
         model->evict_clflush(action);
+        delete action;
     }
 }

@@ -291,8 +291,8 @@ process_id_t get_crashed_process_count() {
 	return model->get_crashed_process_count();
 }
 
-bool is_process_crashed(process_id_t process_id) {
-	return model->is_crashed(process_id);
+bool is_process_crashed(process_id_t pid) {
+	return model->is_crashed(pid);
 }
 
 inline ExtPtr make_ext_ptr(void *ptr) {

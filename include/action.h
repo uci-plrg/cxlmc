@@ -56,7 +56,7 @@ class ModelAction {
 	void* location;
 	uint64_t value;
 	modelclock_t seq_num;
-	modelclock_t last_clflush;
+	modelclock_t earliest_effect = 0;
 	uint size;
 	memory_order order;
 	const char *position;
@@ -75,8 +75,8 @@ public:
 	void set_value(uint64_t val) { value = val; }
 	uint get_size() { return size; }
 	const char *get_position() { return position; }
-	modelclock_t get_last_clflush() { return last_clflush; }
-	void set_last_clflush(modelclock_t lc) { last_clflush = lc; }
+	modelclock_t get_earliest_effect() { return earliest_effect; }
+	void set_earliest_effect(modelclock_t ef) { earliest_effect = ef; }
 	bool is_seq_cst() { return order == memory_order_seq_cst; }
 	bool is_second_part_of_rmw() { return type == ATOMIC_RMW || type == ATOMIC_CAS_FAILED; }
 	bool is_read() { return type == ATOMIC_LOAD || type == NONATOMIC_LOAD || type == ATOMIC_RMWR || type == ATOMIC_RMW; }

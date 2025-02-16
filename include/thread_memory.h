@@ -76,10 +76,11 @@ inline uint64_t get_read_value(void *read_loc, shared::vector<ModelAction *> &rf
 class ThreadMemory {
     shared::list<ModelAction *> storeBuffer;
     shared::list<ModelAction *> flushBuffer;
-    ModelAction* last_sfence;
+    modelclock_t last_sfence = 0;
+    shared::hashmap<uintptr_t, modelclock_t> obj_to_last_wr_or_clf;
 
 public:
-    ThreadMemory() : last_sfence(nullptr) {}
+    ThreadMemory() {}
     ~ThreadMemory() {
         for (ModelAction *s: storeBuffer) {
             delete s;
@@ -89,13 +90,12 @@ public:
     }
 
     void add_to_store_buffer(ModelAction *action);
-	bool get_latest_writes(ModelAction* read, shared::vector<ModelAction *> &rf, uint &numslotsleft);
+	bool local_bypassing(ModelAction* read, shared::vector<ModelAction *> &rf, uint &numslotsleft);
 	bool pop_from_store_buffer();
     void empty_store_buffer();
     void empty_flush_buffer();
 	size_t get_store_buffer_size() {return storeBuffer.size(); }
 	size_t get_flush_buffer_size() {return flushBuffer.size(); }
-
 };
 
 #endif
