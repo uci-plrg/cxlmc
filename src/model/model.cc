@@ -99,7 +99,8 @@ void Model::evict_clflush(ModelAction* action) {
 		seq_num = action->get_earliest_effect();
 	uintptr_t addr = getCacheID(action->get_location());
 	cacheline cl = obj_to_cl.get_cacheline(addr);
-	if (!empty_flush(get_storelist(action->get_location()), cl.getBegin()))
+	auto stores = get_storelist(action->get_location());
+	if (stores.size() != 0 && (*stores.rbegin())->get_seq_num() > cl.getBegin())
 		insert_crash();
 	if (seq_num > cl.getBegin())
 		obj_to_cl.set_cacheline(addr, cacheline{seq_num, cl.getEnd()});
@@ -136,7 +137,7 @@ uint64_t Model::build_read_from(ModelAction *read) {
 					if (!scheduler->get_thread(store->get_thread_id())->is_completed() && 
 						crashes.size() < MAX_CRASHES_PER_EXECUTION &&
 						crashes.size() + 1 < p_count &&
-						!empty_flush(stores, cl.getBegin()) &&
+						store->get_seq_num() > cl.getBegin() &&
 						decision_point(2, read->get_position()) == 0) 
 					{
 						crashes.emplace(wpid, next_sequence_num);

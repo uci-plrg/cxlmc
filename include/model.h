@@ -46,9 +46,6 @@ private:
 	
 	storeList &get_storelist(void *addr);
 
-
-	inline bool empty_flush(const storeList &stores, modelclock_t old_begin) { return stores.size() != 0 && (*stores.rbegin())->get_seq_num() < old_begin; }
-	
 	bool has_unflushed_write(void *addr, process_id_t pid);
 
 	bool should_crash();
