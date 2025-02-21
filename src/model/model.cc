@@ -118,7 +118,17 @@ uint64_t Model::build_read_from(ModelAction *read) {
 		return ret;
 	}
 
+
 	storeList &stores = get_storelist(read->get_location());
+	assert(stores.size() != 0);
+
+#if MEM_POISON == 1
+	if (is_crashed(get_process_id(*stores.begin()))) {
+		fprintf(stderr, "poison value on read at %s\n", read->get_position());
+		exit(EXIT_FAILURE);
+	}
+#endif
+
 	process_id_t rpid = get_process_id(read);
 	unsigned p_count = scheduler->get_process_count();
 		

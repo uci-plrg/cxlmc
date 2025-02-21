@@ -20,6 +20,8 @@
 #define CXL_ALLOC_RAND 0
 #define CXL_ALLOC_RAND_VAL 0xdeadbeef
 
+/** Whether to poison cacheline of failed process */
+#define MEM_POISON 0
 
 /** Logging options */
 #define DEBUG_LEVEL 1
