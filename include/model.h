@@ -101,9 +101,9 @@ public:
 
 	bool is_crashed(process_id_t pid);
 
-    int decision_point(int numchoices, const char *pos=NULL);
+    int decision_point(int numchoices, bool *at_backtrack=NULL);
 
-    void insert_crash();
+    void insert_crash(process_id_t pid=process_id);
 
     process_id_t get_crashed_process_count() { return crashes.size(); }
 

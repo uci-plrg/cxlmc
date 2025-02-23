@@ -100,14 +100,25 @@ void Model::evict_clflush(ModelAction* action) {
 	uintptr_t addr = getCacheID(action->get_location());
 	cacheline cl = obj_to_cl.get_cacheline(addr);
 	auto stores = get_storelist(action->get_location());
-	if (stores.size() != 0 && (*stores.rbegin())->get_seq_num() > cl.getBegin())
-		insert_crash();
+
+	for (auto itr = stores.rbegin(); itr != stores.rend(); itr++) {
+		if ((*itr)->get_seq_num() <= cl.getBegin() ||
+			crashes.size() >= MAX_CRASHES_PER_EXECUTION || 
+			crashes.size() >= (unsigned) scheduler->get_process_count()-1)
+
+			break;
+		auto wpid = get_process_id(*itr);
+		if (!is_crashed(wpid))
+			insert_crash(wpid);
+	}
+
 	if (seq_num > cl.getBegin())
 		obj_to_cl.set_cacheline(addr, cacheline{seq_num, cl.getEnd()});
 }
 
 uint64_t Model::build_read_from(ModelAction *read) {	
 	uintptr_t addr = getCacheID(read->get_location());
+	auto pos = read->get_position();
 	uint numslotsleft = read->get_size();
 	//optimize: store delta to data in rfEntry
 	auto rf = new shared::vector<ModelAction *>(numslotsleft);
@@ -131,7 +142,8 @@ uint64_t Model::build_read_from(ModelAction *read) {
 
 	process_id_t rpid = get_process_id(read);
 	unsigned p_count = scheduler->get_process_count();
-		
+	bool at_backtrack = false;
+
 	for (auto itr = stores.rbegin(); itr != stores.rend(); itr++) {
 		ModelAction *store = *itr;
 		process_id_t wpid = get_process_id(store);
@@ -144,11 +156,10 @@ uint64_t Model::build_read_from(ModelAction *read) {
 				//consider crashing the writing process before the read
 				if (store->get_type() != ATOMIC_INIT && wpid != rpid) {
 					cacheline cl = obj_to_cl.get_cacheline(addr);
-					if (!scheduler->get_thread(store->get_thread_id())->is_completed() && 
-						crashes.size() < MAX_CRASHES_PER_EXECUTION &&
-						crashes.size() + 1 < p_count &&
+					if (crashes.size() < MAX_CRASHES_PER_EXECUTION &&
+						crashes.size() < p_count-1 &&
 						store->get_seq_num() > cl.getBegin() &&
-						decision_point(2, read->get_position()) == 0) 
+						decision_point(2, &at_backtrack) == 0) 
 					{
 						crashes.emplace(wpid, next_sequence_num);
 						obj_to_cl.insert_crash(next_sequence_num);
@@ -172,7 +183,7 @@ uint64_t Model::build_read_from(ModelAction *read) {
 			} else if (cl.getEnd() == 0 || store->get_seq_num() < cl.getEnd()) { //may have persisted
 				if (auto old = get_overlaps_save_old(store, read, *rf, numslotsleft)) {
 					//not persisted
-					if (store->get_type() != ATOMIC_INIT && decision_point(2, read->get_position()) == 0) {
+					if (store->get_type() != ATOMIC_INIT && decision_point(2, &at_backtrack) == 0) {
 						delete rf;
 						rf = old;
 						numslotsleft = slotsleft_copy;
@@ -188,6 +199,16 @@ uint64_t Model::build_read_from(ModelAction *read) {
 		
 		if (numslotsleft == 0) {
 			uint64_t ret = get_read_value(read->get_location(), *rf);
+#if DEBUG_LEVEL > 0
+			if (pos && at_backtrack) {
+				printf("backtrack to node %d at %s of process %d, read %lu\n", nodestack->get_head_idx(), pos, process_id, ret);
+				printf("read-from: ");
+				for (uint i = 0; i < rf->size(); i++)
+					if (i==0 || (*rf)[i] != (*rf)[i-1])
+						printf("(+%d: val=%lx, seq=%u), ", i, (*rf)[i]->get_value(), (*rf)[i]->get_seq_num());
+				printf("\n");
+			}
+#endif 
 			delete rf;
 			return ret;
 		}
@@ -284,9 +305,9 @@ void Model::reset_execution_data() {
 		cond_map.clear();
 }
 
-int Model::decision_point(int numchoices, const char *pos) {
-	if (DEBUG_LEVEL > 0 && pos && nodestack->next_is_curr_backtrack())
-		printf("backtrack to %s of process %d\n", pos, process_id);
+int Model::decision_point(int numchoices, bool *at_backtrack) {
+	if (at_backtrack && nodestack->next_is_curr_backtrack())
+		*at_backtrack = true;
 	return nodestack->explore_next(numchoices)->get_choice(); 
 }
 
@@ -297,15 +318,20 @@ bool Model::should_crash() {
     return false;
 }
 
-void Model::insert_crash() {
+void Model::insert_crash(process_id_t pid) {
     if (!should_crash()) {
         return;
     }
 	
-	crashes[process_id] = next_sequence_num;
+	if (pid == process_id) {
+		crashes[process_id] = next_sequence_num;
+		obj_to_cl.insert_crash(next_sequence_num);
+		scheduler->process_crash();
+		exit(EXIT_SUCCESS);
+	}
+	
+	crashes.emplace(pid, next_sequence_num);
 	obj_to_cl.insert_crash(next_sequence_num);
-	scheduler->process_crash();
-	exit(EXIT_SUCCESS);
 }
 
 void Model::ensureInitialValue(ModelAction *action) {
