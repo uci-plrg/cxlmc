@@ -347,6 +347,14 @@ public:
 		return iterator(base.erase(iter._base));
 	}
 
+	size_t size() {
+		return base.size();
+	}
+
+	void clear() {
+		base.clear();
+	}
+
 	TEMPLATEALLOC;
 private:
 	Base base;

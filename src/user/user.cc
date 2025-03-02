@@ -18,14 +18,14 @@ void user_init(process_id_t pid, Model *m, mspace ms) {
     init_memory_ops();
     srand(RANDOM_SEED + pid);
     
-    void* mapping = mmap(NULL, SNAPSHOT_PAGES * PAGE_SIZE, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    void* mapping = mmap(NULL, SNAPSHOT_PAGES * CXLMC_PAGE_SIZE, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     
     if (mapping == MAP_FAILED) {
         perror("mmap");
         exit(1);
     }
 
-    snapshot_space = create_mspace_with_base(mapping, SNAPSHOT_PAGES * PAGE_SIZE, 1);
+    snapshot_space = create_mspace_with_base(mapping, SNAPSHOT_PAGES * CXLMC_PAGE_SIZE, 1);
 
     if (!snapshot_space) { 
         perror("create_mspace_with_base");
@@ -38,4 +38,5 @@ void user_init(process_id_t pid, Model *m, mspace ms) {
 
 void user_done() {
     model->get_scheduler()->process_shutdown();
+	model->complete_process();
 }

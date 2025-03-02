@@ -1,0 +1,12 @@
+start
+# which execution to track
+b snapshot.cc:12 if execution_num==1
+c
+set follow-fork-mode child
+b init.cc:155
+c
+set follow-fork-mode parent
+# which user process to track
+b init.cc:156 if id==0
+c
+set follow-fork-mode child

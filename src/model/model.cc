@@ -15,6 +15,7 @@
 
 Model *model = nullptr;
 bool inside_model = false;
+bool backtrack = true;
 mspace shared_space = NULL;
 mspace snapshot_space = NULL;
 mspace cxl_space = NULL;
@@ -25,6 +26,7 @@ uint64_t Model::action(ModelAction* action, bool yield) {
 		scheduler->process_crash();
 		exit(EXIT_SUCCESS);
 	}
+	inside_model = true;
 
     Thread* curr_thread = scheduler->current_thread();
     curr_thread->set_pending(action);
@@ -34,7 +36,6 @@ uint64_t Model::action(ModelAction* action, bool yield) {
 		ensureInitialValue(action);
 	if (action->get_type() == CACHE_CLFLUSHOPT)
 		action->set_earliest_effect(next_sequence_num);
-	inside_model = true;
     execute(action);
     curr_thread->set_pending(nullptr);
 
@@ -46,16 +47,13 @@ uint64_t Model::action(ModelAction* action, bool yield) {
 	return val;
 }
 
-bool Model::is_crashed(process_id_t pid) {
-	return crashes.find(pid) != crashes.end();
-}
-
 void Model::process_store_buffer() {
 	//placeholder store buffer policy, to be changed later
 	uint thread_count = scheduler->get_thread_count();
 	uint thread_to_pop = rand()%thread_count;
 	for (uint i = 0; i < thread_count; i++) {
-		if (!is_crashed(scheduler->get_thread(thread_to_pop)->get_process_id()))
+		process_id_t pid = scheduler->get_thread(thread_to_pop)->get_process_id();
+		if (is_live(pid))
 			break;
 		thread_to_pop = (thread_to_pop+1) % thread_count;
 	}
@@ -108,7 +106,7 @@ void Model::evict_clflush(ModelAction* action) {
 
 			break;
 		auto wpid = get_process_id(*itr);
-		if (!is_crashed(wpid))
+		if (is_live(wpid))
 			insert_crash(wpid);
 	}
 
@@ -130,6 +128,7 @@ uint64_t Model::build_read_from(ModelAction *read) {
 	}
 
 
+	int branch = 0;
 	storeList &stores = get_storelist(read->get_location());
 	assert(stores.size() != 0);
 
@@ -156,8 +155,11 @@ uint64_t Model::build_read_from(ModelAction *read) {
 				//consider crashing the writing process before the read
 				if (store->get_type() != ATOMIC_INIT && wpid != rpid) {
 					cacheline cl = obj_to_cl.get_cacheline(addr);
-					if (crashes.size() < MAX_CRASHES_PER_EXECUTION &&
-						crashes.size() < p_count-1 &&
+						unsigned crash_count = crashes.size();
+					if (backtrack &&
+						crash_count < MAX_CRASHES_PER_EXECUTION &&
+						crash_count + 1< p_count &&
+						!is_completed(wpid) && 
 						store->get_seq_num() > cl.getBegin() &&
 						decision_point(2, &at_backtrack) == 0) 
 					{
@@ -167,6 +169,7 @@ uint64_t Model::build_read_from(ModelAction *read) {
 						rf = old;
 						numslotsleft = slotsleft_copy;
 					} else {
+						branch++;
 						delete old;
 						obj_to_cl.set_cacheline(addr, cacheline{next_sequence_num, cl.getEnd()});
 					}
@@ -183,13 +186,14 @@ uint64_t Model::build_read_from(ModelAction *read) {
 			} else if (cl.getEnd() == 0 || store->get_seq_num() < cl.getEnd()) { //may have persisted
 				if (auto old = get_overlaps_save_old(store, read, *rf, numslotsleft)) {
 					//not persisted
-					if (store->get_type() != ATOMIC_INIT && decision_point(2, &at_backtrack) == 0) {
+					if (store->get_type() != ATOMIC_INIT && backtrack && decision_point(2, &at_backtrack) == 0) {
 						delete rf;
 						rf = old;
 						numslotsleft = slotsleft_copy;
 						cl.setEnd(store->get_seq_num());
 					//persisted
 					} else {
+						branch++;
 						delete old;
 						obj_to_cl.set_cacheline(addr, cacheline{store->get_seq_num(), cl.getEnd()});
 					}
@@ -201,7 +205,7 @@ uint64_t Model::build_read_from(ModelAction *read) {
 			uint64_t ret = get_read_value(read->get_location(), *rf);
 #if DEBUG_LEVEL > 0
 			if (pos && at_backtrack) {
-				printf("backtrack to node %d at %s of process %d, read %lu\n", nodestack->get_head_idx(), pos, process_id, ret);
+				printf("backtrack to node %d at %s of process %d, branch %d of rfset, read %lx\n", nodestack->get_head_idx(), pos, process_id, branch, ret);
 				printf("read-from: ");
 				for (uint i = 0; i < rf->size(); i++)
 					if (i==0 || (*rf)[i] != (*rf)[i-1])
@@ -256,14 +260,12 @@ void Model::finish_execution() {
     int num = execution_num.load();
 
     if (isLast) {
-		inside_model = true;
 		if (VERBOSE > 0)
 			print_execution_summary();
 		reset_execution_data();
 		scheduler->reset();
 		printf("Shared Space Memory Usage:\n");
 		mspace_malloc_stats(shared_space);
-		inside_model = false;
 
         rollback_again = rollback_again && num+1 <= MAX_EXECUTION && nodestack->has_another_execution();
         if (rollback_again) {
@@ -297,6 +299,7 @@ void Model::reset_execution_data() {
         obj_to_wr.clear();
 		obj_to_cl.clear();
 		crashes.clear();
+		completed_procs.clear();
 		for (auto &itr: mutex_map)
 			delete itr.second;
 		for (auto &itr: cond_map)
@@ -312,10 +315,11 @@ int Model::decision_point(int numchoices, bool *at_backtrack) {
 }
 
 bool Model::should_crash() {
-    if (crashes.size() < MAX_CRASHES_PER_EXECUTION && (process_id_t) crashes.size() + 1 < scheduler->get_process_count() && decision_point(2) == 0) {
-        return true;
-    }
-    return false;
+    unsigned crash_count = crashes.size();
+    return backtrack &&
+        crash_count < MAX_CRASHES_PER_EXECUTION &&
+        crash_count + 1 < (unsigned) scheduler->get_process_count() &&
+        decision_point(2) == 0;
 }
 
 void Model::insert_crash(process_id_t pid) {

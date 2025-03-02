@@ -163,7 +163,8 @@ void execute(ModelAction* action) {
     }
 	case ATOMIC_LOAD:
 	case NONATOMIC_LOAD: {
-		action->set_value(model->build_read_from(action));
+		uint64_t value = model->build_read_from(action);
+		action->set_value(value);
 		break;
 	}
     case CACHE_SFENCE:

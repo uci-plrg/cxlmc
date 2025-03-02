@@ -2,15 +2,15 @@
 #define _CONFIG_H
 
 #define MAX_THREADS 64
-#define PAGE_SIZE 4096 //4KB
+#define CXLMC_PAGE_SIZE 4096 //4KB
 #define CACHELINE_SIZE 64
-#define SHARED_MAP_SIZE 0x16000000 //256MB
-#define CXL_MEM_SIZE 0x4000000 //64MB
+#define SHARED_MAP_SIZE (1##ULL << 30) //1GB
+#define CXL_MEM_SIZE (1##ULL << 32) //32GB
 #define SYS_LOCAL_SIZE 0x10000 //64KB
 #define STACK_SIZE 0x100000 //1MB
-#define MAX_EXECUTION 10000
+#define MAX_EXECUTION 50000
 #define MAX_CRASHES_PER_EXECUTION 1
-#define SNAPSHOT_PAGES 10000
+#define SNAPSHOT_PAGES 20000
 #define VALUE_NONE 0xdeadbeef
 #define RANDOM_SEED 42
 #define EVICT_MAX 100;
@@ -26,7 +26,6 @@
 /** Logging options */
 #define DEBUG_LEVEL 1
 #define VERBOSE 0
-
 
 /** Define semantics of volatile memory operations. */
 #define memory_order_volatile_load memory_order_acquire

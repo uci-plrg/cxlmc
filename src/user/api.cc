@@ -104,14 +104,15 @@ void model_rmw_action(void *addrs, uint64_t val, int atomic_index, const char * 
 #define _ATOMIC_RMW_(__op__, size, addr, val, atomic_index, position) \
 	{ \
 		uint ## size ## _t _old; \
-		if (mem_is_cxl(addr)) \
+		bool is_cxl = mem_is_cxl(addr); \
+		if (is_cxl) \
 			_old = model_rmw_read_action(addr, atomic_index, position, size>>3); \
 		else \
 			_old = *(uint ## size ## _t *) addr; \
 		uint ## size ## _t _copy = _old; \
 		uint ## size ## _t _val = val; \
 		_copy __op__ _val; \
-		if (mem_is_cxl(addr)) \
+		if (is_cxl) \
 			model_rmw_action(addr, (uint64_t) _copy, atomic_index, position, size>>3); \
 		else \
 			*(uint ## size ## _t *) addr = _copy; \
@@ -291,6 +292,10 @@ process_id_t get_crashed_process_count() {
 	return model->get_crashed_process_count();
 }
 
+process_id_t get_live_process_count() {
+	return model->get_scheduler()->get_process_count()  - model->get_crashed_process_count() - model->get_completed_process_count();
+}
+
 bool is_process_crashed(process_id_t pid) {
 	return model->is_crashed(pid);
 }
@@ -313,4 +318,14 @@ int mutex_lock_crashed(pthread_mutex_t *p_mutex) {
 	} else {
 		return 0;
 	}
+}
+
+extern bool backtrack;
+
+void cxlmc_no_backtrack_begin() {
+	backtrack = false;
+}
+
+void cxlmc_no_backtrack_end() {
+	backtrack = true;
 }
