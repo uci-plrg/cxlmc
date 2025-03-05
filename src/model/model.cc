@@ -171,7 +171,8 @@ uint64_t Model::build_read_from(ModelAction *read) {
 					} else {
 						branch++;
 						delete old;
-						obj_to_cl.set_cacheline(addr, cacheline{next_sequence_num, cl.getEnd()});
+                        if (store->get_seq_num() > cl.getBegin())
+						    obj_to_cl.set_cacheline(addr, cacheline{store->get_seq_num(), cl.getEnd()});
 					}
 				} else
 					delete old;
