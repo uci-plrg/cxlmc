@@ -82,8 +82,10 @@ Model::storeList &Model::get_storelist(void *addr)  {
 
 void Model::evict_store(ModelAction* action) {
     assert(action->is_write());
+
+    storeList &stores = get_storelist(action->get_location());
 	action->set_seq_num(get_next_sequence_num());
-    get_storelist(action->get_location()).push_back(action);
+    stores.push_back(action);
 }
 
 void Model::evict_clflush(ModelAction* action) {
@@ -164,7 +166,7 @@ uint64_t Model::build_read_from(ModelAction *read) {
 		return ret;
 	}
 
-#if MEM_POISON == 1
+#ifdef MEM_POISON
     check_memory_poisoning(read);
 #endif
 
@@ -218,6 +220,15 @@ uint64_t Model::build_read_from(ModelAction *read) {
 			if (store->get_seq_num() <= cl.getBegin()) { //must have persisted
 				get_overlaps(store, read, *rf, numslotsleft);
 			} else if (cl.getEnd() == 0 || store->get_seq_num() < cl.getEnd()) { //may have persisted
+#ifdef EQUIV_STORE_SKIP
+                // With two stores that are equivalent and no store in between 
+                // the second can be skipped when its machine has crashed 
+                // this avoids blow-up in # of executions in some cases
+                auto next_itr = itr;
+                next_itr++;
+                if(next_itr != stores.rend() && store->equivalent(*next_itr))
+                    continue;
+#endif
 				if (auto old = get_overlaps_save_old(store, read, *rf, numslotsleft)) {
 					//not persisted
 					if (store->get_type() != ATOMIC_INIT && backtrack && decision_point(2, &at_backtrack) == 0) {

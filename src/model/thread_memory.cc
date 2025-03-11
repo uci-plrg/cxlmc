@@ -43,20 +43,20 @@ bool ThreadMemory::pop_from_store_buffer() {
     case NONATOMIC_STORE:
     case ATOMIC_RMW: {
 		model->evict_store(action);
-		obj_to_last_wr_or_clf[getCacheID(action->get_location())] = action->get_seq_num();
+		cl_to_last_wr_clf[getCacheID(action->get_location())] = action->get_seq_num();
 		break;
 	}
 	case CACHE_CLFLUSH: {
 		model->evict_clflush(action);
-		obj_to_last_wr_or_clf[getCacheID(action->get_location())] = action->get_seq_num();
+		cl_to_last_wr_clf[getCacheID(action->get_location())] = action->get_seq_num();
 		delete action;
 		break;
 	}
 	case CACHE_CLFLUSHOPT: {
 		if (last_sfence > action->get_earliest_effect())
 			action->set_earliest_effect(last_sfence);
-		auto itr = obj_to_last_wr_or_clf.find(getCacheID(action->get_location()));
-		if (itr != obj_to_last_wr_or_clf.end() && itr->second > action->get_earliest_effect())
+		auto itr = cl_to_last_wr_clf.find(getCacheID(action->get_location()));
+		if (itr != cl_to_last_wr_clf.end() && itr->second > action->get_earliest_effect())
 			action->set_earliest_effect(itr->second);
 		flushBuffer.push_back(action);
 		break;

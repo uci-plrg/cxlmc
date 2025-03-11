@@ -21,7 +21,7 @@
 #define CXL_ALLOC_RAND_VAL 0xdeadbeef
 
 /** Whether to poison cacheline of failed process */
-#define MEM_POISON 0
+//#define MEM_POISON
 
 /** Logging options */
 #define DEBUG_LEVEL 1
@@ -30,4 +30,8 @@
 /** Define semantics of volatile memory operations. */
 #define memory_order_volatile_load memory_order_acquire
 #define memory_order_volatile_store memory_order_release
+
+/** Optimizations **/
+#define EQUIV_STORE_SKIP
 #endif
+

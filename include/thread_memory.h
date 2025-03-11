@@ -77,7 +77,7 @@ class ThreadMemory {
     shared::list<ModelAction *> storeBuffer;
     shared::list<ModelAction *> flushBuffer;
     modelclock_t last_sfence = 0;
-    shared::hashmap<uintptr_t, modelclock_t> obj_to_last_wr_or_clf;
+    shared::hashmap<uintptr_t, modelclock_t> cl_to_last_wr_clf;
 
 public:
     ThreadMemory() {}

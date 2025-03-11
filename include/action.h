@@ -81,6 +81,7 @@ public:
 	bool is_second_part_of_rmw() { return type == ATOMIC_RMW || type == ATOMIC_CAS_FAILED; }
 	bool is_read() { return type == ATOMIC_LOAD || type == NONATOMIC_LOAD || type == ATOMIC_RMWR || type == ATOMIC_RMW; }
 	bool is_write() { return type == ATOMIC_STORE || type == ATOMIC_RMW || type == ATOMIC_INIT || type == NONATOMIC_STORE; }
+    inline bool equivalent(ModelAction *other) {return value == other->value && size == other->size && location == other->location; } 
 
 	Thread* get_thread();
 	Mutex* get_mutex();
