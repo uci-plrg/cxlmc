@@ -11,6 +11,7 @@
 #include "model.h"
 #include "scheduler.h"
 #include "executor.h"
+#include "futex.h"
 
 Model *model = nullptr;
 bool inside_model = false;
@@ -220,8 +221,8 @@ uint64_t Model::build_read_from(ModelAction *read) {
 				get_overlaps(store, read, *rf, numslotsleft);
 			} else if (cl.getEnd() == 0 || store->get_seq_num() < cl.getEnd()) { //may have persisted
 #ifdef EQUIV_STORE_SKIP
-                // With two stores that are equivalent and no store in between 
-                // the second can be skipped when its machine has crashed 
+                // With two equivalent may-persist stores
+                // the second can be skipped
                 // this avoids blow-up in # of executions in some cases
                 auto next_itr = itr;
                 next_itr++;
@@ -318,6 +319,9 @@ void Model::finish_execution() {
 				nodestack->save_state(num + 1, ns_save);
 		}
         execution_num.store(num+1);
+#ifdef SYNC_WAIT
+		fwake((uint32_t*)&execution_num);
+#endif
     }
 }
 
@@ -328,6 +332,9 @@ bool Model::wait_for_next_execution(int num) {
 
 	int loaded;
     while ((loaded = execution_num.load()) < num) {
+#ifdef SYNC_WAIT
+		fwait((uint32_t*)&execution_num, loaded);
+#endif
     }
 
     return rollback_again;

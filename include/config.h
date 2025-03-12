@@ -32,6 +32,9 @@
 #define memory_order_volatile_store memory_order_release
 
 /** Optimizations **/
+//skip one when choosing from two equivalent may-persist store during load
 #define EQUIV_STORE_SKIP
+//synchronise using futex when waiting
+//#define SYNC_WAIT
 #endif
 
