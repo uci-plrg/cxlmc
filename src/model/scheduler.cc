@@ -2,7 +2,6 @@
 #include <cstdio>
 
 #include "scheduler.h"
-#include "futex.h"
 
 process_id_t process_id;
 thread_id_t thread_id;
@@ -34,7 +33,6 @@ void Scheduler::wait() {
             thread_id = active;
             prev->swap(get_thread(active));
         }	
-		fwait((uint32_t*)&active_thread, active);
     }
 }
 
@@ -47,7 +45,6 @@ void Scheduler::yield() {
         thread_id_t tid = (active + i) % tc;
         if (threads[tid]->get_state() == THREAD_RUNNING) {
             active_thread.store(tid);
-            fwake((uint32_t*)&active_thread);
             wait();
             return;
         }
@@ -69,7 +66,6 @@ bool Scheduler::last_yield() {
         thread_id_t tid = (active + i) % tc;
         if (threads[tid]->get_state() == THREAD_RUNNING) {
             active_thread.store(tid);
-			fwake((uint32_t*)&active_thread);
             return true;
         }
 
