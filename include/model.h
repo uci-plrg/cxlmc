@@ -59,7 +59,9 @@ private:
 
 public:
     Model(Scheduler *s): scheduler(s), execution_num(1), cxl_mapping(NULL), next_sequence_num(0), nodestack(new NodeStack), rollback_again(true),
-        execution_num_save(0), ns_save(nullptr) {}
+        execution_num_save(0), ns_save(nullptr) {
+        obj_to_cl.init(s->get_process_count());
+    }
     ~Model() { delete nodestack; }
 
     uint64_t action(ModelAction* action, bool yield=true);

@@ -29,117 +29,58 @@ private:
 using cacheline = Range;
 
 class CacheLineStore {
-	// stores a crash point A (or UINT_MAX if no crash) and a map of cacheline constraints.
-	// Let B be the crash point before A or 0 if none. the map stores constraints whose begin is in [B, A) 
-	// ordered from earliest crash point to latest
-	using store_t = shared::vector<shared::Pair<modelclock_t, shared::hashmap<uintptr_t, cacheline>>>;
+	using store_t = shared::vector<shared::hashmap<uintptr_t, cacheline>>;
 	store_t  _store; 
 
-	//return the first cacheline and the map index searching from ith map towards the beginning of the vector
-	cacheline *find_first(int &i, uintptr_t addr) {
-		for (; i>=0; i--) {
-			auto &map = _store[i].second; 
-			auto itr = map.find(addr);
-			if (itr != map.end())
-				return &itr->second;
-		}
-		i++;
-		return (cacheline *)nullptr;
-	}
-
-	void ensure_init() {
-		if (_store.size() == 0)
-			_store.push_back(shared::Pair{UINT_MAX, shared::hashmap<uintptr_t, cacheline>{}}); 
-	}
 public:
 	CacheLineStore() = default;
-	//{
-	//	_store.push_back(shared::Pair{UINT_MAX, shared::hashmap<uintptr_t, cacheline>{}}); 
-	//}
 
 	CacheLineStore(const CacheLineStore &other) = default;
 
-	cacheline &get_cacheline(uintptr_t addr, modelclock_t crash_point=UINT_MAX) {
-		ensure_init();
-		int i = _store.size()-1;
-		//can use binary search to optimize
-		while (i!=0 &&_store[i].first != crash_point)
-			i--;
-		assert(_store[i].first == crash_point);
-
-		cacheline *first = find_first(i, addr);
-		if (!first)
-			return _store[0].second[addr] = cacheline{};
-		return *first;
+    void init(process_id_t p_count) {
+    	_store.resize(p_count);
+		for (int i=0; i<p_count; i++)
+			_store.insertAt(i, shared::hashmap<uintptr_t, cacheline>()); 
 	}
 
-	cacheline &set_cacheline(uintptr_t addr, const cacheline &cl) {
-		ensure_init();
-		int i = 0;
-		//can use binary search to optimize
-		while (_store[i].first < cl.getBegin())
-			i++;
-		return _store[i].second[addr] = cl;
+	cacheline &get_cacheline(process_id_t pid, uintptr_t addr) {
+		assert(pid < _store.size());
+		if (_store[pid].find(addr) == _store[pid].end())
+			return _store[pid][addr] = cacheline{};
+		return _store[pid][addr];
 	}
 
-	void insert_crash(modelclock_t crash_point) {
-		ensure_init();
-		_store[_store.size()-1].first = crash_point;
-		_store.push_back(shared::Pair(UINT_MAX, shared::hashmap<uintptr_t, cacheline>{}));
+	cacheline &set_cacheline(process_id_t pid, uintptr_t addr, const cacheline &cl) {
+		assert(pid < _store.size());
+		return _store[pid][addr] = cl;
 	}
-
-	void copy_at(const CacheLineStore &other, uintptr_t addr) {
-		const auto &other_store = other.get_store();
-		if (other_store.size() == 0)
-			return;
-		assert(other_store.size() >= _store.size());
-
-		ensure_init();
-		unsigned i = _store.size()-1;
-		_store[i].first = other_store[i].first;
-		for (i++;i < other_store.size(); i++)
-			_store.push_back(shared::Pair{other_store[i].first, shared::hashmap<uintptr_t, cacheline>{}});
-
-		for (i = 0; i < other_store.size(); i++) {
-			const auto &map = other_store[i].second;
-			auto itr = map.find(addr);
-			if (itr != map.end())
-				_store[i].second[addr] = itr->second;
-		}	
-	}
-
+	
 	const store_t &get_store() const {
 		return _store;
 	}
 
 	void clear() {
-		_store.clear();
+        for (auto &p: _store)
+		    p.clear();
 	}
 
 	void dump() {
-		for (const auto &pair: _store) {
-			if (pair.second.size() == 0)
+		for (uint i=0; i<_store.size(); i++) {
+			if (_store[i].size() == 0)
 				continue;
-			if (pair.first == UINT_MAX)
-				printf("current: {");
-			else 
-				printf("before %u: {", pair.first);
-			for (const auto &mpair: pair.second)
-				printf("%p: (%d, %d), ", (void*) mpair.first, mpair.second.getBegin(), mpair.second.getEnd()); 
+			printf("process %u: {", i);
+			for (const auto &pair: _store[i])
+				printf("%p: (%d, %d), ", (void*) pair.first, pair.second.getBegin(), pair.second.getEnd()); 
 			printf("}\n");
 		}
 	}
 
 	void dump(uintptr_t addr) {
-		for (auto &pair: _store) {
-			auto itr = pair.second.find(addr);
-			if (itr != pair.second.end()) {
+		for (uint i=0; i<_store.size(); i++) {
+			auto itr = _store[i].find(addr);
+			if (itr != _store[i].end()) {
 				auto &cl = itr->second;
-				if (pair.first == UINT_MAX)
-					printf("current: ");
-				else 
-					printf("before %u: ", pair.first);
-				printf("(%d, %d), ", cl.getBegin(), cl.getEnd()); 
+				printf("process %u: (%d, %d),", i, cl.getBegin(), cl.getEnd());
 			}
 		}
 	}

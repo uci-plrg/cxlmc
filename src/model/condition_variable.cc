@@ -1,4 +1,5 @@
 #include "condition_variable.h"
+#include "model.h"
 
 void ConditionVariable::notify_one() {
     model->action(new ModelAction(ATOMIC_NOTIFY_ONE, this));
