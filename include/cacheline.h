@@ -50,11 +50,11 @@ public:
 		return _store[pid][addr];
 	}
 
-	cacheline &set_cacheline(process_id_t pid, uintptr_t addr, const cacheline &cl) {
+	void set_cacheline(process_id_t pid, uintptr_t addr, const cacheline &cl) {
 		assert(pid < _store.size());
-		return _store[pid][addr] = cl;
-	}
-	
+		_store[pid][addr] = cl;
+	}	
+
 	const store_t &get_store() const {
 		return _store;
 	}

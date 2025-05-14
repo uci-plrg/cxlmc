@@ -98,22 +98,28 @@ void Model::evict_clflush(ModelAction* action) {
 	} else
 		seq_num = action->get_earliest_effect();
 	uintptr_t addr = getCacheID(action->get_location());
-	cacheline &cl = obj_to_cl.get_cacheline(get_process_id(action), addr);
+	//assuming clflush flushes caches of all machines:
+	modelclock_t min = seq_num;
+	for (int i=0; i < scheduler->get_process_count(); i++) { 
+		cacheline &cl = obj_to_cl.get_cacheline(i, addr);
+		if (seq_num <= cl.getBegin())
+			continue;
+		if (cl.getBegin() < min)
+			min = cl.getBegin();
+		cl.setBegin(seq_num);
+	}
 	auto stores = get_storelist(action->get_location());
-
 	for (auto itr = stores.rbegin(); itr != stores.rend(); itr++) {
-		if ((*itr)->get_seq_num() <= cl.getBegin() ||
+		if ((*itr)->get_seq_num() <= min ||
 			crashes.size() >= MAX_CRASHES_PER_EXECUTION || 
 			crashes.size() >= (unsigned) scheduler->get_process_count()-1)
-
 			break;
 		auto wpid = get_process_id(*itr);
-		if (is_live(wpid))
+		if (is_live(wpid)) {
 			insert_crash(wpid);
+			break;
+		}
 	}
-
-	if (seq_num > cl.getBegin())
-		cl.setBegin(seq_num);
 }
 
 void Model::check_memory_poisoning(ModelAction *read) {
