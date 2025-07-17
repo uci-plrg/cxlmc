@@ -2,11 +2,11 @@ cmake_minimum_required(VERSION 3.30)
 
 project(CXLMC)
 
-set(default_build_type "Debug")
+set(default_build_type "Release")
 set(c_flags )
 set(cxx_flags -std=c++17)
 set(c_cxx_flags -Wno-unused-parameter -Wmissing-field-initializers -Wall -Wextra
- -pedantic -Wshadow -O0 -g)
+ -pedantic -Wshadow -O3 -g)
 
 add_compile_options(
   "$<$<COMPILE_LANGUAGE:CXX>:${cxx_flags}>"

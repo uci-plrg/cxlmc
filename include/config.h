@@ -23,6 +23,9 @@
 /** Whether to poison cacheline of failed process */
 //#define MEM_POISON
 
+/** Whether GPF always succeeds. Collapse to a vanilla TSO memory model if yes */
+//#define GPF_ALWAYS_SUCCEEDS
+
 /** Logging options */
 #define DEBUG_LEVEL 1
 #define VERBOSE 0

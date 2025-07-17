@@ -15,6 +15,7 @@
 
 Model *model = nullptr;
 bool inside_model = false;
+// whether to do backtrack search
 bool backtrack = true;
 mspace shared_space = NULL;
 mspace snapshot_space = NULL;
@@ -166,13 +167,14 @@ uint64_t Model::build_read_from(ModelAction *read) {
 		return ret;
 	}
 
+    storeList &stores = get_storelist(read->get_location());
+    assert(stores.size() != 0);
+
 #ifdef MEM_POISON
     check_memory_poisoning(read);
 #endif
 
 	int branch = 0;
-	storeList &stores = get_storelist(read->get_location());
-	assert(stores.size() != 0);
 
 	process_id_t rpid = get_process_id(read);
 	unsigned p_count = scheduler->get_process_count();
@@ -188,15 +190,15 @@ uint64_t Model::build_read_from(ModelAction *read) {
 		if (citr == crashes.end()) {
 			if (auto old = get_overlaps_save_old(store, read, *rf, numslotsleft)) {
 				//consider crashing the writing process before the read
-				if (store->get_type() != ATOMIC_INIT && wpid != rpid) {
+				if (backtrack && store->get_type() != ATOMIC_INIT && wpid != rpid) {
 					cacheline cl = obj_to_cl.get_cacheline(cache_addr);
-						unsigned crash_count = crashes.size();
-					if (backtrack &&
-						crash_count < MAX_CRASHES_PER_EXECUTION &&
+					unsigned crash_count = crashes.size();
+					if (crash_count < MAX_CRASHES_PER_EXECUTION &&
 						crash_count + 1< p_count &&
 						!is_completed(wpid) && 
 						store->get_seq_num() > cl.getBegin() &&
-						decision_point(2, &at_backtrack) == 0) 
+                        ++crash_points &&
+						decision_point(2, &at_backtrack) == 0)
 					{
 						crashes.emplace(wpid, next_sequence_num);
 						obj_to_cl.insert_crash(next_sequence_num);
@@ -288,8 +290,6 @@ void Model::print_execution_summary() {
 		for (auto &pair: crashes)
 			printf("p%d at %d, ", pair.first, pair.second);
 		printf("\n\n");
-        
-        printf("\n");
 }
 
 void Model::terminate_early() {
@@ -305,12 +305,17 @@ void Model::finish_execution() {
     int num = execution_num.load();
 
     if (isLast) {
-		if (VERBOSE > 0)
+		if (VERBOSE > 1)
 			print_execution_summary();
+        if (VERBOSE > 0)
+            printf("cumulative crash count: %d\n", crash_points);
+        printf("\n");
 		reset_execution_data();
 		scheduler->reset();
-		printf("Shared Space Memory Usage:\n");
-		mspace_malloc_stats(shared_space);
+        printf("crash points: %d\n", crash_points);
+        crash_points = 0;
+		//printf("Shared Space Memory Usage:\n");
+		//mspace_malloc_stats(shared_space);
 
         rollback_again = rollback_again && num+1 <= MAX_EXECUTION && nodestack->has_another_execution();
         if (rollback_again) {
@@ -318,6 +323,7 @@ void Model::finish_execution() {
 			if (execution_num_save == num + 1)
 				nodestack->save_state(num + 1, ns_save);
 		}
+
         execution_num.store(num+1);
 #ifdef SYNC_WAIT
 		fwake((uint32_t*)&execution_num);
@@ -368,6 +374,7 @@ bool Model::should_crash() {
     return backtrack &&
         crash_count < MAX_CRASHES_PER_EXECUTION &&
         crash_count + 1 < (unsigned) scheduler->get_process_count() &&
+        ++crash_points &&
         decision_point(2) == 0;
 }
 

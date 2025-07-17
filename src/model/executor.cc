@@ -5,6 +5,8 @@
 #include "executor.h"
 #include "threads.h"
 
+extern bool backtrack;
+
 Thread* get_thread(ModelAction* action) {
     return model->get_scheduler()->get_thread(action->get_thread_id());
 }
@@ -163,8 +165,15 @@ void execute(ModelAction* action) {
     }
 	case ATOMIC_LOAD:
 	case NONATOMIC_LOAD: {
+#ifdef GPF_ALWAYS_SUCCEEDS
+        bool backtrack_old = backtrack;
+        backtrack = false;
+#endif
 		uint64_t value = model->build_read_from(action);
 		action->set_value(value);
+#ifdef GPF_ALWAYS_SUCCEEDS
+        backtrack = backtrack_old;
+#endif
 		break;
 	}
     case CACHE_SFENCE:

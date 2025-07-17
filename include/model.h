@@ -18,8 +18,10 @@ public:
     using storeList = shared::list<ModelAction *>;
 
 private:
+    //persist across executions
     Scheduler *scheduler;
     std::atomic_int execution_num;
+    unsigned crash_points;
 
     //should be reset on rollback
     void* cxl_mapping;
@@ -58,7 +60,7 @@ private:
     void check_memory_poisoning(ModelAction *read);
 
 public:
-    Model(Scheduler *s): scheduler(s), execution_num(1), cxl_mapping(NULL), next_sequence_num(0), nodestack(new NodeStack), rollback_again(true),
+    Model(Scheduler *s): scheduler(s), execution_num(1), crash_points(0), cxl_mapping(NULL), next_sequence_num(0), nodestack(new NodeStack), rollback_again(true),
         execution_num_save(0), ns_save(nullptr) {}
     ~Model() { delete nodestack; }
 
