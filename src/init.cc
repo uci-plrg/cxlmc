@@ -152,11 +152,13 @@ int main(int argc, char* argv[]) {
         
         pid_t pid;
         int id;
+        pid_t* pids = (pid_t*)malloc(sizeof(pid_t) * processes);
         for (id = 0; id < processes; id++) {
             pid = fork();
             if (pid == 0) {
                 break;
             } else {
+                pids[id] = pid;
                 std::cout << "spawn process " << id << " with system pid " << pid << "\n";
             }
         }
@@ -170,12 +172,22 @@ int main(int argc, char* argv[]) {
             int status;
             pid_t child;
             while ((child = waitpid(-1, &status, 0)) != -1) {
-                if(WIFSIGNALED(status))
+                if(WIFSIGNALED(status)) {
                     std::cerr << "process " << child << " terminated by sig " << WTERMSIG(status) << std::endl;
-                else if (WIFSTOPPED(status))
+                    for (int i = 0; i < progc; i++) {
+                        kill(pids[i], SIGKILL);
+                    }
+                    exit(EXIT_FAILURE);
+                } else if (WIFSTOPPED(status)) {
                     std::cerr << "process " << child << " stopped by sig " << WSTOPSIG(status) << std::endl;
+                    for (int i = 0; i < progc; i++) {
+                        kill(pids[i], SIGKILL);
+                    }
+                    exit(EXIT_FAILURE);
+                }
             }
- 
+
+            free(pids);
             munmap(cxl_mapping, CXL_MEM_SIZE); 
         }
     } else {

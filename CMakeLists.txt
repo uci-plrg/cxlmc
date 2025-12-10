@@ -14,6 +14,10 @@ add_compile_options(
   "${c_cxx_flags}"
   )
 
+if (CXLMC_CXL_ALLOC_RAND)
+    add_compile_definitions(CXL_ALLOC_RAND=1)
+endif()
+
 enable_language(C CXX)
 
 add_subdirectory(src)
