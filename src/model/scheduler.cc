@@ -59,7 +59,7 @@ void Scheduler::yield() {
 
     if (threads[active]->get_state() != THREAD_RUNNING) {
         printf("DEADLOCK\n");
-        abort();
+        exit(EXIT_FAILURE);
     }
 }
 
@@ -84,7 +84,7 @@ bool Scheduler::last_yield() {
 
     if (threads_blocked) {
         printf("DEADLOCK\n");
-        abort();
+        exit(EXIT_FAILURE);
     }
 
     return false;
@@ -96,7 +96,7 @@ bool Scheduler::finalize() {
             printf("thread %d done\n", thread_id);
         threads[thread_id]->set_state(THREAD_COMPLETED);
     }
-    return last_yield();
+    return !terminating && last_yield();
 }
 
 void Scheduler::process_shutdown() {

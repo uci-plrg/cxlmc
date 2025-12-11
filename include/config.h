@@ -17,7 +17,9 @@
 
 
 /** Inject randomness into CXL-allocated memory */
+#ifndef CXL_ALLOC_RAND
 #define CXL_ALLOC_RAND 0
+#endif
 #define CXL_ALLOC_RAND_VAL 0xdeadbeef
 
 /** Whether to poison cacheline of failed process */
@@ -27,7 +29,7 @@
 //#define GPF_ALWAYS_SUCCEEDS
 
 /** Logging options */
-#define DEBUG_LEVEL 1
+#define DEBUG_LEVEL 0
 #define VERBOSE 0
 
 /** Define semantics of volatile memory operations. */

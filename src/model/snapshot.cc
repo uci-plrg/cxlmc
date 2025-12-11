@@ -9,6 +9,8 @@ pid_t take_snapshot() {
 
 		pid_t forkedID;
 
+        fflush(stdout);
+        fflush(stderr);
 		forkedID = fork();
 
 		if (0 == forkedID) {
@@ -16,12 +18,17 @@ pid_t take_snapshot() {
         }
             
         int status;
-        while(waitpid(-1, &status, 0) < 0) {
-            /* waitpid() may be interrupted */
-			if (errno != EINTR) {
-				perror("waitpid");
-				exit(EXIT_FAILURE);
-			}
+        if(waitpid(-1, &status, 0) == -1) {
+            std::cerr << "waitpid error " << strerror(errno) << std::endl;
+			exit(EXIT_FAILURE);
+        }
+
+        if (WIFEXITED(status)) {
+            int ret;
+            if ((ret = WEXITSTATUS(status) != 0)) {
+                std::cerr << "execution " << execution_num << " exited with error value " << WEXITSTATUS(status) << std::endl;
+                model->terminate_early();
+            }
         }
 
         if(WIFSIGNALED(status)) {
