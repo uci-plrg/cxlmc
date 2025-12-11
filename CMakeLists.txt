@@ -18,6 +18,10 @@ if (CXLMC_CXL_ALLOC_RAND)
     add_compile_definitions(CXL_ALLOC_RAND=1)
 endif()
 
+if (CXLMC_GPF)
+    add_compile_definitions(GPF_ALWAYS_SUCCEEDS=1)
+endif()
+
 enable_language(C CXX)
 
 add_subdirectory(src)

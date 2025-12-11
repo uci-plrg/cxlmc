@@ -154,6 +154,8 @@ int main(int argc, char* argv[]) {
         int id;
         pid_t* pids = (pid_t*)malloc(sizeof(pid_t) * processes);
         for (id = 0; id < processes; id++) {
+            fflush(stdout);
+            fflush(stderr);
             pid = fork();
             if (pid == 0) {
                 break;

@@ -17,6 +17,7 @@ class Scheduler {
     const process_id_t process_count;
     std::atomic<thread_id_t> active_thread;
     shared::vector<Thread*> threads;
+    bool terminating;
 
 public:
     Scheduler(int pc);
@@ -60,6 +61,8 @@ public:
     void reset();
 
     void assert_active() { assert(active_thread.load() == thread_id); }
+
+    void set_terminating() { terminating = true; }
     
 };
 #endif

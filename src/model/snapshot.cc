@@ -9,6 +9,8 @@ pid_t take_snapshot() {
 
 		pid_t forkedID;
 
+        fflush(stdout);
+        fflush(stderr);
 		forkedID = fork();
 
 		if (0 == forkedID) {
@@ -24,7 +26,7 @@ pid_t take_snapshot() {
         if (WIFEXITED(status)) {
             int ret;
             if ((ret = WEXITSTATUS(status) != 0)) {
-                std::cerr << "execution " << execution_num << " exited with error value " << WTERMSIG(status) << std::endl;
+                std::cerr << "execution " << execution_num << " exited with error value " << WEXITSTATUS(status) << std::endl;
                 model->terminate_early();
             }
         }

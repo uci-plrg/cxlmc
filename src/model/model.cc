@@ -294,6 +294,7 @@ void Model::print_execution_summary() {
 
 void Model::terminate_early() {
     rollback_again = false;
+	scheduler->set_terminating();
     finish_execution();
     _Exit(EXIT_FAILURE);
 }
