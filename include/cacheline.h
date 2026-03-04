@@ -44,14 +44,14 @@ public:
 	}
 
 	cacheline &get_cacheline(process_id_t pid, uintptr_t addr) {
-		assert(pid < _store.size());
+		assert((size_t)pid < _store.size());
 		if (_store[pid].find(addr) == _store[pid].end())
 			return _store[pid][addr] = cacheline{};
 		return _store[pid][addr];
 	}
 
 	void set_cacheline(process_id_t pid, uintptr_t addr, const cacheline &cl) {
-		assert(pid < _store.size());
+		assert((size_t)pid < _store.size());
 		_store[pid][addr] = cl;
 	}	
 
