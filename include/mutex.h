@@ -1,7 +1,7 @@
 #ifndef _MUTEX_H
 #define _MUTEX_H
 
-#include "model.h"
+#include "threads.h"
 
 class Mutex {
     int mutex_type;

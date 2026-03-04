@@ -99,38 +99,45 @@ void Model::evict_clflush(ModelAction* action) {
 	} else
 		seq_num = action->get_earliest_effect();
 	uintptr_t addr = getCacheID(action->get_location());
-	cacheline cl = obj_to_cl.get_cacheline(addr);
+	//assuming clflush flushes caches of all machines:
+	modelclock_t min = seq_num;
+	for (int i=0; i < scheduler->get_process_count(); i++) { 
+		cacheline &cl = obj_to_cl.get_cacheline(i, addr);
+		if (seq_num <= cl.getBegin())
+			continue;
+		if (cl.getBegin() < min)
+			min = cl.getBegin();
+		cl.setBegin(seq_num);
+	}
 	auto stores = get_storelist(action->get_location());
-
 	for (auto itr = stores.rbegin(); itr != stores.rend(); itr++) {
-		if ((*itr)->get_seq_num() <= cl.getBegin() ||
+		if ((*itr)->get_seq_num() <= min ||
 			crashes.size() >= MAX_CRASHES_PER_EXECUTION || 
 			crashes.size() >= (unsigned) scheduler->get_process_count()-1)
-
 			break;
 		auto wpid = get_process_id(*itr);
-		if (is_live(wpid))
+		if (is_live(wpid)) {
 			insert_crash(wpid);
+			break;
+		}
 	}
-
-	if (seq_num > cl.getBegin())
-		obj_to_cl.set_cacheline(addr, cacheline{seq_num, cl.getEnd()});
 }
 
 void Model::check_memory_poisoning(ModelAction *read) {
 	uintptr_t cache_addr = getCacheID(read->get_location());
     modelclock_t poison_begin = 0;
-	modelclock_t poison_crash;
+	process_id_t poison_pid;
     for (int i=0; i < CACHELINE_SIZE/8; i++) {
 		void *addr = ((char *)cache_addr) + i;
 		storeList &stores = get_storelist(addr);
         if (stores.size() == 0)
             continue;
         auto head = *stores.begin();
-		auto citr = crashes.find(get_process_id(head));
+        auto head_pid = get_process_id(head);
+		auto citr = crashes.find(head_pid);
 		if (citr == crashes.end())
             continue;
-		cacheline &cl = obj_to_cl.get_cacheline(cache_addr, citr->second);
+		cacheline &cl = obj_to_cl.get_cacheline(head_pid, cache_addr);
         modelclock_t seq_num = head->get_seq_num();
         if (cl.getEnd() != 0 && read->get_seq_num() > cl.getEnd()) {
 			fprintf(stderr, "poison value on read at %s\n", read->get_position());
@@ -138,25 +145,24 @@ void Model::check_memory_poisoning(ModelAction *read) {
 		}
         if (seq_num > cl.getBegin() && seq_num > poison_begin) {
             poison_begin = seq_num;
-            poison_crash = citr->second; 
+            poison_pid = head_pid; 
         }
     }
 
     if (poison_begin != 0) {
-		cacheline &cl = obj_to_cl.get_cacheline(cache_addr, poison_crash);
+		cacheline &cl = obj_to_cl.get_cacheline(poison_pid, cache_addr);
         if (decision_point(2) == 0) {
-			obj_to_cl.set_cacheline(cache_addr, cacheline{cl.getBegin(), poison_begin});
+			cl.setEnd(poison_begin);
 			fprintf(stderr, "poison value on read at %s\n", read->get_position());
 			exit(EXIT_FAILURE);
         } else {
-            obj_to_cl.set_cacheline(cache_addr, cacheline{poison_begin, cl.getEnd()});
+            cl.setBegin(poison_begin);
         }
     }
 }
 
 uint64_t Model::build_read_from(ModelAction *read) {	
 	uintptr_t cache_addr = getCacheID(read->get_location());
-	auto pos = read->get_position();
 	uint numslotsleft = read->get_size();
 	//optimize: store delta to data in rfEntry
 	auto rf = new shared::vector<ModelAction *>(numslotsleft);
@@ -190,10 +196,11 @@ uint64_t Model::build_read_from(ModelAction *read) {
 		if (citr == crashes.end()) {
 			if (auto old = get_overlaps_save_old(store, read, *rf, numslotsleft)) {
 				//consider crashing the writing process before the read
-				if (backtrack && store->get_type() != ATOMIC_INIT && wpid != rpid) {
-					cacheline cl = obj_to_cl.get_cacheline(cache_addr);
-					unsigned crash_count = crashes.size();
-					if (crash_count < MAX_CRASHES_PER_EXECUTION &&
+				if (store->get_type() != ATOMIC_INIT && wpid != rpid) {
+					cacheline &cl = obj_to_cl.get_cacheline(wpid, cache_addr);
+						unsigned crash_count = crashes.size();
+					if (backtrack &&
+						crash_count < MAX_CRASHES_PER_EXECUTION &&
 						crash_count + 1< p_count &&
 						!is_completed(wpid) && 
 						store->get_seq_num() > cl.getBegin() &&
@@ -201,7 +208,6 @@ uint64_t Model::build_read_from(ModelAction *read) {
 						decision_point(2, &at_backtrack) == 0)
 					{
 						crashes.emplace(wpid, next_sequence_num);
-						obj_to_cl.insert_crash(next_sequence_num);
 						delete rf;
 						rf = old;
 						numslotsleft = slotsleft_copy;
@@ -209,7 +215,7 @@ uint64_t Model::build_read_from(ModelAction *read) {
 						branch++;
 						delete old;
                         if (store->get_seq_num() > cl.getBegin())
-							obj_to_cl.set_cacheline(cache_addr, cacheline{store->get_seq_num(), cl.getEnd()});
+							cl.setBegin(store->get_seq_num());
 					}
 				} else
 					delete old;
@@ -217,8 +223,7 @@ uint64_t Model::build_read_from(ModelAction *read) {
 		} 
 		citr = crashes.find(wpid);
 		if(citr != crashes.end()) { //crashed processes
-			modelclock_t crash_clock = citr->second;
-			cacheline &cl = obj_to_cl.get_cacheline(cache_addr, crash_clock);
+			cacheline &cl = obj_to_cl.get_cacheline(wpid, cache_addr);
 			if (store->get_seq_num() <= cl.getBegin()) { //must have persisted
 				get_overlaps(store, read, *rf, numslotsleft);
 			} else if (cl.getEnd() == 0 || store->get_seq_num() < cl.getEnd()) { //may have persisted
@@ -242,7 +247,7 @@ uint64_t Model::build_read_from(ModelAction *read) {
 					} else {
 						branch++;
 						delete old;
-						obj_to_cl.set_cacheline(cache_addr, cacheline{store->get_seq_num(), cl.getEnd()});
+						cl.setBegin(store->get_seq_num());
 					}
 				}
 			}
@@ -386,13 +391,11 @@ void Model::insert_crash(process_id_t pid) {
 	
 	if (pid == process_id) {
 		crashes[process_id] = next_sequence_num;
-		obj_to_cl.insert_crash(next_sequence_num);
 		scheduler->process_crash();
 		exit(EXIT_SUCCESS);
 	}
 	
 	crashes.emplace(pid, next_sequence_num);
-	obj_to_cl.insert_crash(next_sequence_num);
 }
 
 void Model::ensureInitialValue(ModelAction *action) {

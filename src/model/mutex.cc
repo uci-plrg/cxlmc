@@ -1,4 +1,5 @@
 #include "mutex.h"
+#include "model.h"
 
 bool Mutex::lock() {
     return model->action(new ModelAction(ATOMIC_LOCK, this));
